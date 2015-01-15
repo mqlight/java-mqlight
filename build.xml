@@ -1,0 +1,169 @@
+<!--
+ *   <copyright 
+ *   notice="oco-source" 
+ *   pids="5725-P60" 
+ *   years="2015" 
+ *   crc="1438874957" > 
+ *   IBM Confidential 
+ *    
+ *   OCO Source Materials 
+ *    
+ *   5724-H72
+ *    
+ *   (C) Copyright IBM Corp. 2015
+ *    
+ *   The source code for the program is not published 
+ *   or otherwise divested of its trade secrets, 
+ *   irrespective of what has been deposited with the 
+ *   U.S. Copyright Office. 
+ *   </copyright> 
+-->
+
+<project name="mqlight" default="all" basedir=".">
+	<property environment="env"/>
+	<property name="src" location="mqlight/src/main/java"/>
+	<property name="lib" location="lib"/>
+	<property name="nonship" location="nonship"/>
+	<property name="unittest.src" location="mqlight/src/test/java"/>
+	<property name="version" value="1.0"/>	<!-- TODO: is this right?  Should we store this somewher else? -->
+	
+	<!-- If the 'BROOT' environment variable is set - generate output relative to BROOT -->
+	<target name="broot.present" if="env.BROOT">
+	 	<echo message="Running inside MQ Build environment"/>
+		<property name="output.root" location="${env.BROOT}/appmsging/java"/>
+		<property name="protonSource" value="${env.BROOT}/appmsging/qpid-proton/qpid-proton-0.8/proton-j/src"/>
+	</target>
+	
+	<!-- If the 'broot' environment variable is not set - generate output relative to -->
+	<!-- the location that Ant is being run from.                                     -->
+	<target name="broot.missing" unless="env.BROOT">
+		<echo message="Running outside MQ Build environment"/>
+		<property name="output.root" location="output"/>
+		<property name="protonSource" value="../../ApacheQpid/qpid-proton-0.8/proton-j/src" />
+	</target>
+	
+	<target name="setup" depends="broot.present, broot.missing">
+		<echo message="Output going to: ${output.root}"/>
+		<property name="ship" location="${output.root}/ship"/>
+		<property name="doc" location="${output.root}/doc"/>
+		<property name="unittest" location="${output.root}/unittest"/>
+		<property name="unittest.classes" location="${unittest}/classes"/>
+		<property name="unittest.output" location="${unittest}/output"/>
+		<property name="classes" location="${output.root}/classes"/>
+	</target>
+	
+	<target name="clean" depends="setup">
+		<delete dir="${classes}"/>
+		<delete dir="${ship}"/>
+		<delete dir="${doc}"/>
+		<delete dir="${unittest}"/>
+	</target>
+
+	<target name="mkdirs" depends="setup">
+		<mkdir dir="${classes}"/>
+		<mkdir dir="${ship}"/>
+		<mkdir dir="${doc}"/>
+		<mkdir dir="${unittest.classes}"/>
+		<mkdir dir="${unittest.output}"/>
+	</target>
+
+	<target name="compile" depends="mkdirs">
+		<javac srcdir="${src}" destdir="${classes}" includeantruntime="false">
+			<src path="${protonSource}/main/java" />
+			<classpath>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+		<delete><fileset dir="${classes}" includes="**/doc-files/*"/></delete>
+	</target>
+	
+	<target name="javadoc" depends="compile">
+		<javadoc destdir="${doc}">
+			<packageset dir="${src}" defaultexcludes="yes">
+			      <include name="com/ibm/mqlight/api/**"/>
+			      <exclude name="com/ibm/mqlight/api/impl/**"/>
+		    </packageset>
+			<classpath>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+				<pathelement path="${classes}"/>
+			</classpath>
+		</javadoc>
+	</target>
+
+	<target name="package" depends="compile, javadoc">
+		<jar jarfile="${ship}/mqlight-${version}.jar" basedir="${classes}"/>
+		<jar jarfile="${ship}/mqlight-${version}-javadoc.jar" basedir="${doc}"/>
+		<jar jarfile="${ship}/mqlight-${version}-all.jar" basedir="${ship}"/>
+	</target>
+	
+	<target name="compile.ut" depends="package">
+		<javac srcdir="${unittest.src}" destdir="${unittest.classes}" includeantruntime="false">
+			<classpath>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+				<fileset dir="${nonship}">
+					<include name="**/*.jar"/>
+				</fileset>
+				<fileset dir="${ship}">
+					<include name="mqlight-${version}.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+		<jar jarfile="${unittest}/mqlight-${version}-unittests.jar" basedir="${classes}"/>
+	</target>
+	
+	<target name="check.ut">
+		<available file="${unittest}/mqlight-${version}-unittests.jar" property="unittests.present"/>
+	</target>
+	
+	<target name="run.ut" depends="setup, check.ut" if="unittests.present">
+		<delete file="${unittest}/tests.failed"/>
+		
+		<junit failureproperty="junit.failed">
+			<formatter type="plain" usefile="true"/>
+			<formatter type="xml" usefile="true"/>
+			<classpath>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+				<fileset dir="${nonship}">
+					<include name="**/*.jar"/>
+				</fileset>
+				<fileset dir="${ship}">
+					<include name="mqlight-${version}.jar"/>
+				</fileset>
+				<pathelement path="${unittest.classes}"/>
+			</classpath>
+			<batchtest todir="${unittest.output}">
+				<fileset dir="${unittest.src}">
+					<include name="**/Test*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+		
+		<junitreport todir="${unittest}" tofile="junit.xml">
+		  	<fileset dir="${unittest.output}">
+		   		<include name="TEST-*.xml"/>
+		  	</fileset>
+		</junitreport>
+		
+		<concat destfile="${unittest}/javatest.log" append="true">
+		  	<fileset dir="${unittest.output}" includes="TEST-*.txt"/>
+		</concat>
+	</target>
+	
+	<target name="utstatus" depends="run.ut" if="junit.failed">
+		<touch file="${unittest}/tests.failed"/>
+	</target>
+	
+	<target name="unittest" depends="compile.ut, utstatus"/>
+
+	<target name="mqlight" depends="package, compile.ut"/>
+	
+	<target name="all" depends="clean, unittest"/>
+</project>

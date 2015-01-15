@@ -1,0 +1,57 @@
+<--
+ * <copyright
+ * notice="lm-source-program"
+ * pids="5725-P60"
+ * years="2013,2015"
+ * crc="3568777996" >
+ * Licensed Materials - Property of IBM
+ *
+ * 5725-P60
+ *
+ * (C) Copyright IBM Corp. 2015
+ *
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with
+ * IBM Corp.
+ * </copyright>
+-->
+<html>
+ <head>
+  <title>MQ Light Java API</title>
+ </head>
+ <body>
+  <h2>Non-blocking API</h2>
+  Example code for using the non-blocking client to send a message
+  <pre>
+  NonBlockingClient.create("amqps://localhost", new NonBlockingClientAdapter() {
+      public void onStarted(NonBlockingClient client, Object context) {
+          client.send("/kittens", "Hello kitty!");
+          client.stop(true, null, null);
+      }
+  }, null);
+  </pre>
+  <p>
+
+  Example code for receiving messages published to the '/kittens' topic.
+  <pre>
+  NonBlockingClient client = NonBlockingClient.create("amqps://localhost", null, null);
+      client.subscribe("/kittens", new DestinationAdapter() {
+      public void onMessage(NonBlockingClient client, Object context, Delivery delivery) {
+          switch (delivery.getType()) {
+          case BYTES:
+              BytesDelivery bd = (BytesDelivery)delivery;
+              System.out.println(bd.getData());
+              break;
+          case STRING:
+              StringDelivery sd = (StringDelivery)delivery;
+              System.out.println(sd.getData());
+              break;
+          }
+      }
+  }, null, null);
+  </pre>
+  
+  State machine that underpins the client:
+  <img src="doc-files/sm.gif">
+ </body>
+</html>

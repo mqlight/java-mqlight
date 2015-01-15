@@ -1,0 +1,10 @@
+### Jazz Ignore 0
+
+core.ignore.recursive= \
+	{core}
+
+core.ignore= \
+	{bin} \
+	{output}
+
+# vim: set noet ts=8 sw=8 list : #
