@@ -43,6 +43,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import com.ibm.mqlight.api.impl.LogbackLogging;
 import com.ibm.mqlight.api.network.Network;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkConnectFuture;
@@ -52,6 +53,10 @@ import com.ibm.mqlight.api.network.NetworkWriteFuture;
 
 public class NettyNetwork implements Network {
 
+    static {
+        LogbackLogging.setup();
+    }
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static Bootstrap bootstrap;
     

@@ -51,7 +51,16 @@
   }, null, null);
   </pre>
   
-  State machine that underpins the client:
+  State machine that underpins the client:<br>
   <img src="doc-files/sm.gif">
+  <p>
+  <h2>Some notes on logging</h2>
+  The client logs using the SLF4J interfaces.  If it is used in a runtime where an implementation
+  of SLF4J has already been started, then it will use this for logging.  If it is used in a runtime
+  where Logback is used to implement SLF4J and the LogManager has not been started then it will
+  configure Logback itself.  Currently this involves enabling WARN and above logging unless the
+  MQLIGHT_JAVA_LOG environment variable is set (to any value) in which case DEBUG and above
+  logging is enabled using Logback's BasicConfigurator.
+  
  </body>
 </html>

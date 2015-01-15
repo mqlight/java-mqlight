@@ -23,9 +23,14 @@ package com.ibm.mqlight.api.impl.endpoint;
 
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.impl.LogbackLogging;
 
 public class SingleEndpointService extends EndpointServiceImpl {
 
+    static {
+        LogbackLogging.setup();
+    }
+    
     private final Endpoint endpoint;
     boolean exhausted = false;
     int retryCount = 0;

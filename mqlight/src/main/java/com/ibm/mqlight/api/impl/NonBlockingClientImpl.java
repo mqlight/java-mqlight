@@ -86,6 +86,9 @@ import com.ibm.mqlight.api.network.Network;
 
 public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions {
 
+    static {
+        LogbackLogging.setup();
+    }
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
     private final EndpointService endpointService;
@@ -183,14 +186,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
              options,
              listener,
              context);
-        
-        // TODO: this is the wrong place to mess with loggers...
-        if (System.getenv("MQLIGHT_JAVA_LOG") != null) {
-            ((ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)).setLevel(ch.qos.logback.classic.Level.DEBUG);
-        } else {
-            ((ch.qos.logback.classic.Logger)LoggerFactory.getLogger("com.github.oxo42.stateless4j")).setLevel(ch.qos.logback.classic.Level.WARN);
-            ((ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)).setLevel(ch.qos.logback.classic.Level.INFO);
-        }
     }
  
     @Override

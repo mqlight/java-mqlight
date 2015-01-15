@@ -39,6 +39,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.impl.LogbackLogging;
 
 /*
  * TODO
@@ -56,6 +57,10 @@ import com.ibm.mqlight.api.endpoint.EndpointFuture;
  */
 public class BluemixEndpointService extends EndpointServiceImpl {
 
+    static {
+        LogbackLogging.setup();
+    }
+    
     private static ThreadPoolExecutor executor;
     
     private class State {
