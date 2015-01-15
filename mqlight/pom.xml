@@ -1,0 +1,73 @@
+<!--
+ * <copyright
+ * notice="lm-source-program"
+ * pids="5725-P60"
+ * years="2013,2015"
+ * crc="3568777996" >
+ * Licensed Materials - Property of IBM
+ *
+ * 5725-P60
+ *
+ * (C) Copyright IBM Corp. 2015
+ *
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with
+ * IBM Corp.
+ * </copyright>
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.ibm.mqlight.api</groupId>
+  <artifactId>mqlight-api</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>1.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>4.0.21.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.5</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.oxo42</groupId>
+      <artifactId>stateless4j</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+  </dependencies>
+
+  <licenses>
+    <license>
+      <name>Proprietary IBM Software License Agreement</name>
+      <url>http://www14.software.ibm.com/cgi-bin/weblap/lap.pl?popup=Y&amp;li_formnum=L-APIG-9QTHSB</url>
+      <distribution>manual</distribution>
+    </license>
+  </licenses>
+
+  <organization>
+    <name>International Business Machines Corporation</name>
+    <url>http://www.ibm.com/</url>
+  </organization>
+</project>

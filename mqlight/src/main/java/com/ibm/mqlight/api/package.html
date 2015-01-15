@@ -1,4 +1,4 @@
-<--
+<!--
  * <copyright
  * notice="lm-source-program"
  * pids="5725-P60"
@@ -54,6 +54,25 @@
   State machine that underpins the client:<br>
   <img src="doc-files/sm.gif">
   <p>
+  <h2>Getting started</h2>
+  The client depends on the following jar files (and has been built and tested using the indicated versions):
+  <table width="50%" border="1">
+    <tr><th>Dependency</th><th>Version</th></tr>
+    <tr><td>Google Gson</td><td>2.2.4</td></tr>
+    <tr><td>Logback Classic</td><td>1.1.2</td></tr>
+    <tr><td>Logback Core</td><td>1.1.2</td></tr>
+    <tr><td>Apache Netty</td><td>4.0.21.Final</td></tr>
+    <tr><td>SLF4J</td><td>1.7.5</td></tr>
+    <tr><td>Stateless4J</td><td>2.5.0</td></tr>
+  </table>
+  <p>
+  The client also includes a <code>pom.xml</code> that can be used to install it into a Maven repository and automatically
+  resolve these dependencies.  For example:
+  <pre>
+  mvn install:install-file -Dfile=mqlight-api-1.0-SNAPSHOT.jar -DpomFile=pom.xml
+  mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:1.0-SNAPSHOT
+  </pre>
+
   <h2>Some notes on logging</h2>
   The client logs using the SLF4J interfaces.  If it is used in a runtime where an implementation
   of SLF4J has already been started, then it will use this for logging.  If it is used in a runtime
