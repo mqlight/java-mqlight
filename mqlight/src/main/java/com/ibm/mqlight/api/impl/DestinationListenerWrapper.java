@@ -21,6 +21,7 @@
 
 package com.ibm.mqlight.api.impl;
 
+import java.net.URI;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -108,12 +109,21 @@ class DestinationListenerWrapper<T> {
                 
                 // TODO: IIRC there are some message annotations used to describe other reasons a message is malformed - we should
                 //       use these too!
-                
-                // TODO: these should be filled in...
-                String shareName = "TODO";  // get from linkName
-                String topicPattern = "TODO";      // get from linkName
-                long ttl = 0;               // get from proton message
-                String topic = "TODO";  // get from message
+
+                String crackedLinkName[] = NonBlockingClientImpl.crackLinkName(deliveryRequest.topicPattern);
+                String shareName = crackedLinkName[1];
+                String topicPattern = crackedLinkName[0];
+                long ttl = 0;
+                String topic = "";
+                if (malformedReason == null) {
+                    try {
+                        topic = URI.create(msg.getAddress()).getPath();
+                    } catch(IllegalArgumentException e) {
+                    }
+                    if (topic == null) topic = "";
+                    else if (topic.startsWith("/")) topic = topic.substring(1);
+                    ttl = msg.getTtl();
+                }
                 
                 if (payloadBytes != null) {
                     

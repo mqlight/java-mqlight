@@ -321,7 +321,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return this;
     }
     
-    private String[] crackLinkName(String linkName) {
+    protected static String[] crackLinkName(String linkName) {
         String topicPattern;
         String share;
         if (linkName.startsWith("share:")) {

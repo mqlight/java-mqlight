@@ -38,7 +38,7 @@ public class DeliveryRequest extends Message {
     protected final Delivery delivery;
     protected final Connection protonConnection;
     
-    protected DeliveryRequest(byte[] data, QOS qos, String topicPattern, Delivery delivery, Connection protonConnection) {
+    public DeliveryRequest(byte[] data, QOS qos, String topicPattern, Delivery delivery, Connection protonConnection) {
         this.data = data;
         this.qos = qos;
         this.topicPattern = topicPattern;
