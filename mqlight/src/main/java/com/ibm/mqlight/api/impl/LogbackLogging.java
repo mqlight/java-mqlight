@@ -43,10 +43,19 @@ public class LogbackLogging {
                     boolean isStarted = (boolean)isStartedMethod.invoke(loggerFactory, new Object[]{});
                     if (!isStarted) {
                         if (System.getenv("MQLIGHT_JAVA_LOG") != null) {
-                            Class<?> basicConfiguratorClass = Class.forName("ch.qos.logback.classic.BasicConfigurator");
-                            Method configureMethod = basicConfiguratorClass.getMethod("configure", new Class<?>[]{logbackLoggerContext});
-                            // equivalent to: ch.qos.logback.classic.BasicConfigurator(ch.qos.logback.classic.LoggerContext)LoggerFactory.getILoggerFactory());
-                            configureMethod.invoke(null, loggerFactory);
+                            // TODO: commenting out the following is a quick and dirty hack to prevent two of each log record being displayed.
+                            //       This happens because Logback doesn't realise it has been configured using the BasicConfigurator and also
+                            //       calls the BasicConfigurator (resulting in two sets of handlers being installed).
+                            //
+                            //       The right fix is to re-write to configure Logback via the JoranConfigurator - which we'll need to do in
+                            //       order to implement the MQ Light trace format.  Also - all this reflection is rather cumbersom, so it would
+                            //       be better to re-write this class to use a single bit of reflection to load a class that contains all the
+                            //       Logback specific code.
+                            //
+                            // Class<?> basicConfiguratorClass = Class.forName("ch.qos.logback.classic.BasicConfigurator");
+                            // Method configureMethod = basicConfiguratorClass.getMethod("configure", new Class<?>[]{logbackLoggerContext});
+                            // // equivalent to: ch.qos.logback.classic.BasicConfigurator(ch.qos.logback.classic.LoggerContext)LoggerFactory.getILoggerFactory());
+                            // configureMethod.invoke(null, loggerFactory);
                         } else {
                             // equivalent to: ch.qos.logback.classic.Logger rootLogger = ctx.getLogger(Logger.ROOT_LOGGER_NAME);
                             //                rootLogger.setLevel(ch.qos.logback.classic.Level.WARN);
