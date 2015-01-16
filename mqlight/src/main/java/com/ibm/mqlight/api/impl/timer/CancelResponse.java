@@ -25,8 +25,8 @@ import com.ibm.mqlight.api.impl.Message;
 
 public class CancelResponse extends Message {
 
-    public final CancelRequest request;
-    public CancelResponse(CancelRequest request) {
-        this.request = request;
+    public final TimerPromiseImpl promise;
+    public CancelResponse(TimerPromiseImpl promise) {
+        this.promise = promise;
     }
 }

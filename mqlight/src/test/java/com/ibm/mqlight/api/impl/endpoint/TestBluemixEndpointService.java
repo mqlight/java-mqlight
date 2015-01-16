@@ -27,7 +27,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import com.ibm.mqlight.api.impl.endpoint.MockEndpointFuture.Method;
+import com.ibm.mqlight.api.impl.endpoint.MockEndpointPromise.Method;
 
 public class TestBluemixEndpointService {
 
@@ -58,9 +58,9 @@ public class TestBluemixEndpointService {
     @Test
     public void noVcapServices() {
         BluemixEndpointService service = new MockBluemixEndpointService(null, "", "");
-        MockEndpointFuture future = new MockEndpointFuture(Method.FAILURE);
+        MockEndpointPromise future = new MockEndpointPromise(Method.FAILURE);
         service.lookup(future);
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
     }
     
     @Test
@@ -74,41 +74,41 @@ public class TestBluemixEndpointService {
         String expectedUri = "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090";
         String servicesJson = "{\"service\": [ \"amqp://ep1.example.org\", \"amqp://ep2.example.org\" ]}";
         BluemixEndpointService service = new MockBluemixEndpointService(vcapJson, expectedUri, servicesJson);
-        MockEndpointFuture future = new MockEndpointFuture(Method.SUCCESS);
+        MockEndpointPromise future = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(future);
         // Future completed on another thread - need to delay for a reasonable amount of time to allow this to happen.
         for (int i = 0; i < 20; ++i) {  
-            if (future.isDone()) break;
+            if (future.isComplete()) break;
             Thread.sleep(50);
         }
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
         
         // Expect 1st endpoint to be returned.
         assertEquals("ep1.example.org", future.getEndoint().getHost());
         
         // If the test asks for another endpoint - it should receive the second.
-        future = new MockEndpointFuture(Method.SUCCESS);
+        future = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(future);
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
         assertEquals("ep2.example.org", future.getEndoint().getHost());
         
         // Mark the second endpoint as successful - expect it to be returned again if we ask for another endpoint
         service.onSuccess(future.getEndoint());
-        future = new MockEndpointFuture(Method.SUCCESS);
+        future = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(future);
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
         assertEquals("ep2.example.org", future.getEndoint().getHost());
         
         // Asking for another endpoint should return the 1st endpoint...
-        future = new MockEndpointFuture(Method.SUCCESS);
+        future = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(future);
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
         assertEquals("ep1.example.org", future.getEndoint().getHost());
         
         // Asking for another endpoint should result in the test being told to wait...
-        future = new MockEndpointFuture(Method.WAIT);
+        future = new MockEndpointPromise(Method.WAIT);
         service.lookup(future);
-        assertTrue("Future should have been marked done", future.isDone());
+        assertTrue("Future should have been marked done", future.isComplete());
     }
     
  // TODO: {"service": [ "amqp://ep1.example.org", "amqp://ep2.example.org" ]}

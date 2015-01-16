@@ -22,7 +22,7 @@
 package com.ibm.mqlight.api.impl.endpoint;
 
 import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
 
 public class SingleEndpointService extends EndpointServiceImpl {
@@ -36,7 +36,7 @@ public class SingleEndpointService extends EndpointServiceImpl {
     int retryCount = 0;
     
     @Override
-    public void lookup(EndpointFuture future) {
+    public void lookup(EndpointPromise future) {
         if (exhausted) {
             exhausted = false;
             future.setWait(calculateDelay(retryCount++));

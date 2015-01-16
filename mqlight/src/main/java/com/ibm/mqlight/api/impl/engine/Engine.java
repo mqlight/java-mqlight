@@ -49,6 +49,7 @@ import org.apache.qpid.proton.engine.impl.TransportImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.Message;
@@ -56,25 +57,26 @@ import com.ibm.mqlight.api.impl.network.ConnectResponse;
 import com.ibm.mqlight.api.impl.network.ConnectionError;
 import com.ibm.mqlight.api.impl.network.DataRead;
 import com.ibm.mqlight.api.impl.network.DisconnectResponse;
-import com.ibm.mqlight.api.impl.network.NetworkCloseFutureImpl;
-import com.ibm.mqlight.api.impl.network.NetworkConnectFutureImpl;
+import com.ibm.mqlight.api.impl.network.NetworkClosePromiseImpl;
+import com.ibm.mqlight.api.impl.network.NetworkConnectPromiseImpl;
 import com.ibm.mqlight.api.impl.network.NetworkListenerImpl;
-import com.ibm.mqlight.api.impl.network.NetworkWriteFutureImpl;
+import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
-import com.ibm.mqlight.api.impl.timer.CancelRequest;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
-import com.ibm.mqlight.api.impl.timer.ScheduleRequest;
-import com.ibm.mqlight.api.impl.timer.TimerService;
-import com.ibm.mqlight.api.network.Network;
-import com.ibm.mqlight.api.network.NetworkConnectFuture;
+import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
+import com.ibm.mqlight.api.network.NetworkService;
+import com.ibm.mqlight.api.network.NetworkChannel;
+import com.ibm.mqlight.api.timer.TimerService;
 
 public class Engine extends Component {
     
-    private final Network network;
+    private final NetworkService network;
+    private final TimerService timer;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
-    public Engine(Network network) {
+    public Engine(NetworkService network, TimerService timer) {
         this.network = network;
+        this.timer = timer;
     }
     
     @Override
@@ -85,8 +87,8 @@ public class Engine extends Component {
             //connectRequest.setContext(or);
             //nn.tell(connectRequest, this);
             NetworkListenerImpl listener = new NetworkListenerImpl(this);
-            NetworkConnectFuture future = new NetworkConnectFutureImpl(this, or);
-            network.connect(or.endpoint.getHost(), or.endpoint.getPort(), listener, future);
+            Promise<NetworkChannel> promise = new NetworkConnectPromiseImpl(this, or);
+            network.connect(or.endpoint, listener, promise);
         }
         else if (message instanceof ConnectResponse) {
             // Message from network telling us that a connect request has completed...
@@ -126,10 +128,10 @@ public class Engine extends Component {
             Connection protonConnection = cr.connection.connection;
             EngineConnection engineConnection = (EngineConnection)protonConnection.getContext();
             engineConnection.heartbeatInterval = 0;
-            if (engineConnection.scheduleRequest != null) {
-                ScheduleRequest tmp = engineConnection.scheduleRequest;
-                engineConnection.scheduleRequest = null;
-                TimerService.getInstance().tell(new CancelRequest(tmp), Component.NOBODY);
+            if (engineConnection.timerPromise != null) {
+                TimerPromiseImpl tmp = engineConnection.timerPromise;
+                engineConnection.timerPromise = null;
+                timer.cancel(tmp);
             }
             protonConnection.close();
             //engineConnection.transport.close_head();
@@ -291,10 +293,10 @@ public class Engine extends Component {
             EngineConnection engineConnection = (EngineConnection)ce.channel.getContext();
             if (!engineConnection.dead) {
                 engineConnection.heartbeatInterval = 0;
-                if (engineConnection.scheduleRequest != null) {
-                    ScheduleRequest tmp = engineConnection.scheduleRequest;
-                    engineConnection.scheduleRequest = null;
-                    TimerService.getInstance().tell(new CancelRequest(tmp), Component.NOBODY);
+                if (engineConnection.timerPromise != null) {
+                    TimerPromiseImpl tmp = engineConnection.timerPromise;
+                    engineConnection.timerPromise = null;
+                    timer.cancel(tmp);
                 }
                 engineConnection.dead = true;
                 engineConnection.transport.close_tail();
@@ -302,13 +304,11 @@ public class Engine extends Component {
             }
         } else if (message instanceof PopResponse) {
             PopResponse pr = (PopResponse)message;
-            EngineConnection engineConnection = (EngineConnection)pr.request.getContext();
+            EngineConnection engineConnection = (EngineConnection)pr.promise.getContext();
             if (engineConnection.heartbeatInterval > 0) {
-                ScheduleRequest sr = new ScheduleRequest(engineConnection.heartbeatInterval);
-                sr.setContext(engineConnection);
-                engineConnection.scheduleRequest = sr;
-                TimerService.getInstance().tell(sr, this);
-                
+                TimerPromiseImpl promise = new TimerPromiseImpl(this, engineConnection);
+                engineConnection.timerPromise = promise;
+                timer.schedule(engineConnection.heartbeatInterval, promise);
                 ((TransportImpl)engineConnection.transport).writeEmptyFrame();
                 writeToNetwork(engineConnection);
             }
@@ -325,7 +325,7 @@ public class Engine extends Component {
             tmp.flip();
             //ByteBuf buf = Unpooled.wrappedBuffer(head);
             engineConnection.transport.pop(amount);
-            engineConnection.channel.write(tmp, new NetworkWriteFutureImpl(this, engineConnection));
+            engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, engineConnection));
             //nn.tell(new WriteRequest(connection, buf), this);
         }
     }
@@ -406,10 +406,10 @@ public class Engine extends Component {
             if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 engineConnection.heartbeatInterval = 0;
-                if (engineConnection.scheduleRequest != null) {
-                    ScheduleRequest tmp = engineConnection.scheduleRequest;
-                    engineConnection.scheduleRequest = null;
-                    TimerService.getInstance().tell(new CancelRequest(tmp), Component.NOBODY);
+                if (engineConnection.timerPromise != null) {
+                    TimerPromiseImpl tmp = engineConnection.timerPromise;
+                    engineConnection.timerPromise = null;
+                    timer.cancel(tmp);
                 }
                 if (engineConnection.openRequest != null) {
                     OpenRequest req = engineConnection.openRequest;
@@ -440,7 +440,7 @@ public class Engine extends Component {
                 if (!engineConnection.dead) {
                     engineConnection.dead = true;
                     CloseRequest cr = engineConnection.closeRequest;
-                    NetworkCloseFutureImpl future = new NetworkCloseFutureImpl(this, cr);
+                    NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
                     engineConnection.channel.close(future);
 //                    DisconnectRequest req = new DisconnectRequest(engineConnection.networkConnection);
 //                    req.setContext(cr);
@@ -452,9 +452,8 @@ public class Engine extends Component {
             if (ui != null) {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 engineConnection.heartbeatInterval = ui.longValue() / 2;
-                engineConnection.scheduleRequest = new ScheduleRequest(engineConnection.heartbeatInterval);
-                engineConnection.scheduleRequest.setContext(engineConnection);
-                TimerService.getInstance().tell(engineConnection.scheduleRequest, this);
+                engineConnection.timerPromise = new TimerPromiseImpl(this, engineConnection);
+                timer.schedule(engineConnection.heartbeatInterval, engineConnection.timerPromise);
             }
         }
     }

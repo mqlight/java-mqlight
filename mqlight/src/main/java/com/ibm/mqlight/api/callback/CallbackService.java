@@ -21,10 +21,21 @@
 
 package com.ibm.mqlight.api.callback;
 
+import com.ibm.mqlight.api.NonBlockingClient;
+import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.timer.TimerService;
+
+/**
+ * Plug point for callback executing implementations.  The implementation used for an
+ * instance of the client can be specified using the
+ * {@link NonBlockingClient#create(com.ibm.mqlight.api.endpoint.EndpointService, com.ibm.mqlight.api.callback.CallbackService, com.ibm.mqlight.api.network.NetworkService, TimerService, com.ibm.mqlight.api.ClientOptions, com.ibm.mqlight.api.NonBlockingClientListener, Object)}
+ * method.
+ */
 public interface CallbackService {
 
     /**
-     * Run the specified runnable.
+     * Run the specified runnable.  This method will be invoked each time the client
+     * needs to call back into application code.
      * 
      * @param runnable the <code>Runnable</code> to run.
      * @param orderingCtx an object that is used to order the execution of runnables.
@@ -33,9 +44,8 @@ public interface CallbackService {
      *                    are executed in the order the calls are made.  Two calls that
      *                    specify different values for the <code>orderingCtx</code>
      *                    parameter can have their runnables executed in any order.
-     * 
-     * @param future a future which is to be completed when the runnable has finished
-     *               executing.
+     * @param promise a promise which is to be completed when the runnable has finished
+     *                executing.
      */
-    void run(Runnable runnable, Object orderingCtx, CallbackFuture future);
+    void run(Runnable runnable, Object orderingCtx, Promise<Void> promise);
 }

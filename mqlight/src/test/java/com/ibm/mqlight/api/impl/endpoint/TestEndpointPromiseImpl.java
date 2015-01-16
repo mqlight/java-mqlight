@@ -22,20 +22,17 @@
 package com.ibm.mqlight.api.impl.endpoint;
 
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 
 import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.Message;
 
-public class TestEndpointFutureImpl {
+public class TestEndpointPromiseImpl {
 
     protected class MockComponent extends Component {
         protected LinkedList<Message> messages = new LinkedList<>();
@@ -57,44 +54,20 @@ public class TestEndpointFutureImpl {
     @Test
     public void endpointNotDone() {
         MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
+        EndpointPromise promise = new EndpointPromiseImpl(component);
         
-        assertFalse("future should not have been marked done", future.isDone());
-        assertFalse("future should not have been marked cancelled", future.isCancelled());
+        assertFalse("future should not have been marked done", promise.isComplete());
         assertTrue("component should not have been notified of any messages", component.messages.isEmpty());
     }
-    
 
-    @Test(expected=IllegalStateException.class)
-    public void cancelThrowsAnException() {
-        MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
-        future.cancel(false);
-    }
-    
-    @Test(expected=IllegalStateException.class)
-    public void getThrowsAnException1() throws ExecutionException, InterruptedException {
-        MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
-        future.get();
-    }
-    
-    @Test(expected=IllegalStateException.class)
-    public void getThrowsAnException2() throws ExecutionException, InterruptedException, TimeoutException {
-        MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
-        future.get(1000, TimeUnit.SECONDS);
-    }
-    
     @Test
     public void setWait() {
         MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
+        EndpointPromise promise = new EndpointPromiseImpl(component);
         long waitValue = 12345;
-        future.setWait(waitValue);
+        promise.setWait(waitValue);
         
-        assertTrue("future should have been marked as done", future.isDone());
-        assertFalse("future should not have been marked as cancelled", future.isCancelled());
+        assertTrue("future should have been marked as done", promise.isComplete());
         assertEquals("one message should have been delivered to the component", 1, component.messages.size());
         assertEquals("wrong type for message delivered to component", ExhaustedResponse.class, component.messages.getFirst().getClass());
         ExhaustedResponse resp = (ExhaustedResponse)component.messages.getFirst();
@@ -104,12 +77,11 @@ public class TestEndpointFutureImpl {
     @Test
     public void setSuccess() {
         MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
+        EndpointPromise promise = new EndpointPromiseImpl(component);
         Endpoint endpoint = new StubEndpoint();
-        future.setSuccess(endpoint);
+        promise.setSuccess(endpoint);
 
-        assertTrue("future should have been marked as done", future.isDone());
-        assertFalse("future should not have been marked as cancelled", future.isCancelled());
+        assertTrue("future should have been marked as done", promise.isComplete());
         assertEquals("one message should have been delivered to the component", 1, component.messages.size());
         assertEquals("wrong type for message delivered to component", EndpointResponse.class, component.messages.getFirst().getClass());
         EndpointResponse resp = (EndpointResponse)component.messages.getFirst();
@@ -119,11 +91,10 @@ public class TestEndpointFutureImpl {
     @Test
     public void setFailure() {
         MockComponent component = new MockComponent();
-        EndpointFuture future = new EndpointFutureImpl(component);
-        future.setFailure();
+        EndpointPromise promise = new EndpointPromiseImpl(component);
+        promise.setFailure(new Exception());
 
-        assertTrue("future should have been marked as done", future.isDone());
-        assertFalse("future should not have been marked as cancelled", future.isCancelled());
+        assertTrue("future should have been marked as done", promise.isComplete());
         assertEquals("one message should have been delivered to the component", 1, component.messages.size());
         assertEquals("wrong type for message delivered to component", EndpointResponse.class, component.messages.getFirst().getClass());
         EndpointResponse resp = (EndpointResponse)component.messages.getFirst();

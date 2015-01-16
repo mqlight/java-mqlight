@@ -22,55 +22,26 @@
 package com.ibm.mqlight.api.impl.network;
 
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
+import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.network.Event.Type;
 import com.ibm.mqlight.api.network.NetworkChannel;
-import com.ibm.mqlight.api.network.NetworkConnectFuture;
 
-class MockNetworkConnectFuture implements NetworkConnectFuture {
+class MockNetworkConnectPromise implements Promise<NetworkChannel> {
     
     private boolean done = false;
     private final LinkedList<Event> events;
     private NetworkChannel channel = null;
     
-    protected MockNetworkConnectFuture(LinkedList<Event> events) {
+    protected MockNetworkConnectPromise(LinkedList<Event> events) {
         this.events = events;
     }
-    
-    @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
-        // TODO Auto-generated method stub
-        return false;
-    }
 
     @Override
-    public boolean isCancelled() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public boolean isDone() {
+    public boolean isComplete() {
         synchronized(events) {
             return done;
         }
-    }
-
-    @Override
-    public Void get() throws InterruptedException, ExecutionException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Void get(long timeout, TimeUnit unit)
-            throws InterruptedException, ExecutionException,
-            TimeoutException {
-        // TODO Auto-generated method stub
-        return null;
     }
 
     @Override

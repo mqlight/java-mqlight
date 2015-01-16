@@ -24,33 +24,24 @@ package com.ibm.mqlight.api.impl.callback;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import com.ibm.mqlight.api.Promise;
 
-import com.ibm.mqlight.api.callback.CallbackFuture;
-
-public class MockCallbackFuture implements CallbackFuture {
-
-    @Override public boolean cancel(boolean mayInterruptIfRunning) { throw new AssertionError(); }
-    @Override public boolean isCancelled() { throw new AssertionError(); }
-    @Override public Void get() throws InterruptedException, ExecutionException { throw new AssertionError(); }
-    @Override public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException { throw new AssertionError(); }
+public class MockCallbackPromise implements Promise<Void> {
 
     protected enum Method { NONE, SUCCESS, FAILURE }
     private final Method expectedMethod;
     private boolean done;
     private Exception exception;
     
-    protected MockCallbackFuture(Method expectedMethod) {
+    protected MockCallbackPromise(Method expectedMethod) {
         this.expectedMethod = expectedMethod;
     }
     
-    @Override public synchronized boolean isDone() {
+    @Override public synchronized boolean isComplete() {
         return done;
     }
     
-    @Override public synchronized void setSuccess() {
+    @Override public synchronized void setSuccess(Void x) {
         assertEquals("didn't expect setSuccess to be called", expectedMethod, Method.SUCCESS);
         assertFalse("didn't expect setSuccess to be called on a completed future", done);
         done = true;

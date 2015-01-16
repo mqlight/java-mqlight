@@ -23,13 +23,36 @@ package com.ibm.mqlight.api.network;
 
 import java.nio.ByteBuffer;
 
+import com.ibm.mqlight.api.Promise;
+
+/**
+ * Represents an open network connection
+ */
 public interface NetworkChannel {
 
-    void close(NetworkCloseFuture future);
+    /**
+     * Close the connection.
+     * @param promise a promise which is to be completed when the connection is closed.
+     */
+    void close(Promise<Void> promise);
     
-    void write(ByteBuffer buffer, NetworkWriteFuture future);
+    /**
+     * Write data to the network connection.
+     * @param buffer contains the data to write.
+     * @param promise a promise which is to be completed when the data is written.
+     */
+    void write(ByteBuffer buffer, Promise<Boolean> promise);
     
+    /**
+     * Allows an arbitrary object to be associated with this channel object.
+     * @param context
+     */
     public void setContext(Object context);
     
+    /**
+     * Retrieves the value set using {@link NetworkChannel#setContext(Object)}.
+     * Returns <code>null</code> if no value has yet been set.
+     * @return the context object (if any) set using {@link NetworkChannel#setContext(Object)}
+     */
     public Object getContext();
 }

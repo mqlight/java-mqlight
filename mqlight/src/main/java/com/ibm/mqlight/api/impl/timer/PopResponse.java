@@ -25,8 +25,8 @@ import com.ibm.mqlight.api.impl.Message;
 
 public class PopResponse extends Message {
 
-    public final ScheduleRequest request;
-    protected PopResponse(ScheduleRequest request) {
-        this.request = request;
+    public final TimerPromiseImpl promise;
+    protected PopResponse(TimerPromiseImpl promise) {
+        this.promise = promise;
     }
 }

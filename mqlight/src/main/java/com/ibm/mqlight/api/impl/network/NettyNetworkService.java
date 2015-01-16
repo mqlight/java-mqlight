@@ -43,15 +43,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.LogbackLogging;
-import com.ibm.mqlight.api.network.Network;
+import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.network.NetworkChannel;
-import com.ibm.mqlight.api.network.NetworkConnectFuture;
-import com.ibm.mqlight.api.network.NetworkCloseFuture;
 import com.ibm.mqlight.api.network.NetworkListener;
-import com.ibm.mqlight.api.network.NetworkWriteFuture;
 
-public class NettyNetwork implements Network {
+public class NettyNetworkService implements NetworkService {
 
     static {
         LogbackLogging.setup();
@@ -127,7 +126,7 @@ public class NettyNetwork implements Network {
         }
 
         @Override
-        public void close(final NetworkCloseFuture nwfuture) {
+        public void close(final Promise<Void> nwfuture) {
             logger.debug("close");
             boolean alreadyClosed = closed.getAndSet(true);
             if (!alreadyClosed) {
@@ -136,29 +135,31 @@ public class NettyNetwork implements Network {
                     f.addListener(new GenericFutureListener<ChannelFuture>() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
-                            nwfuture.setComplete();
+                            nwfuture.setSuccess(null);
                             decrementUseCount();
                         }
                     });
                 }
+            } else {
+                nwfuture.setSuccess(null);
             }
         }
 
         private class WriteRequest {
             protected final ByteBuf buffer;
-            protected final NetworkWriteFuture future;
-            protected WriteRequest(ByteBuf buffer, NetworkWriteFuture future) {
+            protected final Promise<Boolean> promise;
+            protected WriteRequest(ByteBuf buffer, Promise<Boolean> promise) {
                 this.buffer = buffer;
-                this.future = future;
+                this.promise = promise;
             }
         }
         
         LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
         
         @Override
-        public void write(ByteBuffer buffer, NetworkWriteFuture future) {
+        public void write(ByteBuffer buffer, Promise<Boolean> promise) {
             ByteBuf byteBuf = Unpooled.wrappedBuffer(buffer);
-            doWrite(new WriteRequest(byteBuf, future));
+            doWrite(new WriteRequest(byteBuf, promise));
         }
         
         private void doWrite(final WriteRequest writeRequest) {
@@ -178,7 +179,7 @@ public class NettyNetwork implements Network {
                             }
                         }
                         logger.debug("doWrite (complete)");
-                        writeRequest.future.setComplete(!havePendingWrites);
+                        writeRequest.promise.setSuccess(!havePendingWrites);
                         if (nextRequest != null) {
                             doWrite(nextRequest);
                         }
@@ -206,10 +207,10 @@ public class NettyNetwork implements Network {
     }
 
     protected class ConnectListener implements GenericFutureListener<ChannelFuture> {
-        private final NetworkConnectFuture ncFuture;
+        private final Promise<NetworkChannel> promise;
         private final NetworkListener listener;
-        protected ConnectListener(ChannelFuture cFuture, NetworkConnectFuture ncFuture, NetworkListener listener) {
-            this.ncFuture = ncFuture;
+        protected ConnectListener(ChannelFuture cFuture, Promise<NetworkChannel> promise, NetworkListener listener) {
+            this.promise = promise;
             this.listener = listener;
             
         }
@@ -218,7 +219,7 @@ public class NettyNetwork implements Network {
             if (cFuture.isSuccess()) {
                 NettyInboundHandler handler = (NettyInboundHandler)cFuture.channel().pipeline().last();
                 handler.setListener(listener);
-                ncFuture.setSuccess(handler);
+                promise.setSuccess(handler);
             } else {
                 Exception cause;
                 if (cFuture.cause() instanceof Exception) {
@@ -226,7 +227,7 @@ public class NettyNetwork implements Network {
                 } else {
                     cause = new Exception(cFuture.cause()); // TODO: would be better to use a more specific exception type.
                 }
-                ncFuture.setFailure(cause);
+                promise.setFailure(cause);
                 decrementUseCount();
             }
         }
@@ -234,11 +235,11 @@ public class NettyNetwork implements Network {
     }
     
     @Override
-    public void connect(String host, int port, NetworkListener listener, NetworkConnectFuture future) {
-        logger.debug("connect {} {}", host, port);
+    public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
+        logger.debug("connect {} {}", endpoint.getHost(), endpoint.getPort());
         incrementUseCount();
-        final ChannelFuture f = bootstrap.connect(host, port);
-        f.addListener(new ConnectListener(f, future, listener));
+        final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
+        f.addListener(new ConnectListener(f, promise, listener));
         
     }
     

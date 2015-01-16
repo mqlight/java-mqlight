@@ -38,7 +38,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
 
 /*
@@ -104,7 +104,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         return out.toString();
     }
     
-    protected void doHttpLookup(final String httpUri, final EndpointFuture future) {
+    protected void doHttpLookup(final String httpUri, final EndpointPromise future) {
         
         synchronized(this) {
             if (executor == null) {
@@ -147,15 +147,15 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     // Retry later...
                     doRetry(future);
                 } catch(JsonParseException parseException) {
-                    future.setFailure();
+                    future.setFailure(parseException);
                 } catch(IllegalArgumentException iae) {
-                    future.setFailure();
+                    future.setFailure(iae);
                 }
             }
         });
     }
     
-    protected void doRetry(EndpointFuture future) {
+    protected void doRetry(EndpointPromise future) {
         int retry;
         synchronized(state) {
             retry = state.retryCount;
@@ -165,7 +165,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     }
     
     @Override
-    public void lookup(EndpointFuture future) {
+    public void lookup(EndpointPromise future) {
         try {
             String lookupUri = null;
             Endpoint endpoint = null;
@@ -205,7 +205,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             }
             
             if (lookupUri == null) {
-                future.setFailure();
+                future.setFailure(new Exception("No lookup URI"));  // TODO: better type/message for exception?
             } else if (retry) {
                 doRetry(future);
             } else if (endpoint != null) {
@@ -213,7 +213,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             }
         } catch(JsonParseException e) { // TODO: propagate exception?
             // Can't parse VCAP_SERVICES values
-            future.setFailure();
+            future.setFailure(e);
         } 
     }
 

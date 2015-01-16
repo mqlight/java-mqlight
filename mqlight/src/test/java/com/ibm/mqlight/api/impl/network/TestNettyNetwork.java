@@ -35,7 +35,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import com.ibm.mqlight.api.network.NetworkWriteFuture;
+import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.endpoint.Endpoint;
 
 public class TestNettyNetwork {
 
@@ -137,20 +138,34 @@ public class TestNettyNetwork {
         }
     }
     
+    private class StubEndpoint implements Endpoint {
+        private final String host;
+        private final int port;
+        private StubEndpoint(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+        @Override public String getHost() { return host; }
+        @Override public int getPort() { return port; }
+        @Override public boolean useSsl() { return false; }
+        @Override public String getUser() { return null; }
+        @Override public String getPassword() { return null; }
+    }
+    
     @Test
     public void connectClose() throws Exception {
-        NettyNetwork nn = new NettyNetwork();
+        NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseListener(34567);
         
         LinkedList<Event> events = new LinkedList<>();
         MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectFuture future = new MockNetworkConnectFuture(events);
-        nn.connect("localhost", 34567, listener, future);
+        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
+        nn.connect(new StubEndpoint("localhost", 34567), listener, promise);
         
-        while(!future.isDone()) {
+        while(!promise.isComplete()) {
             Thread.sleep(50);
         }
-        assertTrue("Expected future to be marked done", future.isDone());
+        assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
         assertEquals("Expected two events!", 2, events.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
@@ -159,37 +174,38 @@ public class TestNettyNetwork {
     
     @Test
     public void writeData() throws Exception {
-        NettyNetwork nn = new NettyNetwork();
+        NettyNetworkService nn = new NettyNetworkService();
         ReceiveListener testListener = new ReceiveListener(34567);
         
         LinkedList<Event> events = new LinkedList<>();
         MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectFuture future = new MockNetworkConnectFuture(events);
-        nn.connect("localhost", 34567, listener, future);
+        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
+        nn.connect(new StubEndpoint("localhost", 34567), listener, promise);
         
         for (int i = 0 ; i < 20; ++i) {
-            if (future.isDone()) break;
+            if (promise.isComplete()) break;
             Thread.sleep(50);
         }
-        assertTrue("Expected connect future to be marked done", future.isDone());
-        assertNotNull("Expected connect future to contain a channel", future.getChannel());
+        assertTrue("Expected connect promise to be marked completed", promise.isComplete());
+        assertNotNull("Expected connect promise to contain a channel", promise.getChannel());
         
         byte[] data = new byte[(1 << 24)];
         Arrays.fill(data, (byte)123);
         int expectedBytes = 0;
-        NetworkWriteFuture[] futures = new NetworkWriteFuture[25];
+        @SuppressWarnings("unchecked")
+        Promise<Boolean>[] promises = new Promise[25];
         for (int i = 0; i < 25; ++i) {
             ByteBuffer buffer = ByteBuffer.wrap(data, 0, 1 << i);
-            futures[i] = new MockNetworkWriteFuture();
-            future.getChannel().write(buffer, futures[i]);
+            promises[i] = new MockNetworkWritePromise();
+            promise.getChannel().write(buffer, promises[i]);
             expectedBytes += (1 << i);
         }
         
         boolean allWritesComplete = false;
         for (int j = 0; j < 100; ++j) {
             allWritesComplete = true;
-            for (int i = 0; i < futures.length; ++i) {
-                if (!futures[i].isDone()) {
+            for (int i = 0; i < promises.length; ++i) {
+                if (!promises[i].isComplete()) {
                     allWritesComplete = false;
                     break;
                 }
@@ -201,20 +217,20 @@ public class TestNettyNetwork {
         }
         
         if (!allWritesComplete) {
-            StringBuilder sb = new StringBuilder("Expected all write futures to be completed:\n");
-            for (int i = 0; i < futures.length; ++i) {
-                sb.append("Future #" + i +" is " + (futures[i].isDone() ? "completed" : "not completed!\n"));
+            StringBuilder sb = new StringBuilder("Expected all write promises to have been completed:\n");
+            for (int i = 0; i < promises.length; ++i) {
+                sb.append("Promise #" + i +" is " + (promises[i].isComplete() ? "completed" : "not completed!\n"));
             }
             throw new AssertionFailedError(sb.toString());
         }
         
-        MockNetworkCloseFuture closeFuture = new MockNetworkCloseFuture();
-        future.getChannel().close(closeFuture);
+        MockNetworkClosePromise closePromise = new MockNetworkClosePromise();
+        promise.getChannel().close(closePromise);
         for (int i = 0 ; i < 20; ++i) {
-            if (closeFuture.isDone()) break;
+            if (closePromise.isComplete()) break;
             Thread.sleep(50);
         }
-        assertTrue("Expected close future to be marked done", closeFuture.isDone());
+        assertTrue("Expected close promise to be marked done", closePromise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
         
         assertEquals("Expected to have received same amount of data as was sent", expectedBytes, testListener.getBytesRead());
@@ -222,20 +238,20 @@ public class TestNettyNetwork {
     
     @Test
     public void readData() throws IOException, InterruptedException {
-        NettyNetwork nn = new NettyNetwork();
+        NettyNetworkService nn = new NettyNetworkService();
         SendListener testListener = new SendListener(34567);
         
         LinkedList<Event> events = new LinkedList<>();
         MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectFuture connectFuture = new MockNetworkConnectFuture(events);
-        nn.connect("localhost", 34567, listener, connectFuture);
+        MockNetworkConnectPromise connectPromise = new MockNetworkConnectPromise(events);
+        nn.connect(new StubEndpoint("localhost", 34567), listener, connectPromise);
         
         for (int i = 0 ; i < 20; ++i) {
-            if (connectFuture.isDone()) break;
+            if (connectPromise.isComplete()) break;
             Thread.sleep(50);
         }
-        assertTrue("Expected connect future to be marked done", connectFuture.isDone());
-        assertNotNull("Expected connect future to contain a channel", connectFuture.getChannel());
+        assertTrue("Expected connect promise to be marked done", connectPromise.isComplete());
+        assertNotNull("Expected connect promise to contain a channel", connectPromise.getChannel());
         
         assertTrue("Expected listener to end!", testListener.join(2500));
         

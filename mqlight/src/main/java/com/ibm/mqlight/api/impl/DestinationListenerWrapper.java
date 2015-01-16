@@ -35,7 +35,7 @@ import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.MalformedDelivery;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.callback.CallbackService;
-import com.ibm.mqlight.api.impl.callback.CallbackFutureImpl;
+import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 
 class DestinationListenerWrapper<T> {
@@ -48,9 +48,6 @@ class DestinationListenerWrapper<T> {
         this.client = client;
         this.listener = listener;
         this.context = context;
-        
-//        listener.onMalformed(client, context, delivery);
-//        listener.onUnsubscribed(client, context, topicPattern, share);
     }
     
     protected void onUnsubscribed(final CallbackService callbackService, final String topicPattern, final String share) {
@@ -59,7 +56,7 @@ class DestinationListenerWrapper<T> {
                 public void run() {
                     listener.onUnsubscribed(client, context, topicPattern, share);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -137,6 +134,6 @@ class DestinationListenerWrapper<T> {
                     client.doDelivery(deliveryRequest);
                 }
             }
-        }, client, new CallbackFutureImpl(client, true));
+        }, client, new CallbackPromiseImpl(client, true));
     }
 }

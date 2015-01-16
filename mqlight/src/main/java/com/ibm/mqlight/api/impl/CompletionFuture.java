@@ -25,8 +25,9 @@ import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.callback.CallbackService;
-import com.ibm.mqlight.api.impl.callback.CallbackFutureImpl;
+import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 
+// TODO: re-write this class based on the Promise interface.
 public class CompletionFuture<T> {
 
     private boolean complete = false;
@@ -55,7 +56,7 @@ public class CompletionFuture<T> {
                 public void run() {
                     l.onSuccess(client, c);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -74,7 +75,7 @@ public class CompletionFuture<T> {
                 public void run() {
                     l.onError(client, c, cause);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -97,14 +98,14 @@ public class CompletionFuture<T> {
                         public void run() {
                             listener.onError(client, context, cause);
                         }
-                    }, client, new CallbackFutureImpl(client, true));
+                    }, client, new CallbackPromiseImpl(client, true));
                 }
             } else if (listener != null) {
                 callbackService.run(new Runnable() {
                     public void run() {
                         listener.onSuccess(client, context);
                     }
-                }, client, new CallbackFutureImpl(client, true));
+                }, client, new CallbackPromiseImpl(client, true));
             }
         }
     }

@@ -27,14 +27,14 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.ibm.mqlight.api.callback.CallbackService;
-import com.ibm.mqlight.api.impl.callback.MockCallbackFuture.Method;
+import com.ibm.mqlight.api.impl.callback.MockCallbackPromise.Method;
 
 public class TestSameThreadCallbackService {
     
     @Test
     public void successfulCallback() {
         CallbackService cbs = new SameThreadCallbackService();
-        MockCallbackFuture future = new MockCallbackFuture(Method.SUCCESS);
+        MockCallbackPromise future = new MockCallbackPromise(Method.SUCCESS);
         final AtomicBoolean run = new AtomicBoolean(false);
         cbs.run(new Runnable() {
             public void run() {
@@ -48,7 +48,7 @@ public class TestSameThreadCallbackService {
     @Test
     public void exceptionThrownInCallback() {
         CallbackService cbs = new SameThreadCallbackService();
-        MockCallbackFuture future = new MockCallbackFuture(Method.FAILURE);
+        MockCallbackPromise future = new MockCallbackPromise(Method.FAILURE);
         final RuntimeException exception = new RuntimeException();
         cbs.run(new Runnable() {
             public void run() {

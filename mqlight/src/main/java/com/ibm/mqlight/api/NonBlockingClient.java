@@ -28,7 +28,8 @@ import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.EndpointService;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.NonBlockingClientImpl;
-import com.ibm.mqlight.api.network.Network;
+import com.ibm.mqlight.api.network.NetworkService;
+import com.ibm.mqlight.api.timer.TimerService;
 
 /**
  * A Java MQ Light client implementation that never blocks the calling thread when
@@ -37,32 +38,42 @@ import com.ibm.mqlight.api.network.Network;
  * <p>
  * Example code for using the non-blocking client to send a message
  * <pre>
- * NonBlockingClient.create("amqps://localhost", new NonBlockingClientAdapter() {
- *     public void onStarted(NonBlockingClient client, Object context) {
- *         client.send("/kittens", "Hello kitty!");
- *         client.stop(null, null);
+ * NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter<Void>() {
+ *     public void onStarted(NonBlockingClient client, Void context) {
+ *         SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
+ *         client.send("/kittens", "Hello kitty!", null, opts, new CompletionListener<Void>() {
+ *             public void onSuccess(NonBlockingClient client, Void context) {
+ *                 client.stop(null, null);
+ *             }
+ *             public void onError(NonBlockingClient client, Void context, Exception exception) {
+ *                 client.stop(null, null);
+ *             }
+ *         }, null);
  *     }
+ *     public void onDrain(NonBlockingClient client, Void context) {}
  * }, null);
  * </pre>
  * <p>
  *
  * Example code for receiving messages published to the '/kittens' topic.
  * <pre>
- * NonBlockingClient client = NonBlockingClient.create("amqps://localhost", null, null);
- *     client.subscribe("/kittens", new DestinationAdapter() {
- *     public void onMessage(NonBlockingClient client, Object context, Delivery delivery) {
- *         switch (delivery.getType()) {
- *         case BYTES:
- *             BytesDelivery bd = (BytesDelivery)delivery;
- *             System.out.println(bd.getData());
- *             break;
- *         case STRING:
- *             StringDelivery sd = (StringDelivery)delivery;
- *             System.out.println(sd.getData());
- *             break;
+ * public static void main(String[] args) {
+ *     NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
+ *     client.subscribe("/kittens", new DestinationAdapter<Void>() {
+ *         public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
+ *             switch (delivery.getType()) {
+ *             case BYTES:
+ *                 BytesDelivery bd = (BytesDelivery)delivery;
+ *                 System.out.println(bd.getData());
+ *                 break;
+ *             case STRING:
+ *                 StringDelivery sd = (StringDelivery)delivery;
+ *                 System.out.println(sd.getData());
+ *                 break;
+ *             }
  *         }
- *     }
- * }, null, null);
+ *     }, null, null);
+ * }
  * </pre>
  */
 public abstract class NonBlockingClient extends Component { // TODO: not particularly sure I like this hierarchy...
@@ -76,7 +87,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param service a URI for the service to connect to, for example: <code>amqp://example.org:5672</code>.
      *        This URI can start with either <code>amqp://</code> or <code>amqps://</code> (for SSL/TLS based
      *        connections).  User names and passwords may be embedded into the URL - for example:
-     *        <code>amqp://user:pass@example.com</code>.
+     *        <code>amqp://user:pass@example.com</code>.  If a value of <code>null</code> is specified then
+     *        the client will attempt to locate a suitable service based on its environment.  Currently it
+     *        is capable of locating services in this whay when run in the IBM Bluemix environment.
      * @param options a set of options that determine the behaviour of the client.
      * @param listener a listener that is notified of major life-cycle events for the client.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
@@ -91,22 +104,28 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
     }
 
     /**
-     * TODO
-     * @param endpointService
-     * @param callbackService
-     * @param network
-     * @param options
-     * @param listener
-     * @param context
+     * Creates a new instance of the <code>NonBlockingClient</code> in started state.  The client
+     * will use the set of plugable services, provided as arguments to this method.
+     * @param endpointService used to lookup the location of the MQ Light server.
+     * @param callbackService used to run each call back into application code.
+     * @param networkService used to establish network connections to the MQ Light server.
+     * @param timerService used to schedule work to be performed in the future.
+     * @param options a set of options that determine the behaviour of the client.
+     * @param listener a listener that is notified of major life-cycle events for the client.
+     * @param context a context object that is passed into the listener.  This can be used within the listener code to
+     *                identify the specific instance of the create method relating to the listener invocation.
      * @return a new instance of <code>NonBlockingClient</code>
+     * @throws IllegalArgumentException thrown if one or more of the <code>options</code> is not valid.
      */
     public static <T> NonBlockingClient create(EndpointService endpointService,
                                                CallbackService callbackService,
-                                               Network network,
+                                               NetworkService networkService,
+                                               TimerService timerService,
                                                ClientOptions options,
                                                NonBlockingClientListener<T>listener,
-                                               T context) {
-        return new NonBlockingClientImpl(endpointService, callbackService, network, options, listener, context);
+                                               T context)
+    throws IllegalArgumentException {
+        return new NonBlockingClientImpl(endpointService, callbackService, networkService, timerService, options, listener, context);
     }
 
     /**
@@ -232,23 +251,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
     /**
      * Requests that the client transitions into stopped state, automatically unsubscribing from
      * any destinations previously subscribed to using the <code>subscribe(...)</code> methods.
-     * 
-     * TODO: we've removed the drain parameter - merge the relevent parts of its description
-     *       into the method description.
-     *  drain determines whether the client should flush any buffered messages before
-     *              completing its transition into stopped state, and calling the
-     *              <code>CompletionListener</code>.  When this value is set to
-     *              <code>true</code> any messages that are held pending transmission over the
-     *              network, or pending delivery to the <code>DestinationListener</code>
-     *              will be flushed before the client completes its transition into stopped
-     *              state. When set to <code>false</code> the client will transition into stopped state
-     *              without draining any messages which it is buffering.  Instead, these messages
-     *              will be discarded, resulting in the potential for loss of 'at most once'
-     *              messages and duplication of 'at least once' messages.  If this method is
-     *              called with drain set to <code>true</code> it is possible to invoke the
-     *              method again with drain set to <code>false</code> and interrupt the process
-     *              of flushing buffered messages, causing both calls to the method to complete
-     *              and any messages that are still buffered to be discarded.
+     * Any messages held by the client, pending transmission to the server, will not be transmitted.
      * @param listener a listener that is notified when the stop operation has completed and
      *                 the client has attained stopped state.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to

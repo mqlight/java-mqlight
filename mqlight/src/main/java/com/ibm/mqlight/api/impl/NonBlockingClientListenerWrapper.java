@@ -25,7 +25,7 @@ import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.callback.CallbackService;
-import com.ibm.mqlight.api.impl.callback.CallbackFutureImpl;
+import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 
 class NonBlockingClientListenerWrapper<T>{
 
@@ -45,7 +45,7 @@ class NonBlockingClientListenerWrapper<T>{
                 public void run() {
                     listener.onRestarted(client, context);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -55,7 +55,7 @@ class NonBlockingClientListenerWrapper<T>{
                 public void run() {
                     listener.onRetrying(client, context, throwable);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -65,7 +65,7 @@ class NonBlockingClientListenerWrapper<T>{
                 public void run() {
                     listener.onStarted(client, context);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -75,7 +75,7 @@ class NonBlockingClientListenerWrapper<T>{
                 public void run() {
                     listener.onStopped(client, context, throwable);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
     
@@ -85,7 +85,7 @@ class NonBlockingClientListenerWrapper<T>{
                 public void run() {
                     listener.onDrain(client, context);
                 }
-            }, client, new CallbackFutureImpl(client, true));
+            }, client, new CallbackPromiseImpl(client, true));
         }
     }
 }

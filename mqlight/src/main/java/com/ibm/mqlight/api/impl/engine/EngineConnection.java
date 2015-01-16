@@ -31,7 +31,7 @@ import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
 
 import com.ibm.mqlight.api.impl.Component;
-import com.ibm.mqlight.api.impl.timer.ScheduleRequest;
+import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
 import com.ibm.mqlight.api.network.NetworkChannel;
 
 public class EngineConnection {
@@ -49,7 +49,7 @@ public class EngineConnection {
     protected final HashMap<String, SubscriptionData> subscriptionData = new HashMap<>();
     protected OpenRequest openRequest = null;
     protected CloseRequest closeRequest = null;
-    protected ScheduleRequest scheduleRequest = null;
+    protected TimerPromiseImpl timerPromise = null;
     protected long heartbeatInterval = 0;
     protected boolean dead = false; // TODO: better name...
     protected boolean drained = true;

@@ -52,11 +52,11 @@ import com.ibm.mqlight.api.SubscribeOptions;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointService;
-import com.ibm.mqlight.api.impl.callback.CallbackFutureImpl;
+import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.impl.callback.FlushResponse;
 import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
 import com.ibm.mqlight.api.impl.endpoint.BluemixEndpointService;
-import com.ibm.mqlight.api.impl.endpoint.EndpointFutureImpl;
+import com.ibm.mqlight.api.impl.endpoint.EndpointPromiseImpl;
 import com.ibm.mqlight.api.impl.endpoint.EndpointResponse;
 import com.ibm.mqlight.api.impl.endpoint.ExhaustedResponse;
 import com.ibm.mqlight.api.impl.endpoint.SingleEndpointService;
@@ -76,13 +76,13 @@ import com.ibm.mqlight.api.impl.engine.SubscribeRequest;
 import com.ibm.mqlight.api.impl.engine.SubscribeResponse;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeRequest;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeResponse;
-import com.ibm.mqlight.api.impl.network.NettyNetwork;
-import com.ibm.mqlight.api.impl.timer.CancelRequest;
+import com.ibm.mqlight.api.impl.network.NettyNetworkService;
 import com.ibm.mqlight.api.impl.timer.CancelResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
-import com.ibm.mqlight.api.impl.timer.ScheduleRequest;
-import com.ibm.mqlight.api.impl.timer.TimerService;
-import com.ibm.mqlight.api.network.Network;
+import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
+import com.ibm.mqlight.api.impl.timer.TimerServiceImpl;
+import com.ibm.mqlight.api.network.NetworkService;
+import com.ibm.mqlight.api.timer.TimerService;
 
 public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions {
 
@@ -94,13 +94,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final EndpointService endpointService;
     private final CallbackService callbackService;
     private final Engine engine;
+    private final TimerService timer;
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
     
     
     private final LinkedList<InternalStart<?>> pendingStarts = new LinkedList<>();
     private final LinkedList<InternalStop<?>> pendingStops = new LinkedList<>();
     private final String clientId;
-    private ScheduleRequest scheduleRequest = null;
+    private TimerPromiseImpl timerPromise = null;
     private final LinkedList<QueueableWork> pendingWork = new LinkedList<>();
 
     private volatile String serviceUri = null;
@@ -154,35 +155,29 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         while(i.length() < 8) i = "0" + i;
         return "AUTO_" + i.substring(0, 7);
     }
-    
-    protected <T> NonBlockingClientImpl(EndpointService endpointService,
-                  CallbackService callbackService,
-                  Engine engine,
-                  ClientOptions options,
-                  NonBlockingClientListener<T>listener,
-                  T context) {
-        this.endpointService = endpointService;
-        this.callbackService = callbackService;
-        this.engine = engine;
-        clientId = options.getId() != null ? options.getId() : generateClientId();
-        stateMachine = NonBlockingFSMFactory.newStateMachine(this);
-        endpointService.lookup(new EndpointFutureImpl(this));
-        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
-    }
 
     public <T> NonBlockingClientImpl(EndpointService endpointService,
                                      CallbackService callbackService,
-                                     Network network,
+                                     NetworkService networkService,
+                                     TimerService timerService,
                                      ClientOptions options,
                                      NonBlockingClientListener<T>listener,
                                      T context) {
-        this(endpointService, callbackService, new Engine(network), options, listener, context);
+        this.endpointService = endpointService;
+        this.callbackService = callbackService;
+        this.engine = new Engine(networkService, timerService);
+        this.timer = timerService;
+        clientId = options.getId() != null ? options.getId() : generateClientId();
+        stateMachine = NonBlockingFSMFactory.newStateMachine(this);
+        endpointService.lookup(new EndpointPromiseImpl(this));
+        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
         this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options.getUser(),  options.getPassword()),
              new SameThreadCallbackService(), 
-             new NettyNetwork(), 
+             new NettyNetworkService(), 
+             new TimerServiceImpl(),
              options,
              listener,
              context);
@@ -393,7 +388,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             currentConnection = null;
             stateMachine.fire(NonBlockingClientTrigger.CLOSE_RESP);
         } else if (message instanceof PopResponse) {
-            scheduleRequest = null;
+            timerPromise = null;
             stateMachine.fire(NonBlockingClientTrigger.TIMER_RESP_POP);
         } else if (message instanceof CancelResponse) {
             stateMachine.fire(NonBlockingClientTrigger.TIMER_RESP_CANCEL);
@@ -545,8 +540,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public void startTimer() {
-        scheduleRequest = new ScheduleRequest(10000);   // TODO: this delay needs to vary...
-        TimerService.getInstance().tell(scheduleRequest, this);
+        timerPromise = new TimerPromiseImpl(this, null);
+        timer.schedule(10000, timerPromise);  // TODO: this delay needs to vary...
     }
 
     @Override
@@ -562,16 +557,16 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public void cancelTimer() {
-        if (scheduleRequest != null) {
-            ScheduleRequest tmp = scheduleRequest;
-            scheduleRequest = null;
-            TimerService.getInstance().tell(new CancelRequest(tmp), this);
+        if (timerPromise != null) {
+            TimerPromiseImpl tmp = timerPromise;
+            timerPromise = null;
+            timer.cancel(tmp);
         }
     }
 
     @Override
     public void requestEndpoint() {
-        endpointService.lookup(new EndpointFutureImpl(this));
+        endpointService.lookup(new EndpointPromiseImpl(this));
     }
 
     @Override
@@ -649,7 +644,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         }
         
-        scheduleRequest = null;
+        timerPromise = null;
         currentConnection = null;
         remakingInboundLinks = false;
         serviceUri = null;
@@ -658,7 +653,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         // requested callback invocations (via a FlushResponse message to the onReceive() method)
         callbackService.run(new Runnable() {
             public void run() {}
-        }, this, new CallbackFutureImpl(this, false));
+        }, this, new CallbackPromiseImpl(this, false));
 
     }
 

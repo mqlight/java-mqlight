@@ -24,31 +24,22 @@ package com.ibm.mqlight.api.impl.endpoint;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.endpoint.EndpointFuture;
+import com.ibm.mqlight.api.endpoint.EndpointPromise;
 
-class MockEndpointFuture implements EndpointFuture {
-
-    @Override public boolean cancel(boolean mayInterruptIfRunning) { throw new AssertionError(); }
-    @Override public boolean isCancelled() { throw new AssertionError(); }
-    @Override public Void get() throws InterruptedException, ExecutionException { throw new AssertionError(); }
-    @Override public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException { throw new AssertionError(); }
+class MockEndpointPromise implements EndpointPromise {
 
     protected enum Method { NONE, SUCCESS, WAIT, FAILURE }
-    private final MockEndpointFuture.Method expectedMethod;
+    private final MockEndpointPromise.Method expectedMethod;
     private Endpoint actualEndpoint;
     long actualDelay;
     private boolean done;
     
-    protected MockEndpointFuture(MockEndpointFuture.Method expectedMethod) {
+    protected MockEndpointPromise(MockEndpointPromise.Method expectedMethod) {
         this.expectedMethod = expectedMethod;
     }
     
-    @Override public synchronized boolean isDone() {
+    @Override public synchronized boolean isComplete() {
         return done;
     }
     
@@ -68,7 +59,7 @@ class MockEndpointFuture implements EndpointFuture {
     }
 
     @Override
-    public synchronized void setFailure() {
+    public synchronized void setFailure(Exception exception) {
         assertEquals("didn't expect setFailure to be called", expectedMethod, Method.FAILURE);
         assertFalse("didn't expect setSuccess to be called on a completed future", done);
         done = true;

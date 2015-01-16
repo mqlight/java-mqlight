@@ -21,18 +21,18 @@
 
 package com.ibm.mqlight.api.impl.callback;
 
-import com.ibm.mqlight.api.callback.CallbackFuture;
+import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.callback.CallbackService;
 
 public class SameThreadCallbackService implements CallbackService {
     
     @Override
-    public void run(Runnable runnable, Object orderingCtx, CallbackFuture future) {
+    public void run(Runnable runnable, Object orderingCtx, Promise<Void> promise) {
         try {
             runnable.run();
-            future.setSuccess();
+            promise.setSuccess(null);
         } catch(Exception e) {
-            future.setFailure(e);
+            promise.setFailure(e);
         }
     }
 
