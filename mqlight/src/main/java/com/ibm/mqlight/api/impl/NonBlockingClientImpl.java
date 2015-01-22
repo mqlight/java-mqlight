@@ -163,10 +163,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             ClientOptions options,
             NonBlockingClientListener<T>listener,
             T context) {
+        if (endpointService == null) throw new IllegalArgumentException("EndpointService cannot be null");
+        if (callbackService == null) throw new IllegalArgumentException("CallbackService cannot be null");
+        if (timerService == null) throw new IllegalArgumentException("TimerService cannot be null");
         this.endpointService = endpointService;
         this.callbackService = callbackService;
         this.engine = engine;
         this.timer = timerService;
+        if (options == null) options = defaultClientOptions;
         clientId = options.getId() != null ? options.getId() : generateClientId();
         clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
         stateMachine = NonBlockingFSMFactory.newStateMachine(this);
@@ -184,7 +188,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
-        this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options.getUser(),  options.getPassword()),
+        this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options == null ? null : options.getUser(),  options == null ? null : options.getPassword()),
              new SameThreadCallbackService(), 
              new NettyNetworkService(), 
              new TimerServiceImpl(),
@@ -214,27 +218,30 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> boolean send(String topic, String data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException {
+        if (data == null) throw new IllegalArgumentException("data cannot be null");
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(new AmqpValue(data));
-        return send(topic, protonMsg, properties, sendOptions, listener, context);
+        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
     }
 
     @Override
     public <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException {
+        if (data == null) throw new IllegalArgumentException("data cannot be null");
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         int pos = data.position();
         byte[] dataBytes = new byte[data.remaining()];
         data.get(dataBytes);
         data.position(pos);
         protonMsg.setBody(new AmqpValue(new Binary(dataBytes)));
-        return send(topic, protonMsg, properties, sendOptions, listener, context);
+        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
     }
     
     private <T> boolean send(String topic, org.apache.qpid.proton.message.Message protonMsg,
                                        Map<String, Object> properties,
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
+        if (topic == null) throw new IllegalArgumentException("topic cannot be null");
         protonMsg.setAddress("amqp:///" + topic); 
         protonMsg.setTtl(sendOptions.getTtl());
         if ((properties != null) && !properties.isEmpty()) {
@@ -298,7 +305,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             SubscribeOptions subOptions, DestinationListener<T> destListener,
             CompletionListener<T> compListener, T context)
             throws StateException, IllegalArgumentException {
-        if (destListener == null) throw new IllegalArgumentException("null destination listener");
+        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
+        if (destListener == null) throw new IllegalArgumentException("DestinationListener cannot be null");
+        if (subOptions == null) subOptions = defaultSubscribeOptions;
         String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is = new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int)(subOptions.getTtl() / 1000L), destListener, context);
@@ -311,6 +320,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
     throws StateException, IllegalArgumentException {
+        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
         if (ttl != 0) throw new IllegalArgumentException("Non-zero ttl");
         String subTopic= buildAmqpTopicName(topicPattern, share);
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, subTopic, ttl == 0);
@@ -323,6 +333,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
     throws StateException {
+        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
         String subTopic = buildAmqpTopicName(topicPattern, share);
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, subTopic, false);
         tell(us, this);

@@ -75,6 +75,8 @@ public class Engine extends Component {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
     public Engine(NetworkService network, TimerService timer) {
+        if (network == null) throw new IllegalArgumentException("NetworkService argument cannot be null");
+        if (timer == null) throw new IllegalArgumentException("TimerService argument cannot be null");
         this.network = network;
         this.timer = timer;
     }
