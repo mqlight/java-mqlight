@@ -22,9 +22,11 @@
 package com.ibm.mqlight.api.impl;
 
 import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.ClientState;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
@@ -61,5 +63,18 @@ public class TestNonBlockingClientImpl {
         StubTimerService timerService = new StubTimerService();
         NonBlockingClientImpl client = new NonBlockingClientImpl(endpointService, callbackService, component, timerService, ClientOptions.builder().build(), null, null);
         assertTrue("Expected auto generated client ID to start with string 'AUTO_'", client.getId().startsWith("AUTO_"));
+    }
+    
+    @Test public void endpointServiceReportsFatalFailure() {
+        StubEndpointService endpointService = new StubEndpointService() {
+            @Override public void lookup(EndpointPromise promise) {
+                promise.setFailure(new Exception());
+            }
+        };
+        StubCallbackService callbackService = new StubCallbackService();
+        MockComponent component = new MockComponent();
+        StubTimerService timerService = new StubTimerService();
+        NonBlockingClientImpl client = new NonBlockingClientImpl(endpointService, callbackService, component, timerService, ClientOptions.builder().build(), null, null);
+        assertEquals("Client should have transitioned into stopping state, ", ClientState.STOPPING, client.getState());
     }
 }

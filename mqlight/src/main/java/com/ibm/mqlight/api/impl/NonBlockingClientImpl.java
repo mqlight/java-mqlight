@@ -168,10 +168,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         this.engine = engine;
         this.timer = timerService;
         clientId = options.getId() != null ? options.getId() : generateClientId();
+        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
         stateMachine = NonBlockingFSMFactory.newStateMachine(this);
         endpointService.lookup(new EndpointPromiseImpl(this));
-        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
-        
     }
     
     public <T> NonBlockingClientImpl(EndpointService endpointService,
@@ -350,8 +349,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     protected void onReceive(Message message) {
         if (message instanceof EndpointResponse) {
             EndpointResponse er = (EndpointResponse)message;
-            currentEndpoint = er.endpoint;
-            stateMachine.fire(NonBlockingClientTrigger.EP_RESP_OK);
+            if (er.endpoint == null) {
+                stateMachine.fire(NonBlockingClientTrigger.EP_RESP_FATAL);
+            } else {
+                currentEndpoint = er.endpoint;
+                stateMachine.fire(NonBlockingClientTrigger.EP_RESP_OK);
+            }
         } else if (message instanceof ExhaustedResponse) {
             stateMachine.fire(NonBlockingClientTrigger.EP_RESP_EXHAUSTED);
         } else if (message instanceof OpenResponse) {
