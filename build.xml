@@ -40,6 +40,12 @@
 		<echo message="Running outside MQ Build environment"/>
 		<property name="output.root" location="output"/>
 		<property name="protonSource" value="../../ApacheQpid/qpid-proton-0.8/proton-j/src" />
+        <!-- Calculate the date part of the build level -->
+        <tstamp>
+            <format property="build.date" pattern="yyMMdd.kk" />
+        </tstamp>
+        <!-- Choose the level name for this build -->
+        <property name="level" value="developer_localbuild-L${build.date}" />
 	</target>
 	
 	<target name="setup" depends="broot.present, broot.missing">
@@ -110,8 +116,16 @@
 	
 	<target name="package" depends="compile, javadoc, copy.licenses">
 		<copy todir="${ship}/mqlight-${version}" file="mqlight/pom.xml"/>
-		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}.jar" basedir="${classes}"/>
-		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}-javadoc.jar" basedir="${doc}"/>
+		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}.jar" basedir="${classes}">
+			<manifest>
+				<attribute name="Implementation-Version" value="${level}"/>
+			</manifest>
+		</jar>
+		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}-javadoc.jar" basedir="${doc}">
+			<manifest>
+				<attribute name="Implementation-Version" value="${level}"/>
+			</manifest>
+		</jar>
 		<zip destfile="${ship}/mqlight-api-${version}-all.zip">
 			<zipfileset dir="${ship}/mqlight-${version}" prefix="mqlight-${version}"/>
 		</zip>
