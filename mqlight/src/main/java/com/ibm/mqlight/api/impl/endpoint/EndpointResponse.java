@@ -21,14 +21,17 @@
 
 package com.ibm.mqlight.api.impl.endpoint;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.Message;
 
 public class EndpointResponse extends Message {
 
     public final Endpoint endpoint;
+    public final ClientException exception;
     
-    public EndpointResponse(Endpoint endpoint) {
+    public EndpointResponse(Endpoint endpoint, ClientException exception) {
         this.endpoint = endpoint;
+        this.exception = exception;
     }
 }

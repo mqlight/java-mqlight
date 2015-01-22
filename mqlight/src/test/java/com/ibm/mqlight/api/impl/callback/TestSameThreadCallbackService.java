@@ -56,6 +56,6 @@ public class TestSameThreadCallbackService {
             }
         }, new Object(), future);
         
-        assertSame("Exception should have been thrown from run()!", exception, future.getException());
+        assertSame("Exception should have been thrown from run()!", exception, future.getException().getCause());
     }
 }

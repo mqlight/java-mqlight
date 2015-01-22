@@ -43,6 +43,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.LogbackLogging;
@@ -216,17 +217,13 @@ public class NettyNetworkService implements NetworkService {
         }
         @Override
         public void operationComplete(ChannelFuture cFuture) throws Exception {
+            logger.debug("connect complete {}", cFuture);
             if (cFuture.isSuccess()) {
                 NettyInboundHandler handler = (NettyInboundHandler)cFuture.channel().pipeline().last();
                 handler.setListener(listener);
                 promise.setSuccess(handler);
             } else {
-                Exception cause;
-                if (cFuture.cause() instanceof Exception) {
-                    cause = (Exception)cFuture.cause();
-                } else {
-                    cause = new Exception(cFuture.cause()); // TODO: would be better to use a more specific exception type.
-                }
+                ClientException cause = new ClientException("Could not connect to server: " + cFuture.cause().getMessage(), cFuture.cause());
                 promise.setFailure(cause);
                 decrementUseCount();
             }
@@ -236,23 +233,24 @@ public class NettyNetworkService implements NetworkService {
     
     @Override
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
-        logger.debug("connect {} {}", endpoint.getHost(), endpoint.getPort());
+        logger.debug("> connect {} {}", endpoint.getHost(), endpoint.getPort());
         incrementUseCount();
         final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
         f.addListener(new ConnectListener(f, promise, listener));
-        
+        logger.debug("< connect");
     }
     
     private static int useCount = 0;
     
     private static synchronized void incrementUseCount() {
-        if (useCount == 0) {
-            ++useCount;
+        ++useCount;
+        if (useCount == 1) {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
             bootstrap = new Bootstrap();
             bootstrap.group(workerGroup);
             bootstrap.channel(NioSocketChannel.class);
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
             bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {

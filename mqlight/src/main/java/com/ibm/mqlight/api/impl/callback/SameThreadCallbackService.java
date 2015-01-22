@@ -21,6 +21,7 @@
 
 package com.ibm.mqlight.api.impl.callback;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.callback.CallbackService;
 
@@ -32,7 +33,7 @@ public class SameThreadCallbackService implements CallbackService {
             runnable.run();
             promise.setSuccess(null);
         } catch(Exception e) {
-            promise.setFailure(e);
+            promise.setFailure(new ClientException("Application code throw an exception from within a callback.  See linked exception for more details.", e));
         }
     }
 

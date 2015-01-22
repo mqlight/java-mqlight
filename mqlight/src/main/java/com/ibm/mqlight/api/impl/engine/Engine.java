@@ -49,6 +49,7 @@ import org.apache.qpid.proton.engine.impl.TransportImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.Component;
@@ -96,8 +97,8 @@ public class Engine extends Component {
             // Message from network telling us that a connect request has completed...
             ConnectResponse cr = (ConnectResponse)message;
             OpenRequest or = (OpenRequest)cr.context;
-            if (cr.cause != null) {
-                or.getSender().tell(new OpenResponse(or, cr.cause), this);
+            if (cr.exception != null) {
+                or.getSender().tell(new OpenResponse(or, cr.exception), this);
             } else {
                 Connection protonConnection = Proton.connection();
                 Transport transport = Proton.transport();
@@ -418,18 +419,16 @@ public class Engine extends Component {
                     engineConnection.openRequest = null;
                     if (!engineConnection.dead) {
                         engineConnection.dead = true;
-                        //DisconnectRequest dr = new DisconnectRequest(engineConnection.networkConnection);
-                        //NettyNetwork.getInstance().tell(dr, Component.NOBODY);
                         engineConnection.channel.close(null);
                         String errorDescription = event.getConnection().getRemoteCondition().getDescription();
-                        req.getSender().tell(new OpenResponse(req, errorDescription == null ? new Exception() : new Exception(errorDescription)), this);
+                        ClientException clientException = 
+                                new ClientException(errorDescription == null ? "The server closed the connection without providing any error information." : errorDescription);
+                        req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
                 } else {    // TODO: should we also special case closeRequest in progress??
                     if (!engineConnection.dead) {
                         engineConnection.dead = true;
                         engineConnection.channel.close(null);
-                        //DisconnectRequest req = new DisconnectRequest(engineConnection.networkConnection);
-                        //NettyNetwork.getInstance().tell(req, Component.NOBODY);
                         String condition = event.getConnection().getRemoteCondition().getCondition().toString();
                         if (condition == null) condition = "";
                         String description = event.getConnection().getRemoteCondition().getDescription();

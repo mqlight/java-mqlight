@@ -49,11 +49,11 @@ class NonBlockingClientListenerWrapper<T>{
         }
     }
     
-    void onRetrying(CallbackService callbackService, final ClientException throwable) {
+    void onRetrying(CallbackService callbackService, final ClientException exception) {
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
-                    listener.onRetrying(client, context, throwable);
+                    listener.onRetrying(client, context, exception);
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
@@ -69,11 +69,11 @@ class NonBlockingClientListenerWrapper<T>{
         }
     }
     
-    void onStopped(CallbackService callbackService, final ClientException throwable) {
+    void onStopped(CallbackService callbackService, final ClientException exception) {
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
-                    listener.onStopped(client, context, throwable);
+                    listener.onStopped(client, context, exception);
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }

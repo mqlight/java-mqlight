@@ -43,7 +43,7 @@ public class NetworkListenerImpl implements NetworkListener {
 
     @Override
     public void onClose(NetworkChannel channel) {
-        component.tell(new ConnectionError(channel, new IOException("Channel closed")), Component.NOBODY);
+        component.tell(new ConnectionError(channel, new IOException("Network connection closed by server")), Component.NOBODY);
     }
 
     @Override

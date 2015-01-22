@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.MockComponent;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -56,7 +57,7 @@ public class TestNetworkConnectPromiseImpl {
         assertEquals("Component should have received 1 message", 1, component.getMessages().size());
         assertTrue("Message should have been of type ConnectResponse", component.getMessages().get(0) instanceof ConnectResponse);
         ConnectResponse response = (ConnectResponse)component.getMessages().get(0);
-        assertNull("Message should have a null cause", response.cause);
+        assertNull("Message should have a null cause", response.exception);
         assertSame("Message should have correct channel", expectedChannel, response.channel);
         assertSame("Message should have correct context", expectedContext, response.context);
         assertSame("Promise should have correct channel", expectedChannel, promise.getChannel());
@@ -82,7 +83,7 @@ public class TestNetworkConnectPromiseImpl {
         MockComponent component = new MockComponent();
         Object expectedContext = new Object();
         NetworkConnectPromiseImpl promise = new NetworkConnectPromiseImpl(component, expectedContext);
-        Exception expectedException = new Exception();
+        ClientException expectedException = new ClientException("oops");
 
         promise.setFailure(expectedException);
         
@@ -90,7 +91,7 @@ public class TestNetworkConnectPromiseImpl {
         assertEquals("Component should have received 1 message", 1, component.getMessages().size());
         assertTrue("Message should have been of type ConnectResponse", component.getMessages().get(0) instanceof ConnectResponse);
         ConnectResponse response = (ConnectResponse)component.getMessages().get(0);
-        assertSame("Message should have correct cause cause", expectedException, response.cause);
+        assertSame("Message should have correct cause cause", expectedException, response.exception);
         assertNull("Message should have null channel", response.channel);
         assertSame("Message should have correct context", expectedContext, response.context);
     }

@@ -21,17 +21,18 @@
 
 package com.ibm.mqlight.api.impl.network;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.network.NetworkChannel;
 
 public class ConnectResponse extends Message {
     public final NetworkChannel channel;
-    public final Throwable cause;
+    public final ClientException exception;
     public final Object context;
     
-    public ConnectResponse(NetworkChannel channel, Throwable cause, Object context) {
+    public ConnectResponse(NetworkChannel channel, ClientException exception, Object context) {
         this.channel = channel;
-        this.cause = cause;
+        this.exception = exception;
         this.context = context;
     }
 }

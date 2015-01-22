@@ -28,7 +28,13 @@ package com.ibm.mqlight.api;
  * instance of this exception.
  */
 public class ReplacedException extends ClientException {
-    
     private static final long serialVersionUID = -6033481693545964064L;
 
+    public ReplacedException(String message) {
+        super(message);
+    }
+    
+    public ReplacedException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

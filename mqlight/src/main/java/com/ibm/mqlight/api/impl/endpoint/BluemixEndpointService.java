@@ -37,6 +37,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
@@ -147,9 +148,11 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     // Retry later...
                     doRetry(future);
                 } catch(JsonParseException parseException) {
-                    future.setFailure(parseException);
+                    future.setFailure(new ClientException(
+                            "Could not parse the JSON returned by the MQ Light Bluemix lookup service.  See linked exception for more information", parseException));
                 } catch(IllegalArgumentException iae) {
-                    future.setFailure(iae);
+                    future.setFailure(new ClientException(
+                            "Endpoint information returned by MQ Light Bluemix lookup service was not valid.  See linked exception for more information", iae));
                 }
             }
         });
@@ -205,15 +208,16 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             }
             
             if (lookupUri == null) {
-                future.setFailure(new Exception("No lookup URI"));  // TODO: better type/message for exception?
+                future.setFailure(new ClientException("Could not locate a valid VCAP_SERVICES environment variable"));
             } else if (retry) {
                 doRetry(future);
             } else if (endpoint != null) {
                 future.setSuccess(endpoint);
             }
-        } catch(JsonParseException e) { // TODO: propagate exception?
+        } catch(JsonParseException e) {
             // Can't parse VCAP_SERVICES values
-            future.setFailure(e);
+            future.setFailure(new ClientException(
+                    "Could not parse the JSON present in the VCAP_SERVICES environment variable.  See linked exception for more information", e));
         } 
     }
 

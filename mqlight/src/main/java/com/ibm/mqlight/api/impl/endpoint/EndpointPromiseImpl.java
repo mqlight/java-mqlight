@@ -22,6 +22,7 @@ package com.ibm.mqlight.api.impl.endpoint;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.Component;
@@ -45,7 +46,7 @@ public class EndpointPromiseImpl implements EndpointPromise {
         if (complete.getAndSet(true)) {
             throw new IllegalStateException("Promise already completed");
         } else {
-            component.tell(new EndpointResponse(endpoint), Component.NOBODY);
+            component.tell(new EndpointResponse(endpoint, null), Component.NOBODY);
         }
     }
 
@@ -63,9 +64,15 @@ public class EndpointPromiseImpl implements EndpointPromise {
         if (complete.getAndSet(true)) {
             throw new IllegalStateException("Promise already completed");
         } else {
-            // TODO: is this a reasonable way to represent a failure of the endpoint service?
-            // TODO: shouldn't we propagate the exception somewhere?
-            component.tell(new EndpointResponse(null), Component.NOBODY);
+            ClientException clientException;
+            if (exception instanceof ClientException) {
+                clientException = (ClientException)exception;
+            } else {
+                clientException = new ClientException(
+                        "A problem occurred when trying to locate an instance of the MQ Light server.  See linked exception for more details",
+                        exception);
+            }
+            component.tell(new EndpointResponse(null, clientException), Component.NOBODY);
         }
     }
 

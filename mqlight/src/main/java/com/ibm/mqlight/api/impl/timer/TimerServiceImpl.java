@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.timer.TimerService;
 
@@ -34,7 +35,7 @@ import com.ibm.mqlight.api.timer.TimerService;
 public class TimerServiceImpl implements TimerService {
 
     private static final ScheduledThreadPoolExecutor executor;
-    private static final Exception failureException = new Exception("Timer cancelled!");
+    private static final ClientException failureException = new ClientException("Timer cancelled");
 
     static {
         executor = new ScheduledThreadPoolExecutor(0);

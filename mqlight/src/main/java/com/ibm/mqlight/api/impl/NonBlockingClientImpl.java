@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.oxo42.stateless4j.StateMachine;
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
 import com.ibm.mqlight.api.ClientState;
 import com.ibm.mqlight.api.CompletionListener;
@@ -46,6 +47,7 @@ import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.ReplacedException;
 import com.ibm.mqlight.api.SendOptions;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.SubscribeOptions;
@@ -116,6 +118,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     
     private int undrainedSends = 0;
     private boolean pendingDrain = false;
+    
+    private boolean stoppedByUser = false;
+    private ClientException lastException = null;
     
     private Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
     
@@ -360,7 +365,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     protected void onReceive(Message message) {
         if (message instanceof EndpointResponse) {
             EndpointResponse er = (EndpointResponse)message;
-            if (er.endpoint == null) {
+            if (er.exception != null) {
+                if (lastException == null) lastException = er.exception;
                 stateMachine.fire(NonBlockingClientTrigger.EP_RESP_FATAL);
             } else {
                 currentEndpoint = er.endpoint;
@@ -370,10 +376,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             stateMachine.fire(NonBlockingClientTrigger.EP_RESP_EXHAUSTED);
         } else if (message instanceof OpenResponse) {
             OpenResponse or = (OpenResponse)message;
-            if (or.cause != null) {
-                // TODO: surely there must be a better way to work out if this is a fatal connection error...
-                if ((or.cause.getMessage() != null) && 
-                    (or.cause.getMessage().toLowerCase().contains("sasl") || or.cause.getMessage().toLowerCase().contains("failedloginexception"))){
+            if (or.exception != null) {
+                if (lastException == null) lastException = or.exception;
+                if ((or.exception.getMessage() != null) && 
+                    (or.exception.getMessage().toLowerCase().contains("sasl") || or.exception.getMessage().toLowerCase().contains("failedloginexception"))) {
+                    
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_RETRY);
@@ -546,8 +553,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             remakingInboundLinks = false;
             DisconnectNotification dn = (DisconnectNotification)message;
             if ("ServerContext_Takeover".equals(dn.condition)) {
+                if (lastException == null) lastException = new ReplacedException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
             } else {
+                if (lastException == null) lastException = new ClientException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
             }
         } else if (message instanceof FlushResponse) {
@@ -673,7 +682,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         currentConnection = null;
         remakingInboundLinks = false;
         serviceUri = null;
-        
+
         // Ask the callback service to notify us when it has completed any previously
         // requested callback invocations (via a FlushResponse message to the onReceive() method)
         callbackService.run(new Runnable() {
@@ -723,6 +732,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public void eventStarting() {
+        stoppedByUser = false;
+        lastException = null;
         externalState = ClientState.STARTING;
     }
 
@@ -733,19 +744,20 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public void eventSystemStopping() {
-        // TODO: need to be careful because sometimes the client can be stopped by the user and then
-        //       a system problem be detected (in which case we get a user stopping followed by a
-        //       system stopping event - and should probably discard any error associated with the
-        //       system stopping event)...
+        // Need to be careful because sometimes the client can be stopped by the user and then
+        // a system problem be detected (in which case we get a user stopping followed by a
+        // system stopping event - and should discard any error associated with the
+        // system stopping event)...
         externalState = ClientState.STOPPING;
-        
+        if (lastException == null) stoppedByUser = true;
     }
 
     @Override
     public void eventStopped() {
         externalState = ClientState.STOPPED;
-        // TODO: currently we never supply the optional 'exception' parameter - even if there has been an error!
-        clientListener.onStopped(callbackService, null);
+        clientListener.onStopped(callbackService, stoppedByUser ? null : lastException);
+        stoppedByUser = false;
+        lastException = null;
     }
 
     @Override
@@ -757,9 +769,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public void eventRetrying() {
         externalState = ClientState.RETRYING;
-        // TODO: currently we never supply the 'exception' parameter - even though there will always have been an
-        //       error in order to transition the client into this state
-        clientListener.onRetrying(callbackService, null);
+        clientListener.onRetrying(callbackService, stoppedByUser ? null : lastException);
     }
 
     @Override

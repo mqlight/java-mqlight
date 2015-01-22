@@ -195,7 +195,7 @@ public class TestEngine {
         assertEquals("Expected one message to have been sent to component", 1, component.getMessages().size());
         assertTrue("Expected message to be of type OpenResponse", component.getMessages().get(0) instanceof OpenResponse);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        assertNull("Expected no exception in openResponse", openResponse.cause);
+        assertNull("Expected no exception in openResponse", openResponse.exception);
         assertNotNull("Expected an engine connection in openResponse", openResponse.connection);
         assertSame("Expected request to be linked in openResponse", expectedOpenRequest, openResponse.request);
 
@@ -221,7 +221,7 @@ public class TestEngine {
         assertEquals("Expected one message to have been sent to component", 1, component.getMessages().size());
         assertTrue("Expected message to be of type OpenResponse", component.getMessages().get(0) instanceof OpenResponse);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        assertNotNull("Expected open response to contain an exception", openResponse.cause);
+        assertNotNull("Expected open response to contain an exception", openResponse.exception);
         assertNull("Expected open response not to contain an engine connection", openResponse.connection);
     }
     

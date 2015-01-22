@@ -39,11 +39,11 @@ public interface NonBlockingClientListener<T> {
      * @param client a reference to the client that the listener was registered for and
      *               this notification pertains to.
      * @param context the context object that was specified when the listener was registered.
-     * @param throwable indicates why the client transitioned into stopped state.  This will be
+     * @param exception indicates why the client transitioned into stopped state.  This will be
      *                  <code>null</code> when the client transitions into stopped state because
      *                  the <code>stop()</code> method is called on the client.
      */
-    void onStopped(NonBlockingClient client, T context, ClientException throwable);
+    void onStopped(NonBlockingClient client, T context, ClientException exception);
 
     /**
      * Called as a notification when the client transitions into restarting state.
@@ -60,9 +60,9 @@ public interface NonBlockingClientListener<T> {
      * @param client a reference to the client that the listener was registered for and
      *               this notification pertains to.
      * @param context the context object that was specified when the listener was registered.
-     * @param throwable indicates why the client transitioned (or remains) in the retrying state.
+     * @param exception indicates why the client transitioned (or remains) in the retrying state.
      */
-    void onRetrying(NonBlockingClient client, T context, ClientException throwable);
+    void onRetrying(NonBlockingClient client, T context, ClientException exception);
     
     // TODO: document this!
     void onDrain(NonBlockingClient client, T context);

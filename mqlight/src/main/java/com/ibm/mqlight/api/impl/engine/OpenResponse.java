@@ -21,23 +21,24 @@
 
 package com.ibm.mqlight.api.impl.engine;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.impl.Message;
 
 public class OpenResponse extends Message {
 
     public final OpenRequest request;
     public final EngineConnection connection;
-    public final Throwable cause;
+    public final ClientException exception;
     
     public OpenResponse(OpenRequest request, EngineConnection connection) {
         this.request = request;
         this.connection = connection;
-        this.cause = null;
+        this.exception = null;
     }
     
-    public OpenResponse(OpenRequest request, Throwable cause) {
+    public OpenResponse(OpenRequest request, ClientException exception) {
         this.request = request;
         this.connection = null;
-        this.cause = cause;
+        this.exception = exception;
     }
 }
