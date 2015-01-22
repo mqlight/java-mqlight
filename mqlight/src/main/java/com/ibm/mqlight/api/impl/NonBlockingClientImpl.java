@@ -605,12 +605,16 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public void remakeInboundLinks() {
-        remakingInboundLinks = true;
-        for (Map.Entry<String, SubData>entry : subscribedDestinations.entrySet()) {
-            SubData data = entry.getValue();
-            data.state = SubData.State.ATTACHING;
-            SubscribeRequest sr = new SubscribeRequest(currentConnection, entry.getKey(), data.qos, data.credit, data.ttl);
-            engine.tell(sr, this);
+        if (subscribedDestinations.isEmpty()) {
+            stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
+        } else {
+            remakingInboundLinks = true;
+            for (Map.Entry<String, SubData>entry : subscribedDestinations.entrySet()) {
+                SubData data = entry.getValue();
+                data.state = SubData.State.ATTACHING;
+                SubscribeRequest sr = new SubscribeRequest(currentConnection, entry.getKey(), data.qos, data.credit, data.ttl);
+                engine.tell(sr, this);
+            }
         }
     }
 
