@@ -78,9 +78,9 @@ import com.ibm.mqlight.api.timer.TimerService;
  */
 public abstract class NonBlockingClient extends Component { // TODO: not particularly sure I like this hierarchy...
 
-    private static final ClientOptions defaultClientOptions = ClientOptions.builder().build();
-    private static final SendOptions defaultSendOptions = SendOptions.builder().build();
-    private static final SubscribeOptions defaultSubscribeOptions = SubscribeOptions.builder().build();
+    protected static final ClientOptions defaultClientOptions = ClientOptions.builder().build();
+    protected static final SendOptions defaultSendOptions = SendOptions.builder().build();
+    protected static final SubscribeOptions defaultSubscribeOptions = SubscribeOptions.builder().build();
     
     /**
      * Creates a new instance of the <code>NonBlockingClient</code> in starting state.

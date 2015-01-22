@@ -21,7 +21,6 @@
 
 package com.ibm.mqlight.api.impl;
 
-import java.lang.reflect.Proxy;
 import java.nio.BufferOverflowException;
 import java.util.Map;
 
@@ -40,7 +39,6 @@ import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.MalformedDelivery;
 import com.ibm.mqlight.api.NonBlockingClient;
-import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.callback.CallbackService;

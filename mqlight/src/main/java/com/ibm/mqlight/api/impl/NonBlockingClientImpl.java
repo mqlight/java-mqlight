@@ -93,7 +93,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     
     private final EndpointService endpointService;
     private final CallbackService callbackService;
-    private final Engine engine;
+    private final Component engine;
     private final TimerService timer;
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
     
@@ -156,6 +156,24 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return "AUTO_" + i.substring(0, 7);
     }
 
+    protected <T> NonBlockingClientImpl(EndpointService endpointService,
+            CallbackService callbackService,
+            Component engine,
+            TimerService timerService,
+            ClientOptions options,
+            NonBlockingClientListener<T>listener,
+            T context) {
+        this.endpointService = endpointService;
+        this.callbackService = callbackService;
+        this.engine = engine;
+        this.timer = timerService;
+        clientId = options.getId() != null ? options.getId() : generateClientId();
+        stateMachine = NonBlockingFSMFactory.newStateMachine(this);
+        endpointService.lookup(new EndpointPromiseImpl(this));
+        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
+        
+    }
+    
     public <T> NonBlockingClientImpl(EndpointService endpointService,
                                      CallbackService callbackService,
                                      NetworkService networkService,
@@ -163,14 +181,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                                      ClientOptions options,
                                      NonBlockingClientListener<T>listener,
                                      T context) {
-        this.endpointService = endpointService;
-        this.callbackService = callbackService;
-        this.engine = new Engine(networkService, timerService);
-        this.timer = timerService;
-        clientId = options.getId() != null ? options.getId() : generateClientId();
-        stateMachine = NonBlockingFSMFactory.newStateMachine(this);
-        endpointService.lookup(new EndpointPromiseImpl(this));
-        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
+        this(endpointService, callbackService, new Engine(networkService, timerService), timerService, options, listener, context);
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {

@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
-import com.ibm.mqlight.api.network.NetworkChannel;
 
 public class NetworkWritePromiseImpl implements Promise<Boolean> {
     private final AtomicBoolean complete = new AtomicBoolean(false);
@@ -40,12 +39,6 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
     @Override
     public boolean isComplete() {
         return complete.get();
-    }
-
-    private NetworkChannel channel;
-    
-    public synchronized NetworkChannel getChannel() {
-        return channel;
     }
 
     @Override

@@ -23,6 +23,7 @@ package com.ibm.mqlight.api.impl.endpoint;
 
 import java.util.LinkedList;
 
+import junit.framework.AssertionFailedError;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -51,6 +52,27 @@ public class TestEndpointPromiseImpl {
         @Override public String getPassword() { return null; }
     }
     
+    private void testPromiseThrowsIllegalStateException(EndpointPromise promise) {
+        try {
+            promise.setSuccess(null);
+            throw new AssertionFailedError("setSuccess should have thrown an IllegalStateException");
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+        try {
+            promise.setWait(1234);
+            throw new AssertionFailedError("setSuccess should have thrown an IllegalStateException");
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+        try {
+            promise.setFailure(null);
+            throw new AssertionFailedError("setSuccess should have thrown an IllegalStateException");
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+    }
+    
     @Test
     public void endpointNotDone() {
         MockComponent component = new MockComponent();
@@ -72,6 +94,7 @@ public class TestEndpointPromiseImpl {
         assertEquals("wrong type for message delivered to component", ExhaustedResponse.class, component.messages.getFirst().getClass());
         ExhaustedResponse resp = (ExhaustedResponse)component.messages.getFirst();
         assertEquals("wrong delay value in message", waitValue, resp.delay);
+        testPromiseThrowsIllegalStateException(promise);
     }
     
     @Test
@@ -86,6 +109,7 @@ public class TestEndpointPromiseImpl {
         assertEquals("wrong type for message delivered to component", EndpointResponse.class, component.messages.getFirst().getClass());
         EndpointResponse resp = (EndpointResponse)component.messages.getFirst();
         assertSame("wrong value in message", endpoint, resp.endpoint);
+        testPromiseThrowsIllegalStateException(promise);
     }
     
     @Test
@@ -99,5 +123,6 @@ public class TestEndpointPromiseImpl {
         assertEquals("wrong type for message delivered to component", EndpointResponse.class, component.messages.getFirst().getClass());
         EndpointResponse resp = (EndpointResponse)component.messages.getFirst();
         assertSame("wrong value in message", null, resp.endpoint);
+        testPromiseThrowsIllegalStateException(promise);
     }
 }

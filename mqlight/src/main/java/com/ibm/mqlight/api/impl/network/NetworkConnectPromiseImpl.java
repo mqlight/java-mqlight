@@ -46,11 +46,13 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
     private NetworkChannel channel;
     
     @Override
-    public synchronized void setSuccess(NetworkChannel channel) throws IllegalStateException {
+    public void setSuccess(NetworkChannel channel) throws IllegalStateException {
         if (complete.getAndSet(true)) {
             throw new IllegalStateException("Promise already completed");
         } else {
-            this.channel = channel;
+            synchronized(this) {
+                this.channel = channel;
+            }
             component.tell(new ConnectResponse(channel, null, context), Component.NOBODY);
         }
     }
