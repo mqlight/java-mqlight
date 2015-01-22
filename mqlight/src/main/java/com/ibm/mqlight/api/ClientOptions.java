@@ -68,6 +68,23 @@ public class ClientOptions {
         return verifyName;
     }
     
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(super.toString());
+        sb.append(" [id=")
+          .append(id)
+          .append(", user=")
+          .append(user)
+          .append(", password=")
+          .append(password == null ? null : "******")
+          .append(", certFile=")
+          .append(certFile)
+          .append(", verifyName=")
+          .append(verifyName)
+          .append("]");
+        return sb.toString();
+    }
+
     /**
      * @return a new instance of the <code>ClientOptionsBuilder<code> object.  This can be used to
      * build (immutable) <code>ClientOptions</code> objects.

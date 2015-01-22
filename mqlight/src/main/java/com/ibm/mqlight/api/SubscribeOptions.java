@@ -66,6 +66,23 @@ public class SubscribeOptions {
         return ttl;
     }
     
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(super.toString());
+        sb.append(" [autoConfirm=")
+          .append(autoConfirm)
+          .append(", credit=")
+          .append(credit)
+          .append(", qos=")
+          .append(qos)
+          .append(", share=")
+          .append(shareName)
+          .append(", ttl=")
+          .append(ttl)
+          .append("]");
+        return sb.toString();
+    }
+
     /**
      * @return a builder that can be used to create an immutable instance of <code>SubscribeOptions</code>.
      */

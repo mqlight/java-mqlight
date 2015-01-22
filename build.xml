@@ -69,7 +69,7 @@
 	</target>
 
 	<target name="compile" depends="mkdirs">
-		<javac srcdir="${src}" destdir="${classes}" includeantruntime="false">
+		<javac srcdir="${src}" destdir="${classes}" includeantruntime="false" debug="true">
 			<src path="${protonSource}/main/java" />
 			<classpath>
 				<fileset dir="${lib}">
@@ -118,7 +118,7 @@
 	</target>
 	
 	<target name="compile.ut" depends="package">
-		<javac srcdir="${unittest.src}" destdir="${unittest.classes}" includeantruntime="false">
+		<javac srcdir="${unittest.src}" destdir="${unittest.classes}" includeantruntime="false" debug="true">
 			<classpath>
 				<fileset dir="${lib}">
 					<include name="**/*.jar"/>

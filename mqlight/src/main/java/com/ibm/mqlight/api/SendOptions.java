@@ -48,6 +48,17 @@ public class SendOptions {
         return ttl;
     }
     
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(super.toString());
+        sb.append(" [qos=")
+          .append(qos)
+          .append(", ttl=")
+          .append(ttl)
+          .append("]");
+        return sb.toString();
+    }
+    
     /**
      * @return a new instance of <code>SendOptionsBuilder</code> that can be used to build
      *         (immutable) instances of <code>SendOptions</code>.
