@@ -35,4 +35,12 @@ public class StateException extends ClientRuntimeException {
 
     private static final long serialVersionUID = -8951433512053398231L;
 
+    public StateException(String message) {
+        super(message);
+    }
+
+    public StateException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

@@ -56,10 +56,10 @@ public abstract class DeliveryImpl implements Delivery {
     @Override
     public void confirm() {
         if (deliveryRequest == null) {
-            throw new IllegalStateException();  // TODO: using auto confirm...
+            throw new StateException("Subscription has autoConfirm option set to true");
         } else {
             if (!client.doDelivery(deliveryRequest)) {
-                throw new StateException();  // TODO: the connection was broken...
+                throw new StateException("Cannot confirm delivery because of an interruption to the network connection to the MQ Light server");
             }
         }
     }

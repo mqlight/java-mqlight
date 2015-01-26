@@ -28,4 +28,11 @@ public class ClientRuntimeException extends RuntimeException {
 
     private static final long serialVersionUID = -7670482333474200402L;
 
+    public ClientRuntimeException(String message) {
+        super(message);
+    }
+    
+    public ClientRuntimeException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

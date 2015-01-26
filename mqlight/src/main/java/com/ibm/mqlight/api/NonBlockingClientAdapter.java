@@ -43,4 +43,6 @@ public abstract class NonBlockingClientAdapter<T> implements NonBlockingClientLi
     @Override
     public void onRetrying(NonBlockingClient client, T context, ClientException throwable) {}
 
+    @Override
+    public void onDrain(NonBlockingClient client, T context) {}
 }

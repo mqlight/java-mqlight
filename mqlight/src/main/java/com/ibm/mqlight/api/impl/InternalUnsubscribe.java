@@ -23,11 +23,13 @@ package com.ibm.mqlight.api.impl;
 
 class InternalUnsubscribe<T> extends Message implements QueueableWork {
     final CompletionFuture<T> future;
-    final String topic;
+    final String topicPattern;
+    final String share;
     final boolean zeroTtl;
-    InternalUnsubscribe(NonBlockingClientImpl client, String topic, boolean zeroTtl) {
+    InternalUnsubscribe(NonBlockingClientImpl client, String topicPattern, String share, boolean zeroTtl) {
         future = new CompletionFuture<>(client);
-        this.topic = topic;
+        this.topicPattern = topicPattern;
+        this.share = share;
         this.zeroTtl = zeroTtl;
     }
 }
