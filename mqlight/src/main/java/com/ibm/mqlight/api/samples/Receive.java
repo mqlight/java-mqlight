@@ -1,0 +1,271 @@
+/*
+ *   <copyright 
+ *   notice="oco-source" 
+ *   pids="5725-P60" 
+ *   years="2015" 
+ *   crc="1438874957" > 
+ *   IBM Confidential 
+ *    
+ *   OCO Source Materials 
+ *    
+ *   5724-H72
+ *    
+ *   (C) Copyright IBM Corp. 2015
+ *    
+ *   The source code for the program is not published 
+ *   or otherwise divested of its trade secrets, 
+ *   irrespective of what has been deposited with the 
+ *   U.S. Copyright Office. 
+ *   </copyright> 
+ */
+
+package com.ibm.mqlight.api.samples;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import com.ibm.mqlight.api.BytesDelivery;
+import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.CompletionListener;
+import com.ibm.mqlight.api.Delivery;
+import com.ibm.mqlight.api.DestinationListener;
+import com.ibm.mqlight.api.MalformedDelivery;
+import com.ibm.mqlight.api.NonBlockingClient;
+import com.ibm.mqlight.api.NonBlockingClientAdapter;
+import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.StringDelivery;
+import com.ibm.mqlight.api.SubscribeOptions.SubscribeOptionsBuilder;
+import com.ibm.mqlight.api.SubscribeOptions;
+import com.ibm.mqlight.api.samples.ArgumentParser.Results;
+
+public class Receive {
+
+    private static ScheduledThreadPoolExecutor scheduledExecutor = new ScheduledThreadPoolExecutor(1);
+    
+    private static void showUsage() {
+        PrintStream out = System.out;
+        out.println("Usage: Receive [options]");
+        out.println();
+        out.println("Options:");
+        out.println("  -h, --help            show this help message and exit");
+        out.println("  -s URL, --service=URL service to connect to, for example:\n" +
+                    "                        amqp://user:password@host:5672 or\n" +
+                    "                        amqps://host:5671 to use SSL/TLS\n" +
+                    "                        (default: amqp://localhost)");
+        /* TODO: not implemented yet...
+        out.println("  -c FILE, --trust-certificate=FILE\n" +
+                    "                        use the certificate contained in FILE (in PEM format) to\n" +
+                    "                        validate the identity of the server. The connection must\n" +
+                    "                        be secured with SSL/TLS (e.g. the service URL must start\n" +
+                    "                        with 'amqps://')");
+        */
+        out.println("  -t TOPICPATTERN, --topic-pattern=TOPICPATTERN\n" +
+                    "                        subscribe to receive messages matching TOPICPATTERN");
+        out.println("                        (default: public)");
+        out.println("  -i ID, --id=ID        the ID to use when connecting to MQ Light\n" +
+                    "                        (default: recv_[0-9a-f]{7})");
+        out.println("  --destination-ttl=NUM set destination time-to-live to NUM seconds");
+        out.println("  -n NAME, --share-name NAME");
+        out.println("                        optionally, subscribe to a shared destination using\n" +
+                    "                        NAME as the share name.");
+        out.println("  -f FILE, --file=FILE  write the payload of the next message received to\n" +
+                    "                        FILE (overwriting previous file contents) then end.\n" +
+                    "                        (default is to print messages to stdout)");
+        out.println("  -d NUM, --delay=NUM   delay for NUM seconds each time a message is received.");
+        out.println("  --verbose             print additional information about each message\n" +
+                    "                        received.");
+        out.println();
+    }
+    
+    protected static class Listener implements DestinationListener<Void> {
+        private final String filename;
+        private final boolean verbose;
+        private final long delayMillis;
+        int count = 0;
+        
+        protected Listener(String filename, boolean verbose, long delayMillis) {
+            this.filename = filename;
+            this.verbose = verbose;
+            this.delayMillis = delayMillis;
+        }
+        
+        @Override
+        public void onMessage(NonBlockingClient client, Void context, final Delivery delivery) {
+            ++count;
+            if (delivery instanceof MalformedDelivery) {
+                System.err.printf("*** received malformed message (%d)\n", count);
+            } else if (verbose) {
+                System.out.printf("# received message (%d)\n", count);
+            }
+            if (filename == null) {
+                if (delivery instanceof StringDelivery) {
+                    System.out.println(((StringDelivery)delivery).getData());
+                } else {
+                    ByteBuffer buffer = ((BytesDelivery)delivery).getData();
+                    byte[] data = new byte[buffer.remaining() > 16 ? buffer.remaining() : 16];
+                    buffer.get(data);
+                    System.out.print("data = { ");
+                    int amount = Math.min(data.length, 16);
+                    for (int i=0; i < amount; ++i) {
+                        if (i+1 == amount) {
+                            System.out.printf("%02x", data[i]);
+                        } else {
+                            System.out.printf("%02x, ", data[i]);
+                        }
+                    }
+                    System.out.println(amount < data.length ? ", ... }" : " }");
+                }
+                if (verbose) {
+                    StringBuilder sb = new StringBuilder("[ properties=");
+                    sb.append(delivery.getProperties())
+                      .append(", qos=").append(delivery.getQOS())
+                      .append(", share=").append(delivery.getShare())
+                      .append(", topic=").append(delivery.getTopic())
+                      .append(", topic pattern=").append(delivery.getTopicPattern())
+                      .append(", ttl=").append(delivery.getTtl())
+                      .append(" ]");
+                    System.out.println(sb.toString());
+                }
+                if (delayMillis > 0) {
+                    scheduledExecutor.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            delivery.confirm();
+                        }
+                        
+                    }, delayMillis, TimeUnit.MILLISECONDS);
+                }
+            } else {
+                
+                try (FileOutputStream out = new FileOutputStream(filename)) {
+                    ByteBuffer data;
+                    if (delivery instanceof BytesDelivery) {
+                        data = ((BytesDelivery)delivery).getData();
+                    } else {
+                        String strData = ((StringDelivery)delivery).getData();
+                        data = ByteBuffer.wrap(strData.getBytes());
+                    }
+                    while(data.remaining() > 0) {
+                        out.getChannel().write(data);
+                    }
+                } catch(IOException ioException) {
+                    System.err.printf("Problem writing for file (%s): %s\n", filename, ioException.getMessage());
+                    client.stop(null, null);
+                }
+            }
+        }
+
+        @Override
+        public void onMalformed(NonBlockingClient client, Void context, MalformedDelivery delivery) {
+            onMessage(client, context, delivery);
+        }
+
+        @Override
+        public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+        }
+    }
+    
+    public static void main(String[] cmdline) {
+        scheduledExecutor.setRemoveOnCancelPolicy(true);
+        
+        ArgumentParser parser = new ArgumentParser();
+        parser.expect("-h", "--help", Boolean.class, null)
+              .expect("-s", "--service", String.class, "amqp://localhost")
+            /*.expect("-c", "--trust-certificate", String.class, null) // TODO: not implemented yet... */
+              .expect("-t", "--topic-pattern", String.class, "public")
+              .expect("-i", "--id", String.class, null)
+              .expect(null, "--destination-ttl", Double.class, 0.0)
+              .expect("-n", "--share-name", String.class, null)
+              .expect("-f", "--file", String.class, null)
+              .expect("-d", "--delay", Double.class, 0.0)
+              .expect(null, "--verbose", Boolean.class, false);
+        
+        Results tmpArgs = null;
+        try {
+            tmpArgs = parser.parse(cmdline);
+        } catch(IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            showUsage();
+            System.exit(0);
+        }
+        final Results args = tmpArgs;
+        
+        if (args.parsed.get("-h").equals(true) || args.unparsed.length != 0) {
+            showUsage();
+            System.exit(1);
+        }
+        
+        ClientOptions opts;
+        if (args.parsed.containsKey("-i")) {
+            opts = ClientOptions.builder().setId((String)args.parsed.get("-i")).build();
+        } else {
+            opts = ClientOptions.builder().build();
+        }
+        
+        NonBlockingClient.create((String)args.parsed.get("-s"), opts, new NonBlockingClientAdapter<Void>() {
+            @Override
+            public void onStarted(NonBlockingClient client, Void context) {
+                System.out.printf("Connected to %s using client-id %s\n", client.getService(), client.getId());
+                
+                long delayMillis = 0;
+                SubscribeOptionsBuilder subOptBuilder = SubscribeOptions.builder();
+                delayMillis = Math.round((Double)args.parsed.get("-d") * 1000);
+                if (delayMillis > 0) {
+                    subOptBuilder.setAutoConfirm(false)
+                                 .setCredit(1);
+                }
+                subOptBuilder.setQos(QOS.AT_LEAST_ONCE);
+                if (args.parsed.containsKey("--destination-ttl")) {
+                    long ttl = Math.round((Double)args.parsed.get("--destination-ttl") * 1000);
+                    subOptBuilder.setTtl(ttl);
+                }
+                if (args.parsed.containsKey("-n")) {
+                    subOptBuilder.setShare((String)args.parsed.get("-s"));
+                }
+
+                Listener listener = new Listener((String)args.parsed.get("-f"), (Boolean)args.parsed.get("--verbose"), delayMillis);
+                client.subscribe((String)args.parsed.get("-t"), subOptBuilder.build(), listener, new CompletionListener<Void>() {
+                    @Override
+                    public void onSuccess(NonBlockingClient client, Void context) {
+                        if (args.parsed.containsKey("-n")) {
+                            System.out.printf("Subscribed to share: %s, pattern: %s\n", args.parsed.get("-n"), args.parsed.get("-t"));
+                        } else {
+                            System.out.printf("Subscribed to pattern: %s\n", args.parsed.get("-t"));
+                        }
+                    }
+
+                    @Override
+                    public void onError(NonBlockingClient client, Void context, Exception exception) {
+                        System.err.println("Problem with subscribe request: " + exception.getMessage());
+                        client.stop(null, null);
+                    }
+                }, null);
+            }
+
+            @Override
+            public void onRetrying(NonBlockingClient client, Void context,
+                    ClientException throwable) {
+                System.err.println("*** error ***");
+                if (throwable != null) System.err.println(throwable.getMessage());
+                client.stop(null, null);
+            }
+            
+            @Override
+            public void onStopped(NonBlockingClient client, Void context,
+                    ClientException throwable) {
+                if (throwable != null) {
+                    System.err.println("*** error ***");
+                    System.err.println(throwable.getMessage());
+                }
+                scheduledExecutor.shutdownNow();
+                System.out.println("Exiting");
+                System.exit(1);
+            }
+        }, null);
+    }
+}
