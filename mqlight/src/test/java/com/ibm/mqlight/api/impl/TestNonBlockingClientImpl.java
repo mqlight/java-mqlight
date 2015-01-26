@@ -230,4 +230,29 @@ public class TestNonBlockingClientImpl {
             // Expected
         }
     }
+    
+    @Test
+    public void topicEncoding() {
+        String[][] testData = new String[][] {
+            {"", "amqp:///"},
+            {"/", "amqp:////"},
+            {"/kittens", "amqp:////kittens"},
+            {"kittens", "amqp:///kittens"},
+            {"kittens/puppies", "amqp:///kittens/puppies"},
+            {"kittens/puppies/", "amqp:///kittens/puppies/"},
+            {"/kittens/puppies", "amqp:////kittens/puppies"},
+            {"/kittens/puppies/", "amqp:////kittens/puppies/"},
+            {"&", "amqp:///%26"},
+            {"/&", "amqp:////%26"},
+            {"&/", "amqp:///%26/"},
+            {"/kittens&", "amqp:////kittens%26"},
+            {"/kit&tens", "amqp:////kit%26tens"},
+            {"/&kittens", "amqp:////%26kittens"},
+            {"&/kittens", "amqp:///%26/kittens"},
+            {"&/&kit&tens&/&pup&pies&/&", "amqp:///%26/%26kit%26tens%26/%26pup%26pies%26/%26"},
+        };
+        for (int i = 0; i < testData.length; ++i) {
+            assertEquals("test case #"+i, testData[i][1], NonBlockingClientImpl.encodeTopic(testData[i][0]));
+        }
+    }
 }

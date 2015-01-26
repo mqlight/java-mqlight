@@ -21,6 +21,8 @@
 
 package com.ibm.mqlight.api.impl;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -245,11 +247,30 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
     }
     
+    protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
+        String[] topicFragments = unencodedTopic.split("(?=(?!^)/)|(?<=/)");
+        StringBuilder amqpAddress = new StringBuilder("amqp:///");
+        for (int i = 0; i < topicFragments.length; ++i) {
+            if ("/".equals(topicFragments[i])) {
+                amqpAddress.append("/");
+            } else {
+                try {
+                    amqpAddress.append(URLEncoder.encode(topicFragments[i], "UTF-8"));
+                } catch(UnsupportedEncodingException e) {
+                    throw new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
+                }
+                
+            }
+        }
+        return amqpAddress.toString();
+    }
+
     private <T> boolean send(String topic, org.apache.qpid.proton.message.Message protonMsg,
                                        Map<String, Object> properties,
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
         if (topic == null) throw new IllegalArgumentException("topic cannot be null");
-        protonMsg.setAddress("amqp:///" + topic); 
+
+        protonMsg.setAddress(encodeTopic(topic)); 
         protonMsg.setTtl(sendOptions.getTtl());
         if ((properties != null) && !properties.isEmpty()) {
             for (Object value : properties.values()) {

@@ -89,7 +89,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *        connections).  User names and passwords may be embedded into the URL - for example:
      *        <code>amqp://user:pass@example.com</code>.  If a value of <code>null</code> is specified then
      *        the client will attempt to locate a suitable service based on its environment.  Currently it
-     *        is capable of locating services in this whay when run in the IBM Bluemix environment.
+     *        is capable of locating services in this way when run in the IBM Bluemix environment.
      * @param options a set of options that determine the behaviour of the client.
      * @param listener a listener that is notified of major life-cycle events for the client.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
