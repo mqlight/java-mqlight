@@ -46,8 +46,7 @@ public class CallbackPromiseImpl implements Promise<Void> {
         if (complete.getAndSet(true)) {
             throw new IllegalStateException("Promise already completed");
         }
-        
-        // TODO: need to write code for propagating failure back to the client!
+        component.tell(new CallbackExceptionNotification(exception), component);
     }
 
     @Override

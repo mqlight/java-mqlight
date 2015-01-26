@@ -56,6 +56,7 @@ import com.ibm.mqlight.api.SubscribeOptions;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointService;
+import com.ibm.mqlight.api.impl.callback.CallbackExceptionNotification;
 import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.impl.callback.FlushResponse;
 import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
@@ -596,6 +597,18 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (pendingDrain) {
                 pendingDrain = false;
                 clientListener.onDrain(callbackService);
+            }
+        } else if (message instanceof CallbackExceptionNotification) {
+            Exception exception = ((CallbackExceptionNotification)message).exception;
+            logger.error("Exception thrown from inside callback", exception);
+            pendingStops.addLast((InternalStop<?>)message);
+            stateMachine.fire(NonBlockingClientTrigger.STOP);
+            if (lastException == null) {
+                if (exception instanceof ClientException) {
+                    lastException = (ClientException)exception;
+                } else {
+                    lastException = new ClientException("Exception thrown from inside callback", exception);
+                }
             }
         } else {
             logger.debug("Unexpected message received {} from {} ", message, message.getSender());
