@@ -21,6 +21,8 @@
 
 package com.ibm.mqlight.api;
 
+import junit.framework.AssertionFailedError;
+
 /**
  * A set of options that can be used to configure the behaviour of the <code>NonBlockingClient</code>
  * {@link NonBlockingClient#send(String, java.nio.ByteBuffer, Map, SendOptions, CompletionListener, Object)} and
@@ -94,7 +96,8 @@ public class SendOptions {
          * @return the instance of <code>SendOptionsBuilder</code> that this method was
          *         called on.
          */
-        public SendOptionsBuilder setTtl(long ttl) {
+        public SendOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
+            if (ttl <= 0) throw new IllegalArgumentException("TTL (" + ttl + ") must be > 0");
             this.ttl = ttl;
             return this;
         }

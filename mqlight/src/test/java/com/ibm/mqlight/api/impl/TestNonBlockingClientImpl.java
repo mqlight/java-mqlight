@@ -33,6 +33,7 @@ import com.ibm.mqlight.api.ClientOptions;
 import com.ibm.mqlight.api.ClientState;
 import com.ibm.mqlight.api.DestinationAdapter;
 import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.SendOptions;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
@@ -160,6 +161,25 @@ public class TestNonBlockingClientImpl {
         }
     }
     
+    @Test
+    public void messgaeTtlValues() {
+        SendOptions.builder().setTtl(1).build();
+        
+        try {
+            SendOptions.builder().setTtl(0).build();
+            throw new AssertionFailedError("Zero TTL should have thrown an exception");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        
+        try {
+            SendOptions.builder().setTtl(-1).build();
+            throw new AssertionFailedError("-1 TTL should have thrown an exception");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+    }
+
     @Test
     public void nullValuesIntoSubscribe() {
         StubEndpointService endpointService = new StubEndpointService();
