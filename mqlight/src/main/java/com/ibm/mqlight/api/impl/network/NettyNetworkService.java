@@ -75,7 +75,17 @@ public class NettyNetworkService implements NetworkService {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             logger.debug("channel read");
-            if (listener != null) listener.onRead(this, ((ByteBuf)msg).nioBuffer());
+            // Make a copy of the buffer
+            // TODO: this is inefficient - support for pooling should be integrated into
+            //       the interfaces that define a network service...
+            if (listener != null) {
+                ByteBuf buf = ((ByteBuf)msg);
+                ByteBuffer nioBuf = ByteBuffer.allocate(buf.readableBytes());
+                buf.readBytes(nioBuf);
+                nioBuf.flip();
+                listener.onRead(this, nioBuf);
+                buf.release();
+            }
         }
 
         @Override
