@@ -38,9 +38,11 @@ public class TimerServiceImpl implements TimerService {
     private static final ClientException failureException = new ClientException("Timer cancelled");
 
     static {
-        executor = new ScheduledThreadPoolExecutor(0);
+        executor = new ScheduledThreadPoolExecutor(1);
         executor.setMaximumPoolSize(5); // TODO 5 == plucked from the air
-        executor.setKeepAliveTime(500, TimeUnit.MILLISECONDS);
+        executor.setKeepAliveTime(600, TimeUnit.MILLISECONDS);
+        executor.allowCoreThreadTimeOut(true);
+        executor.setRemoveOnCancelPolicy(true);
     }
     
     private static final HashMap<Promise<Void>, Timer> promiseToTimer = new HashMap<>();
