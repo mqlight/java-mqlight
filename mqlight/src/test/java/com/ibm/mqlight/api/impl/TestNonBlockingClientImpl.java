@@ -162,7 +162,7 @@ public class TestNonBlockingClientImpl {
     }
     
     @Test
-    public void messgaeTtlValues() {
+    public void messageTtlValues() {
         SendOptions.builder().setTtl(1).build();
         
         try {
