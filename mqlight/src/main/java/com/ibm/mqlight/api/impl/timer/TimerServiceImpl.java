@@ -40,7 +40,7 @@ public class TimerServiceImpl implements TimerService {
     static {
         executor = new ScheduledThreadPoolExecutor(1);
         executor.setMaximumPoolSize(5); // TODO 5 == plucked from the air
-        executor.setKeepAliveTime(600, TimeUnit.MILLISECONDS);
+        executor.setKeepAliveTime(500, TimeUnit.MILLISECONDS);
         executor.allowCoreThreadTimeOut(true);
         executor.setRemoveOnCancelPolicy(true);
     }
