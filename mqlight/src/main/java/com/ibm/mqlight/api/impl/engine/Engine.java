@@ -272,10 +272,12 @@ public class Engine extends Component {
             DataRead dr = (DataRead)message;
             EngineConnection engineConnection = (EngineConnection)dr.channel.getContext();
             while (dr.buffer.remaining() > 0) {
-                ByteBuffer tail = engineConnection.transport.tail();
-                int amount = Math.min(engineConnection.transport.capacity(), dr.buffer.remaining());
-                tail.limit(tail.position() + amount);
+                int origLimit = dr.buffer.limit();
+                ByteBuffer tail = engineConnection.transport.tail();                
+                int amount = Math.min(tail.remaining(), dr.buffer.remaining());
+                dr.buffer.limit(dr.buffer.position() + amount);
                 tail.put(dr.buffer);
+                dr.buffer.limit(origLimit);
                 engineConnection.transport.process();
                 process(engineConnection.collector);
             }
