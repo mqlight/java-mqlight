@@ -21,9 +21,8 @@
 
 package com.ibm.mqlight.api.impl;
 
-// TODO
-// Tagging interface - would it be better to make this an abstract class that
-// extends message?  It would probably mean less casting inside the client code.
+// Tagging interface - used to create a generic type for any (internal) request to the
+// non-blocking client that should be queued up and replayed after connectivity is broken / re-established.
 public interface QueueableWork {
 
 }

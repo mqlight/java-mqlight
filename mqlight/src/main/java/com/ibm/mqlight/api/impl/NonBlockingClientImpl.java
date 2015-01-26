@@ -121,6 +121,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     
     private boolean stoppedByUser = false;
     private ClientException lastException = null;
+
+    long retryDelay = 0;
     
     private Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
     
@@ -135,7 +137,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             DETATCHING     // A link detatch request has been sent - we're waiting to hear back.
         }
         State state = State.ATTACHING;
-        private LinkedList<QueueableWork> pending = new LinkedList<>();   // TODO: consider subtyping the relevent messages to restrict the type of this list.
+        private LinkedList<QueueableWork> pending = new LinkedList<>();
         final DestinationListenerWrapper<?> listener;
         private final QOS qos;
         private final int credit;
@@ -373,6 +375,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 stateMachine.fire(NonBlockingClientTrigger.EP_RESP_OK);
             }
         } else if (message instanceof ExhaustedResponse) {
+            retryDelay = ((ExhaustedResponse)message).delay;
             stateMachine.fire(NonBlockingClientTrigger.EP_RESP_EXHAUSTED);
         } else if (message instanceof OpenResponse) {
             OpenResponse or = (OpenResponse)message;
@@ -575,7 +578,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public void startTimer() {
         timerPromise = new TimerPromiseImpl(this, null);
-        timer.schedule(10000, timerPromise);  // TODO: this delay needs to vary...
+        timer.schedule(retryDelay, timerPromise);
     }
 
     @Override
@@ -621,8 +624,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     
     @Override
     public void blessEndpoint() {
-        serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp") +           // TODO: this is a bit of a hack
-                     currentEndpoint.getHost() + ":" + currentEndpoint.getPort() + "/";   // TODO: consult state machine to work out where this should go!
+        serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp://") +
+                     currentEndpoint.getHost() + ":" + currentEndpoint.getPort();
+        retryDelay = 0;
         endpointService.onSuccess(currentEndpoint);
     }
 
