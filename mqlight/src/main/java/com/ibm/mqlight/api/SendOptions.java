@@ -21,8 +21,6 @@
 
 package com.ibm.mqlight.api;
 
-import junit.framework.AssertionFailedError;
-
 /**
  * A set of options that can be used to configure the behaviour of the <code>NonBlockingClient</code>
  * {@link NonBlockingClient#send(String, java.nio.ByteBuffer, Map, SendOptions, CompletionListener, Object)} and
