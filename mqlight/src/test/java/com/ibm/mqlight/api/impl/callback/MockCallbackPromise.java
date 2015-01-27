@@ -30,32 +30,62 @@ public class MockCallbackPromise implements Promise<Void> {
 
     protected enum Method { NONE, SUCCESS, FAILURE }
     private final Method expectedMethod;
+    private final boolean checkMethod;
     private boolean done;
+    private boolean success;
     private Exception exception;
     
     protected MockCallbackPromise(Method expectedMethod) {
+        this(expectedMethod, true);
+    }
+    
+    protected MockCallbackPromise(Method expectedMethod, boolean checkMethod) {
         this.expectedMethod = expectedMethod;
+        this.checkMethod = checkMethod;
     }
     
     @Override public synchronized boolean isComplete() {
         return done;
     }
     
+    public synchronized boolean waitForComplete(int timeout) throws InterruptedException {
+        if (done) return true;
+        else {
+            wait(timeout);
+            return done;
+        }
+    }
+    
+    public synchronized boolean isSuccessful() {
+        return success;
+    }
+    
     @Override public synchronized void setSuccess(Void x) {
-        assertEquals("didn't expect setSuccess to be called", expectedMethod, Method.SUCCESS);
-        assertFalse("didn't expect setSuccess to be called on a completed future", done);
+        if (checkMethod) {
+            assertEquals("didn't expect setSuccess to be called", expectedMethod, Method.SUCCESS);
+            assertFalse("didn't expect setSuccess to be called on a completed future", done);
+        }
         done = true;
+        success = true;
+        notifyAll();
     }
 
     @Override
     public synchronized void setFailure(Exception exception) {
-        assertEquals("didn't expect setFailure to be called", expectedMethod, Method.FAILURE);
-        assertFalse("didn't expect setSuccess to be called on a completed future", done);
-        done = true;
+        if (checkMethod) {
+            assertEquals("didn't expect setFailure to be called", expectedMethod, Method.FAILURE);
+            assertFalse("didn't expect setSuccess to be called on a completed future", done);
+        }
         this.exception = exception;
+        done = true;
+        notifyAll();
     }
     
-    protected Exception getException() {
+    protected synchronized Exception getException() {
         return exception;
+    }
+    
+    protected Method getExpectedMethod() {
+        return expectedMethod;
     }
 }

@@ -88,15 +88,16 @@
   <p>
   The following table describes the various plug-points provided by the client.  For more information about
   an individual plug-point, please consult the Javadoc for the relevant interface.
-  <table>
+  <table border="1">
   <tr><th>Interface</th><th>Description</th><th>Supplied implementations</th></tr>
   <tr>
     <td>com.ibm.mqlight.api.callback.CallbackService</td>
     <td>A plug point for the code that is run each time the client needs to call back into application code.</td>
     <td>The client supplies two implementations.  The first is: com.ibm.mqlight.api.callback.impl.SameThreadCallbackService, which
         calls back into application code using whatever thread calls in to the plug-point.  This introduces minimal
-        overhead on running callbacks - but is not suitable for callbacks that block.  The second implementation is: TBD,
-        which schedules callbacks into a threadpool.</td>
+        overhead on running callbacks - but is not suitable for callbacks that block.  The second implementation is: 
+        com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService which schedules callbacks into a threadpool.
+        The default is com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService.</td>
   </tr>
   <tr>
     <td>com.ibm.mqlight.api.endpoint.EndpointService</td>

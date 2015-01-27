@@ -59,7 +59,7 @@ import com.ibm.mqlight.api.endpoint.EndpointService;
 import com.ibm.mqlight.api.impl.callback.CallbackExceptionNotification;
 import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.impl.callback.FlushResponse;
-import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
+import com.ibm.mqlight.api.impl.callback.ThreadPoolCallbackService;
 import com.ibm.mqlight.api.impl.endpoint.BluemixEndpointService;
 import com.ibm.mqlight.api.impl.endpoint.EndpointPromiseImpl;
 import com.ibm.mqlight.api.impl.endpoint.EndpointResponse;
@@ -199,7 +199,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
         this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options == null ? null : options.getUser(),  options == null ? null : options.getPassword()),
-             new SameThreadCallbackService(), 
+             new ThreadPoolCallbackService(5), 
              new NettyNetworkService(), 
              new TimerServiceImpl(),
              options,
