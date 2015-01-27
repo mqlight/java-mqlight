@@ -25,9 +25,11 @@ import com.ibm.mqlight.api.impl.Message;
 
 public class WriteResponse extends Message {
     public final Object context;
+    public final long amount;
     public final boolean drained;
-    public WriteResponse(Object context, boolean drained) {
+    public WriteResponse(Object context, long amount, boolean drained) {
         this.context = context;
+        this.amount = amount;
         this.drained = drained;
     }
 }

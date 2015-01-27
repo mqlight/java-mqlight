@@ -429,10 +429,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof SendResponse) {
             SendResponse sr = (SendResponse)message;
             InternalSend<?> is = outstandingSends.remove(sr.request);
-            if (sr.cause == null) {
-                is.future.postSuccess(callbackService);
-            } else {
-                is.future.postFailure(callbackService, sr.cause);
+            if (is != null) {
+                if (sr.cause == null) {
+                    is.future.postSuccess(callbackService);
+                } else {
+                    is.future.postFailure(callbackService, sr.cause);
+                }
             }
         } else if (message instanceof InternalStart) {
             pendingStarts.addLast((InternalStart<?>)message);

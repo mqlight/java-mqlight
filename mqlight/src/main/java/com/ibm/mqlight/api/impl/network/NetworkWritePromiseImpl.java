@@ -29,10 +29,12 @@ import com.ibm.mqlight.api.impl.Component;
 public class NetworkWritePromiseImpl implements Promise<Boolean> {
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final Component component;
+    private final long amount;
     private final Object context;
     
-    public NetworkWritePromiseImpl(Component component, Object context) {
+    public NetworkWritePromiseImpl(Component component, long amount, Object context) {
         this.component = component;
+        this.amount = amount;
         this.context = context;
     }
 
@@ -46,7 +48,7 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
         if (complete.getAndSet(true)) {
             throw new IllegalStateException("Promise already completed");
         } else {
-            component.tell(new WriteResponse(context, drained), Component.NOBODY);
+            component.tell(new WriteResponse(context, amount, drained), Component.NOBODY);
         }
     }
 

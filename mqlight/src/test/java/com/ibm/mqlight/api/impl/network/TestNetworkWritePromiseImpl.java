@@ -33,8 +33,9 @@ public class TestNetworkWritePromiseImpl {
     @Test
     public void success() {
         MockComponent component = new MockComponent();
+        long expectedAmount = 1000;
         Object expectedContext = new Object();
-        NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, expectedContext);
+        NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, expectedAmount, expectedContext);
         boolean expectedDrainValue = true;
         
         assertFalse("Promise should not be created in complete state", promise.isComplete());
@@ -45,6 +46,7 @@ public class TestNetworkWritePromiseImpl {
         assertTrue("Message should have been instanceof WriteResponse", component.getMessages().get(0) instanceof WriteResponse);
         WriteResponse response = (WriteResponse)component.getMessages().get(0);
         assertSame("Context object in WriteResponse should be same as passed into promise constructor", expectedContext, response.context);
+        assertEquals("Amount in WriteResponse should be same as passed into promise constructor", expectedAmount, response.amount);
         assertSame("Drain value in WriteResponse should match that passed into promise setSuccess", expectedDrainValue, response.drained);
         
         try {
@@ -66,7 +68,7 @@ public class TestNetworkWritePromiseImpl {
     public void failure() {
         MockComponent component = new MockComponent();
         Object expectedContext = new Object();
-        NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, expectedContext);
+        NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, 1000, expectedContext);
         
         promise.setFailure(new Exception());
         

@@ -148,6 +148,7 @@ public class Engine extends Component {
             Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
                                                           EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
             Sender linkSender;
+            boolean linkOpened = false;
             while(true) {
                 if (link == null) {
                     linkSender = sr.connection.session.sender(sr.topic);    // TODO: the Node.js client uses sender-xxx as a link name...
@@ -158,6 +159,7 @@ public class Engine extends Component {
                     linkSender.setSource(source);
                     linkSender.setTarget(target);
                     linkSender.open();
+                    linkOpened = true;
                     break;
                 }
                 if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
@@ -168,7 +170,6 @@ public class Engine extends Component {
                 link = link.next(EnumSet.of(EndpointState.ACTIVE),
                                             EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
             }
-            
             Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes());
             
             linkSender.send(sr.data, 0, sr.length);
@@ -178,12 +179,19 @@ public class Engine extends Component {
                 engineConnection.inProgressOutboundDeliveries.put(d, sr);
             }
             linkSender.advance();
-            engineConnection.drained = false;
-            writeToNetwork(engineConnection);
-            if (sr.qos == QOS.AT_MOST_ONCE) {
-                // TODO: is it possible to be more accurate about this (e.g. when the message has been written?)
-                sr.getSender().tell(new SendResponse(sr, null), this);
+            engineConnection.drained = false;            
+            int delta = engineConnection.transport.head().remaining();
+            // If the link was also opened as part of processing this request then fudge the
+            // amount of data expected (as the linkSender.send() won't count against the amount of
+            // data in transport.head() unless there is link credit - which there won't be until
+            // the server responds to the link open).
+            // TODO: track credit in this class so that we can detect this case and more accurately
+            //       calculate when the first message sent will have been flushed to the network.
+            if (linkOpened) {
+                delta += sr.data.length;
             }
+            engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
+            writeToNetwork(engineConnection);
         } else if (message instanceof SubscribeRequest) {
             SubscribeRequest sr = (SubscribeRequest) message;
             EngineConnection engineConnection = sr.connection;
@@ -260,6 +268,8 @@ public class Engine extends Component {
             WriteResponse wr = (WriteResponse)message;
             EngineConnection engineConnection = (EngineConnection)wr.context;
             if (engineConnection != null) {
+                engineConnection.bytesWritten += wr.amount;
+                engineConnection.notifyInflightQos0(false);
                 if (engineConnection.transport.pending() > 0) {
                     writeToNetwork(engineConnection);
                 } else if (!engineConnection.drained){
@@ -289,6 +299,7 @@ public class Engine extends Component {
             DisconnectResponse dr = (DisconnectResponse)message;
             CloseRequest cr = (CloseRequest)dr.context;
             cr.connection.dead = true;
+            cr.connection.notifyInflightQos0(true);
             if (cr != null) {
                 cr.getSender().tell(new CloseResponse(cr), this);
             }
@@ -303,6 +314,7 @@ public class Engine extends Component {
                     engineConnection.timerPromise = null;
                     timer.cancel(tmp);
                 }
+                engineConnection.notifyInflightQos0(true);
                 engineConnection.dead = true;
                 engineConnection.transport.close_tail();
                 engineConnection.requestor.tell(new DisconnectNotification(engineConnection, ce.cause.getClass().toString(), ce.cause.getMessage()), this);
@@ -330,7 +342,7 @@ public class Engine extends Component {
             tmp.flip();
             //ByteBuf buf = Unpooled.wrappedBuffer(head);
             engineConnection.transport.pop(amount);
-            engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, engineConnection));
+            engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, amount, engineConnection));
             //nn.tell(new WriteRequest(connection, buf), this);
         }
     }
@@ -420,6 +432,7 @@ public class Engine extends Component {
                     OpenRequest req = engineConnection.openRequest;
                     engineConnection.openRequest = null;
                     if (!engineConnection.dead) {
+                        engineConnection.notifyInflightQos0(true);
                         engineConnection.dead = true;
                         engineConnection.channel.close(null);
                         String errorDescription = event.getConnection().getRemoteCondition().getDescription();
@@ -429,6 +442,7 @@ public class Engine extends Component {
                     }
                 } else {    // TODO: should we also special case closeRequest in progress??
                     if (!engineConnection.dead) {
+                        engineConnection.notifyInflightQos0(true);
                         engineConnection.dead = true;
                         engineConnection.channel.close(null);
                         String condition = event.getConnection().getRemoteCondition().getCondition().toString();
@@ -441,6 +455,7 @@ public class Engine extends Component {
             } else {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 if (!engineConnection.dead) {
+                    engineConnection.notifyInflightQos0(true);
                     engineConnection.dead = true;
                     CloseRequest cr = engineConnection.closeRequest;
                     NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
