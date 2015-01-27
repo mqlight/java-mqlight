@@ -181,7 +181,7 @@ public class Engine extends Component {
             linkSender.advance();
             engineConnection.drained = false;            
             int delta = engineConnection.transport.head().remaining();
-            // If the link was also opened as part of processing this request then fudge the
+            // If the link was also opened as part of processing this request then increase the
             // amount of data expected (as the linkSender.send() won't count against the amount of
             // data in transport.head() unless there is link credit - which there won't be until
             // the server responds to the link open).
