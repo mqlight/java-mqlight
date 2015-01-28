@@ -21,5 +21,30 @@ MQCOMM %Z% %W% %I% %E% %U%
 /**********************************************************************/
 
 #if ISupportProton
+.PHONY: ant.build.xml.mqlight
 RunApacheANT(mqlight-api,build.xml,mqlight,MQLIGHT_API)
+
+#if defined(ArchitectureFamilyPc)
+
+/* On Windows we copy the java client zip directly to the CDKOA output dir */
+JAVA_VRMF := $(shell FixPath($(BROOT)/bin64/mqvrmf) -J)
+JAVA_ZIP  := mqlight-api-$(JAVA_VRMF)-all.zip
+$(BPWD)/ship/$(JAVA_ZIP): ant.build.xml.mqlight
+$(CDKOA)/$(JAVA_ZIP): $(BPWD)/ship/$(JAVA_ZIP)
+	if NOT EXIST $(CDKOA) mkdir $(CDKOA)
+	copy $< $@ @/Y
+ship:: $(CDKOA)/mqlight-api-$(JAVA_VRMF)-all.zip
+all:: ship
+
+#else
+
+/* On Linux we ship the java client zip to InstallDir where it will be */
+/* copied out by the usual code under /install/unix/                   */
+JAVA_VRMF := $(shell FixPath($(BROOT)/bin/mqvrmf) -J)
+JAVA_ZIP  := mqlight-api-$(JAVA_VRMF)-all.zip
+$(BPWD)/ship/$(JAVA_ZIP): ant.build.xml.mqlight
+ShipNamedFile(InstallDirectory/lib,$(JAVA_ZIP),$(BPWD)/ship/$(JAVA_ZIP))
+
 #endif
+
+#endif /* ISupportProton */
