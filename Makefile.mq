@@ -21,8 +21,12 @@ MQCOMM %Z% %W% %I% %E% %U%
 /**********************************************************************/
 
 #if ISupportProton
-.PHONY: ant.build.xml.mqlight
+.PHONY: ant.build.xml.mqlight ant.build.xml.check
 RunApacheANT(mqlight-api,build.xml,mqlight,MQLIGHT_API)
+
+ant.build.xml.check: build.xml
+	$(ANT) $(ANT_EXTRA_OPTIONS) -Dbroot=$(BROOT) -Dlevel=$(LEVEL) -buildfile $< run.ut
+check:: ant.build.xml.check
 
 #if defined(ArchitectureFamilyPc)
 
