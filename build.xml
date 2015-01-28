@@ -25,13 +25,15 @@
 	<property name="lib" location="lib"/>
 	<property name="nonship" location="nonship"/>
 	<property name="unittest.src" location="mqlight/src/test/java"/>
-	<property name="version" value="1.0-SNAPSHOT"/>	<!-- TODO: is this right?  Should we store this somewher else? -->
 	
 	<!-- If the 'BROOT' environment variable is set - generate output relative to BROOT -->
 	<target name="broot.present" if="env.BROOT">
 	 	<echo message="Running inside MQ Build environment"/>
 		<property name="output.root" location="${env.BROOT}/appmsging/java"/>
 		<property name="protonSource" value="${env.BROOT}/appmsging/qpid-proton/qpid-proton-0.8/proton-j/src"/>
+		<exec executable="${env.BROOT}/bin/mqvrmf" outputproperty="version">
+			<arg value="-J"/>
+		</exec>
 	</target>
 	
 	<!-- If the 'broot' environment variable is not set - generate output relative to -->
@@ -40,6 +42,7 @@
 		<echo message="Running outside MQ Build environment"/>
 		<property name="output.root" location="output"/>
 		<property name="protonSource" value="../../ApacheQpid/qpid-proton-0.8/proton-j/src" />
+		<property name="version" value="1.0-SNAPSHOT"/>	<!-- TODO: is this right?  Should we store this somewher else? -->
         <!-- Calculate the date part of the build level -->
         <tstamp>
             <format property="build.date" pattern="yyMMdd.kk" />
@@ -116,6 +119,7 @@
 	
 	<target name="package" depends="compile, javadoc, copy.licenses">
 		<copy todir="${ship}/mqlight-${version}" file="mqlight/pom.xml"/>
+		<replace file="${ship}/mqlight-${version}/pom.xml" token="9.9.9999999999" value="${version}"/>
 		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}.jar" basedir="${classes}">
 			<manifest>
 				<attribute name="Implementation-Version" value="${level}"/>

@@ -23,7 +23,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.mqlight.api</groupId>
   <artifactId>mqlight-api</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>9.9.9999999999</version>
 
   <dependencies>
     <dependency>
