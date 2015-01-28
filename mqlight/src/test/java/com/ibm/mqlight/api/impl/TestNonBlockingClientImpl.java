@@ -23,7 +23,12 @@ package com.ibm.mqlight.api.impl;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 import junit.framework.AssertionFailedError;
 
@@ -31,13 +36,21 @@ import org.junit.Test;
 
 import com.ibm.mqlight.api.ClientOptions;
 import com.ibm.mqlight.api.ClientState;
+import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.DestinationAdapter;
+import com.ibm.mqlight.api.DestinationListener;
+import com.ibm.mqlight.api.MalformedDelivery;
+import com.ibm.mqlight.api.NonBlockingClient;
+import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.SendOptions;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.endpoint.EndpointService;
+import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
+import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 import com.ibm.mqlight.api.timer.TimerService;
 
 public class TestNonBlockingClientImpl {
@@ -274,5 +287,99 @@ public class TestNonBlockingClientImpl {
         for (int i = 0; i < testData.length; ++i) {
             assertEquals("test case #"+i, testData[i][1], NonBlockingClientImpl.encodeTopic(testData[i][0]));
         }
+    }
+    
+    @Test
+    public void roundtripMessageProperties() {
+        StubEndpointService endpointService = new StubEndpointService();
+        StubCallbackService callbackService = new StubCallbackService();
+        MockComponent component = new MockComponent();
+        StubTimerService timerService = new StubTimerService();
+        class MockClient extends NonBlockingClientImpl {
+            private LinkedList<Message> messages = new LinkedList<>();
+            protected <T> MockClient(EndpointService endpointService,
+                    CallbackService callbackService, Component engine,
+                    TimerService timerService, ClientOptions options,
+                    NonBlockingClientListener<T> listener, T context) {
+                super(endpointService, callbackService, engine, timerService, options,
+                        listener, context);
+            }
+            @Override
+            public void tell(Message message, Component self) {
+                messages.addLast(message);
+            }
+            protected java.util.List<Message> getMessages() {
+                return messages;
+            }
+        }
+        class TestDestinationListener implements DestinationListener<Void> {
+            protected Map<String, Object> properties = null;
+            @Override
+            public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
+                properties = delivery.getProperties();
+            }
+            @Override
+            public void onMalformed(NonBlockingClient client, Void context, MalformedDelivery delivery) {
+            }
+            @Override
+            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+            }
+        }
+        
+        MockClient client = new MockClient(endpointService, callbackService, component, timerService, null, null, null);
+        HashMap<String, Object> props = new HashMap<>();
+        //boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class, byte[].class, String.class
+        props.put("boolean", true);
+        props.put("byte", (byte)0x01);
+        props.put("short", (short)123);
+        props.put("int", (int)4567);
+        props.put("long", (long)121723);
+        props.put("float", (float)0.1234);
+        props.put("double", (double)543.1234);
+        props.put("byte[]", new byte[]{1,2,3,4});
+        props.put("string", "this is a string");
+       
+        client.send("/kittens", "data", props);
+
+        assertEquals("Expected a single message to have been sent to the mock engine component", 1, client.getMessages().size());
+        InternalSend<?> send = (InternalSend<?>)client.getMessages().get(0);
+        byte[] data = new byte[send.length];
+        System.arraycopy(send.data, 0, data, 0, send.length);
+
+        DeliveryRequest dr = new DeliveryRequest(data, QOS.AT_MOST_ONCE, "/kittens", null, null);
+        TestDestinationListener destinationListener = new TestDestinationListener();
+        DestinationListenerWrapper<Void> wrapper = new DestinationListenerWrapper<>(client, destinationListener, null);
+        wrapper.onDelivery(new SameThreadCallbackService(), dr, QOS.AT_MOST_ONCE, false);
+        
+        assertNotNull("Expected onMessage to have been called with message properties", destinationListener.properties);
+        assertEquals("Expected all message properties to have been round-tripped", props.size(), destinationListener.properties.size());
+        Map<String, Object> actualProperties = destinationListener.properties;
+        for (Map.Entry<String, Object> expectedProperty : props.entrySet()) {
+            assertTrue("Round-tripped properties should have contained key: "+expectedProperty.getKey(), actualProperties.containsKey(expectedProperty.getKey()));
+            if (expectedProperty.getValue() instanceof byte[]) {
+                assertTrue("Round-tripped byte array should match for key: "+expectedProperty.getKey(), 
+                        Arrays.equals((byte[])expectedProperty.getValue(), (byte[])actualProperties.get(expectedProperty.getKey())));
+            } else {
+                assertEquals("Ronnd-tripped value should match for key: "+expectedProperty.getKey(), expectedProperty.getValue(), actualProperties.get(expectedProperty.getKey()));
+            }
+        }
+    }
+    
+    @Test
+    public void validPropertyValues() {
+        assertTrue("null", NonBlockingClientImpl.isValidPropertyValue(null));
+        assertTrue("boolean", NonBlockingClientImpl.isValidPropertyValue(false));
+        assertTrue("byte", NonBlockingClientImpl.isValidPropertyValue((byte)3));
+        assertTrue("short", NonBlockingClientImpl.isValidPropertyValue((short)3));
+        assertTrue("int", NonBlockingClientImpl.isValidPropertyValue((int)3));
+        assertTrue("long", NonBlockingClientImpl.isValidPropertyValue((long)3L));
+        assertTrue("float", NonBlockingClientImpl.isValidPropertyValue((float)3.0));
+        assertTrue("double", NonBlockingClientImpl.isValidPropertyValue((double)3.0));
+        assertTrue("byte[]", NonBlockingClientImpl.isValidPropertyValue(new byte[0]));
+        assertTrue("string", NonBlockingClientImpl.isValidPropertyValue("hello"));
+        
+        assertFalse("Object", NonBlockingClientImpl.isValidPropertyValue(new Object()));
+        assertFalse("char", NonBlockingClientImpl.isValidPropertyValue('c'));
+        assertFalse("BigDecimal", NonBlockingClientImpl.isValidPropertyValue(new BigDecimal(3)));
     }
 }

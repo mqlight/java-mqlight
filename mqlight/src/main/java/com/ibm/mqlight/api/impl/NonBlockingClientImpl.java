@@ -102,6 +102,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final TimerService timer;
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
     
+    protected static final Class<?>[] validPropertyValueTypes = new Class[] {
+        Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, byte[].class, String.class
+    };
     
     private final LinkedList<InternalStart<?>> pendingStarts = new LinkedList<>();
     private final LinkedList<InternalStop<?>> pendingStops = new LinkedList<>();
@@ -266,6 +269,18 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return amqpAddress.toString();
     }
 
+    protected static boolean isValidPropertyValue(Object value) {
+        if (value == null) {
+            return true;
+        }
+        for (int i = 0; i < validPropertyValueTypes.length; ++i) {
+            if (validPropertyValueTypes[i].isAssignableFrom(value.getClass())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private <T> boolean send(String topic, org.apache.qpid.proton.message.Message protonMsg,
                                        Map<String, Object> properties,
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
@@ -273,14 +288,21 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         protonMsg.setAddress(encodeTopic(topic)); 
         protonMsg.setTtl(sendOptions.getTtl());
+        Map<String, Object> amqpProperties = new HashMap<>();
         if ((properties != null) && !properties.isEmpty()) {
-            for (Object value : properties.values()) {
-                // TODO: this check will likely need extending when we've worked out what property value types we do support...
-                if (!(value instanceof String)) {
-                    throw new IllegalArgumentException("Properties contain non-string values");
+            for (Map.Entry<String, Object> entry : properties.entrySet()) {
+                if (!isValidPropertyValue(entry.getValue())) {
+                    throw new IllegalArgumentException("Property key '" + entry.getKey() + " specifies a value which is not of a supported type");
+                }
+                if (entry.getValue() instanceof byte[]) {
+                    byte[] copy = new byte[((byte[])entry.getValue()).length];
+                    System.arraycopy(entry.getValue(), 0, copy, 0, copy.length);
+                    amqpProperties.put(entry.getKey(), new Binary(copy));
+                } else {
+                    amqpProperties.put(entry.getKey(), entry.getValue());
                 }
             }
-            protonMsg.setApplicationProperties(new ApplicationProperties(properties));
+            protonMsg.setApplicationProperties(new ApplicationProperties(amqpProperties));
         }
         
         byte data[] = new byte[2 * 1024];

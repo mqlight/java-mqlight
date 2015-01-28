@@ -80,17 +80,17 @@ class DestinationListenerWrapper<T> {
 
                 Map<String, Object> properties = new HashMap<String, Object>();
                 if (malformedReason == null) {
-                    Object value = ((AmqpValue)msg.getBody()).getValue();
-                    if (value instanceof Binary) {
-                        Binary binaryValue = (Binary)value;
+                    Object msgBodyValue = ((AmqpValue)msg.getBody()).getValue();
+                    if (msgBodyValue instanceof Binary) {
+                        Binary binaryValue = (Binary)msgBodyValue;
                         if ((binaryValue.getArrayOffset() == 0) && (binaryValue.getArray().length == binaryValue.getLength())) {
                             payloadBytes = binaryValue.getArray();
                         } else {
                             payloadBytes = new byte[binaryValue.getLength()];
                             System.arraycopy(binaryValue.getArray(), binaryValue.getArrayOffset(), payloadBytes, 0, binaryValue.getLength());
                         }
-                    } else if (value instanceof String) {
-                        payloadString = (String)value;
+                    } else if (msgBodyValue instanceof String) {
+                        payloadString = (String)msgBodyValue;
                     } else {
                         malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;  // TODO: is this the right reason code?
                         payloadBytes = data;
@@ -99,9 +99,19 @@ class DestinationListenerWrapper<T> {
                     if ((msg.getApplicationProperties() != null) && (msg.getApplicationProperties().getValue() != null)) {
                         Map<?, ?> msgMap = msg.getApplicationProperties().getValue();
                         for (Map.Entry<?, ?> entry : msgMap.entrySet()) {
-                            // TODO: what do we do with property values that we don't know how to interpret?
-                            if ((entry.getKey() instanceof String) && (entry.getValue() instanceof String)) {
-                                properties.put((String)entry.getKey(), (String)entry.getValue());
+                            if (entry.getKey() instanceof String) {
+                                Object value = entry.getValue();
+                                if (value == null) {
+                                    properties.put((String)entry.getKey(), null);
+                                } else if (value instanceof Binary) {
+                                    properties.put((String)entry.getKey(), ((Binary)value).getArray());
+                                } else {
+                                    for (int i = 0; i < NonBlockingClientImpl.validPropertyValueTypes.length; ++i) {
+                                        if (NonBlockingClientImpl.validPropertyValueTypes[i].isAssignableFrom(value.getClass())) {
+                                            properties.put((String)entry.getKey(), value);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
