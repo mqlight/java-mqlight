@@ -29,6 +29,7 @@ import org.apache.qpid.proton.engine.BaseHandler;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Event;
 import org.apache.qpid.proton.engine.Handler;
+import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sender;
 
 import static org.junit.Assert.*;
@@ -85,6 +86,9 @@ public class TestEngine {
                 delivery = sender.delivery(new byte[]{1});
                 sender.send(new byte[]{1, 2, 3}, 0, 3);
                 sender.advance();
+            } else {
+                Receiver receiver = (Receiver)e.getLink();
+                receiver.flow(1024);
             }
             if (closeConnection) {
                 e.getConnection().setCondition(new ErrorCondition(Symbol.getSymbol("symbol"), "Something went wrong!"));
@@ -240,8 +244,8 @@ public class TestEngine {
         
         engine.tell(new SendRequest(openResponse.connection, "topic1", new byte[]{1, 2, 3}, 3, QOS.AT_MOST_ONCE), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
-        assertTrue("Expected message 2 to be of type SendResponse", component.getMessages().get(1) instanceof SendResponse);
-        assertTrue("Expected message 3 to be of type DrainNotification", component.getMessages().get(2) instanceof DrainNotification);
+        assertTrue("Expected message 2 to be of type DrainNotification", component.getMessages().get(1) instanceof DrainNotification);
+        assertTrue("Expected message 3 to be of type SendResponse", component.getMessages().get(2) instanceof SendResponse);
     }
     
     @Test
