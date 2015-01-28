@@ -188,7 +188,7 @@ public class Engine extends Component {
             // TODO: track credit in this class so that we can detect this case and more accurately
             //       calculate when the first message sent will have been flushed to the network.
             if (linkOpened) {
-                delta += sr.data.length;
+                delta += sr.length;
             }
             engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
             writeToNetwork(engineConnection);
