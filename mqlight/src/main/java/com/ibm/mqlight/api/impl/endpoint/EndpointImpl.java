@@ -52,8 +52,6 @@ class EndpointImpl implements Endpoint {
             if ("amqps".equals(protocol)) {
                 port = 5671;
                 useSsl = true;
-                // TODO: remove the following line when we support AMQPS...
-                throw new IllegalArgumentException("Don't support AMQPS - yet..."); // TODO: add support for AMQPS
             } else if (!"amqp".equals(protocol)) {
                 throw new IllegalArgumentException("Invalid protocol : " + protocol);
             }

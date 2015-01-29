@@ -21,14 +21,6 @@
 
 package com.ibm.mqlight.api.impl.network;
 
-import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -41,15 +33,27 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
+
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.net.ssl.SSLEngine;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.LogbackLogging;
-import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkListener;
+import com.ibm.mqlight.api.network.NetworkService;
 
 public class NettyNetworkService implements NetworkService {
 
@@ -58,7 +62,8 @@ public class NettyNetworkService implements NetworkService {
     }
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private static Bootstrap bootstrap;
+    private static Bootstrap insecureBootstrap;
+    private static Bootstrap secureBootstrap;
     
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
         
@@ -240,7 +245,7 @@ public class NettyNetworkService implements NetworkService {
     @Override
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
         logger.debug("> connect {} {}", endpoint.getHost(), endpoint.getPort());
-        incrementUseCount();
+        final Bootstrap bootstrap = getBootstrap(endpoint.useSsl());
         final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
         f.addListener(new ConnectListener(f, promise, listener));
         logger.debug("< connect");
@@ -248,32 +253,62 @@ public class NettyNetworkService implements NetworkService {
     
     private static int useCount = 0;
     
-    private static synchronized void incrementUseCount() {
+    /**
+     * Request a {@link Bootstrap} for obtaining a {@link Channel} and track
+     * that the workerGroup is being used.
+     * 
+     * @param secure
+     *            a {@code boolean} indicating whether or not a secure channel
+     *            will be required
+     * @return a netty {@link Bootstrap} object suitable for obtaining a
+     *         {@link Channel} for the
+     */
+    private static synchronized Bootstrap getBootstrap(final boolean secure) {
         ++useCount;
         if (useCount == 1) {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
-            bootstrap = new Bootstrap();
-            bootstrap.group(workerGroup);
-            bootstrap.channel(NioSocketChannel.class);
-            bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
-            bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+            secureBootstrap = new Bootstrap();
+            secureBootstrap.group(workerGroup);
+            secureBootstrap.channel(NioSocketChannel.class);
+            secureBootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+            secureBootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
+            secureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    SslContext sslCtx = SslContext.newClientContext();
+                    SSLEngine sslEngine = sslCtx.newEngine(ch.alloc());
+                    sslEngine.setUseClientMode(true);
+                    ch.pipeline().addFirst(new SslHandler(sslEngine));
+                    ch.pipeline().addLast(new NettyInboundHandler(ch));
+                }
+            });
+            insecureBootstrap = secureBootstrap.clone();
+            insecureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(new NettyInboundHandler(ch));
                 }
             });
         }
+        return (secure) ? secureBootstrap : insecureBootstrap;
     }
     
+    /**
+     * Decrement the use count of the workerGroup and request a graceful
+     * shutdown once it is no longer being used by anyone.
+     */
     private static synchronized void decrementUseCount() {
         --useCount;
         if (useCount <= 0) {
-            useCount = 0;
-            if (bootstrap != null) {
-                bootstrap.group().shutdownGracefully(0, 500, TimeUnit.MILLISECONDS);
+            /* 
+             * NB: workerGroup is shared between both secure and insecure, so
+             * we only need to call shutdown via the group on one of them
+             */
+            if (secureBootstrap != null) {
+                secureBootstrap.group().shutdownGracefully(0, 500, TimeUnit.MILLISECONDS);
             }
-            bootstrap = null;
+            secureBootstrap = null;
+            insecureBootstrap = null;
         }
     }
 }
