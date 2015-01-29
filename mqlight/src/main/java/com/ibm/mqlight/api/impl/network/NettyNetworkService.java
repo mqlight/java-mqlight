@@ -109,15 +109,6 @@ public class NettyNetworkService implements NetworkService {
                 throws Exception {
             logger.debug("channelWritabilityChanged");
             doWrite(null);
-//            WriteRequest request = null;
-//            synchronized(pendingWrites) {
-//                if (ctx.channel().isWritable() && !pendingWrites.isEmpty()) {
-//                    request = pendingWrites.removeFirst();
-//                }
-//            }
-//            if (request != null) {
-//                doWrite(request);
-//            }
         }
         
         @Override
