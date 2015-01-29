@@ -22,6 +22,7 @@
 package com.ibm.mqlight.api.impl;
 
 import java.nio.BufferOverflowException;
+import java.util.HashMap;
 import java.util.Map;
 
 import junit.framework.AssertionFailedError;
@@ -29,8 +30,11 @@ import static org.junit.Assert.*;
 
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
+import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
 import org.junit.Test;
 
 import com.ibm.mqlight.api.BytesDelivery;
@@ -41,6 +45,7 @@ import com.ibm.mqlight.api.MalformedDelivery;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.StringDelivery;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
@@ -96,6 +101,7 @@ public class TestDestinationListenerWrapper {
             }
             this.actualClient = client;
             this.actualContext = context;
+            this.actualDelivery = delivery;
         }
         @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share) {
             if (expectedMethod != Method.ON_UNSUBSCRIBED) {
@@ -142,13 +148,16 @@ public class TestDestinationListenerWrapper {
         wrapper.onUnsubscribed(new MockCallbackService(), "", "");
     }
     
-    private byte[] createSerializedProtonMessage(AmqpValue body, String topic, long ttl, Map<String, String> properties) {
+    private byte[] createSerializedProtonMessage(AmqpValue body, String topic, long ttl, Map<String, String> properties, Map<Symbol, Object> annotations) {
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(body);
         protonMsg.setAddress("amqp:///" + topic); 
         protonMsg.setTtl(ttl);
         if ((properties != null) && !properties.isEmpty()) {
             protonMsg.setApplicationProperties(new ApplicationProperties(properties));
+        }
+        if (annotations != null) {
+            protonMsg.setDeliveryAnnotations(new DeliveryAnnotations(annotations));
         }
         
         byte data[] = new byte[2 * 1024];
@@ -178,7 +187,7 @@ public class TestDestinationListenerWrapper {
         String expectedTopicPattern = "/#";
         long expectedTtl = 12345;
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        byte[] msgData = createSerializedProtonMessage(new AmqpValue(new Binary(expectedData)), expectedTopic, expectedTtl, null);
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(new Binary(expectedData)), expectedTopic, expectedTtl, null, null);
         
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, listener, expectedContext);
@@ -197,5 +206,136 @@ public class TestDestinationListenerWrapper {
         byte[] actualData = new byte[expectedData.length];
         byteDelivery.getData().get(actualData);
         assertArrayEquals("Expected delivery data to match", expectedData, actualData);
+    }
+    
+    @Test
+    public void onDeliveryString() {
+        StubClient expectedClient = new StubClient();
+        MockListener listener = new MockListener(MockListener.Method.ON_MESSAGE);
+        Object expectedContext = new Object();
+        MockCallbackService callbackService = new MockCallbackService();
+        
+        String expectedData = "message data";
+        String expectedTopic = "/topic1";
+        String expectedTopicPattern = "/#";
+        long expectedTtl = 12345;
+        QOS expectedQos = QOS.AT_LEAST_ONCE;
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, null);
+        
+        DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
+        DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, listener, expectedContext);
+        wrapper.onDelivery(callbackService, request, expectedQos, false);
+        
+        assertNotNull("Properties should not have been null!", listener.actualDelivery.getProperties());
+        assertEquals("Expected no message properties", 0, listener.actualDelivery.getProperties().size());
+        assertEquals("Expected QOS to match", expectedQos, listener.actualDelivery.getQOS());
+        assertEquals("Expected share to match", null, listener.actualDelivery.getShare());
+        assertEquals("Expected topic to match", expectedTopic, listener.actualDelivery.getTopic());
+        assertEquals("Expected topic pattern to match", expectedTopicPattern, listener.actualDelivery.getTopicPattern());
+        assertEquals("Expected ttl to match", expectedTtl, listener.actualDelivery.getTtl());
+        assertEquals("Expected delivery to be of type string", Delivery.Type.STRING, listener.actualDelivery.getType());
+        StringDelivery stringDelivery = (StringDelivery)listener.actualDelivery;
+        assertEquals("Expected data to match", expectedData, stringDelivery.getData());
+    }
+    
+    @Test
+    public void malformedBadAMQPMessageData() {
+        StubClient expectedClient = new StubClient();
+        MockListener listener = new MockListener(MockListener.Method.ON_MALFORMED);
+        Object expectedContext = new Object();
+        MockCallbackService callbackService = new MockCallbackService();
+        
+        QOS expectedQos = QOS.AT_LEAST_ONCE;
+        byte[] msgData = "I bet this isn't a valid AMQP message".getBytes();
+        
+        DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:/malformed", null, null);
+        DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, listener, expectedContext);
+        wrapper.onDelivery(callbackService, request, expectedQos, false);
+        
+        assertEquals("Expected delivery to be of type string", Delivery.Type.MALFORMED, listener.actualDelivery.getType());
+        assertEquals("Expected malformed reason to be PAYLOADNOTAMQP", MalformedDelivery.MalformedReason.PAYLOADNOTAMQP, ((MalformedDelivery)listener.actualDelivery).getReason());
+        
+    }
+    
+    public void malformedUnhandledAMQPBody() {
+        StubClient expectedClient = new StubClient();
+        MockListener listener = new MockListener(MockListener.Method.ON_MESSAGE);
+        Object expectedContext = new Object();
+        MockCallbackService callbackService = new MockCallbackService();
+        
+        String expectedTopic = "/topic1";
+        String expectedTopicPattern = "/#";
+        long expectedTtl = 12345;
+        QOS expectedQos = QOS.AT_LEAST_ONCE;
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(new Integer(7)), expectedTopic, expectedTtl, null, null);
+        
+        DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
+        DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, listener, expectedContext);
+        wrapper.onDelivery(callbackService, request, expectedQos, false);
+        
+        assertEquals("Expected delivery to be of type string", Delivery.Type.MALFORMED, listener.actualDelivery.getType());
+        assertEquals("Expected malformed reason to be PAYLOADNOTAMQP", MalformedDelivery.MalformedReason.FORMATNOMAPPING, ((MalformedDelivery)listener.actualDelivery).getReason());
+        
+    }
+    
+    private void testMalformedAnnotation(String stringCondition, MalformedDelivery.MalformedReason reason) {
+        StubClient expectedClient = new StubClient();
+        MockListener listener = new MockListener(MockListener.Method.ON_MALFORMED);
+        Object expectedContext = new Object();
+        MockCallbackService callbackService = new MockCallbackService();
+        
+        String expectedData = "message data";
+        String expectedTopic = "/topic1";
+        String expectedTopicPattern = "/#";
+        long expectedTtl = 12345;
+        QOS expectedQos = QOS.AT_LEAST_ONCE;
+        String expectedMalformedDescription = "Apathy.  Probably.";
+        String expectedMQMDFormat = "abcd";
+        int expectedMQMDCCSID = 1234;
+        HashMap<Symbol, Object> annotations = new HashMap<>();
+        annotations.put(Symbol.getSymbol("x-opt-message-malformed-condition"), Symbol.getSymbol(stringCondition));
+        annotations.put(Symbol.getSymbol("x-opt-message-malformed-description"), expectedMalformedDescription);
+        annotations.put(Symbol.getSymbol("x-opt-message-malformed-MQMD.Format"), expectedMQMDFormat);
+        annotations.put(Symbol.getSymbol("x-opt-message-malformed-MQMD.CodedCharSetId"), expectedMQMDCCSID);
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, annotations);
+        
+        DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
+        DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, listener, expectedContext);
+        wrapper.onDelivery(callbackService, request, expectedQos, false);
+        
+        assertNotNull("Properties should not have been null!", listener.actualDelivery.getProperties());
+        assertEquals("Expected no message properties", 0, listener.actualDelivery.getProperties().size());
+        assertEquals("Expected QOS to match", expectedQos, listener.actualDelivery.getQOS());
+        assertEquals("Expected share to match", null, listener.actualDelivery.getShare());
+        assertEquals("Expected topic to match", expectedTopic, listener.actualDelivery.getTopic());
+        assertEquals("Expected topic pattern to match", expectedTopicPattern, listener.actualDelivery.getTopicPattern());
+        assertEquals("Expected ttl to match", expectedTtl, listener.actualDelivery.getTtl());
+        assertEquals("Expected delivery to be of type string", Delivery.Type.MALFORMED, listener.actualDelivery.getType());
+        
+        MalformedDelivery malformedDelivery = (MalformedDelivery)listener.actualDelivery;
+        assertEquals("Malformed reason doesn't match expected", reason, malformedDelivery.getReason());
+        assertEquals("Malformed description doesn't match expected", expectedMalformedDescription, malformedDelivery.getDescription());
+        assertEquals("Malformed MQMD.Format doesn't match expected", expectedMQMDFormat, malformedDelivery.getMQMDFormat());
+        assertEquals("Malformed MQMD.CCSID doesn't match expected", expectedMQMDCCSID, malformedDelivery.getMQMDCodedCharSetId());
+    }
+
+    @Test
+    public void malformedBasedOnAnnotation1() {
+        testMalformedAnnotation("FORMATNOMAPPING", MalformedDelivery.MalformedReason.FORMATNOMAPPING);
+    }
+    
+    @Test
+    public void malformedBasedOnAnnotation2() {
+        testMalformedAnnotation("JMSNOMAPPING", MalformedDelivery.MalformedReason.JMSNOMAPPING);
+    }
+    
+    @Test
+    public void malformedBasedOnAnnotation3() {
+        testMalformedAnnotation("PAYLOADENCODING", MalformedDelivery.MalformedReason.PAYLOADENCODING);
+    }
+    
+    @Test
+    public void malformedBasedOnAnnotation4() {
+        testMalformedAnnotation("PAYLOADNOTAMQP", MalformedDelivery.MalformedReason.PAYLOADNOTAMQP);
     }
 }

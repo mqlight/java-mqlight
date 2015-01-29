@@ -25,12 +25,15 @@ import java.net.URI;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.codec.DecodeException;
 
 import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.MalformedDelivery;
@@ -44,6 +47,11 @@ class DestinationListenerWrapper<T> {
     private final NonBlockingClientImpl client;
     private final DestinationListener<T> listener;
     private final T context;
+    
+    private static final Symbol malformedConditionSymbol = Symbol.getSymbol("x-opt-message-malformed-condition");
+    private static final Symbol malformedDescriptionSymbol = Symbol.getSymbol("x-opt-message-malformed-description");
+    private static final Symbol malformedMQMDFormatSymbol = Symbol.getSymbol("x-opt-message-malformed-MQMD.Format");
+    private static final Symbol malformedMQMDCCSIDSymbol = Symbol.getSymbol("x-opt-message-malformed-MQMD.CodedCharSetId");
     
     protected DestinationListenerWrapper(NonBlockingClientImpl client, DestinationListener<T> listener, T context) {
         this.client = client;
@@ -67,14 +75,19 @@ class DestinationListenerWrapper<T> {
                 byte[] data = deliveryRequest.data;
                 
                 MalformedDelivery.MalformedReason malformedReason = null;
+                String malformedDescription = null;
+                String malformedMQMDFormat = null;
+                int malformedMQMDCCSID = 0;
+                
                 byte[] payloadBytes = null;
                 String payloadString = null;
                 
                 org.apache.qpid.proton.message.Message msg = Proton.message();
                 try {
                     msg.decode(data, 0, data.length);
-                } catch(BufferOverflowException | BufferUnderflowException e) { // TODO: are these the only exceptions thrown by bad AMQP data?
+                } catch(BufferOverflowException | BufferUnderflowException | DecodeException e) {
                     malformedReason = MalformedDelivery.MalformedReason.PAYLOADNOTAMQP;
+                    malformedDescription = "The message could not be decoded because the message data is not a valid AMQP message";
                     payloadBytes = data;
                 }
 
@@ -92,7 +105,8 @@ class DestinationListenerWrapper<T> {
                     } else if (msgBodyValue instanceof String) {
                         payloadString = (String)msgBodyValue;
                     } else {
-                        malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;  // TODO: is this the right reason code?
+                        malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
+                        malformedDescription = "The message payload uses an AMQP format that the MQ Light client cannot process";
                         payloadBytes = data;
                     }
                     
@@ -116,9 +130,6 @@ class DestinationListenerWrapper<T> {
                         }
                     }
                 }
-                
-                // TODO: IIRC there are some message annotations used to describe other reasons a message is malformed - we should
-                //       use these too!
 
                 String crackedLinkName[] = NonBlockingClientImpl.crackLinkName(deliveryRequest.topicPattern);
                 String shareName = crackedLinkName[1];
@@ -133,21 +144,60 @@ class DestinationListenerWrapper<T> {
                     if (topic == null) topic = "";
                     else if (topic.startsWith("/")) topic = topic.substring(1);
                     ttl = msg.getTtl();
+                    
+                    if (msg.getDeliveryAnnotations() != null) {
+                        Map<Symbol, Object> annotations = msg.getDeliveryAnnotations().getValue();
+                        String condition = null;
+                        if (annotations.containsKey(malformedConditionSymbol) &&
+                            annotations.get(malformedConditionSymbol) instanceof Symbol) {
+                            condition = ((Symbol)annotations.get(malformedConditionSymbol)).toString();
+                            if (condition.equals("FORMATNOMAPPING")) {
+                                malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
+                            } else if (condition.equals("JMSNOMAPPING")) {
+                                malformedReason = MalformedDelivery.MalformedReason.JMSNOMAPPING;
+                            } else if (condition.equals("PAYLOADENCODING")) {
+                                malformedReason = MalformedDelivery.MalformedReason.PAYLOADENCODING;
+                            } else if (condition.equals("PAYLOADNOTAMQP")) {
+                                malformedReason = MalformedDelivery.MalformedReason.PAYLOADNOTAMQP;
+                            }
+                            
+                            if (malformedReason != null && 
+                                annotations.containsKey(malformedDescriptionSymbol) &&
+                                annotations.get(malformedDescriptionSymbol) instanceof String) {
+                                malformedDescription = (String)annotations.get(malformedDescriptionSymbol);
+                                
+                                if (annotations.containsKey(malformedMQMDFormatSymbol) &&
+                                    annotations.get(malformedMQMDFormatSymbol) instanceof String) {
+                                    malformedMQMDFormat = (String)annotations.get(malformedMQMDFormatSymbol);
+                                }
+                                
+                                if (annotations.containsKey(malformedMQMDCCSIDSymbol) &&
+                                    annotations.get(malformedMQMDCCSIDSymbol) instanceof Integer) {
+                                    malformedMQMDCCSID = (Integer)annotations.get(malformedMQMDCCSIDSymbol);
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 if (payloadBytes != null) {
-                    
                     if (malformedReason == null) {
                         BytesDeliveryImpl delivery = new BytesDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes), properties, autoConfirm ? null : deliveryRequest);
                         listener.onMessage(client, context, delivery);
                     } else {
-                        // TODO
-                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes), properties, autoConfirm ? null : deliveryRequest, malformedReason);
+                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes), 
+                                properties, autoConfirm ? null : deliveryRequest, malformedReason, malformedDescription, malformedMQMDFormat, malformedMQMDCCSID);
                         listener.onMalformed(client, context, delivery);
                     }
                 } else {
-                    StringDeliveryImpl delivery = new StringDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, payloadString, properties, autoConfirm ? null : deliveryRequest);
-                    listener.onMessage(client, context, delivery);
+                    if (malformedReason == null) {
+                        StringDeliveryImpl delivery = new StringDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, payloadString, properties, autoConfirm ? null : deliveryRequest);
+                        listener.onMessage(client, context, delivery);
+                    } else {
+                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadString.getBytes(Charset.forName("UTF-8"))), 
+                                properties, autoConfirm ? null : deliveryRequest, malformedReason, malformedDescription, malformedMQMDFormat, malformedMQMDCCSID);
+                        listener.onMalformed(client, context, delivery);
+                    }
                 }
                 
                 if (autoConfirm) {

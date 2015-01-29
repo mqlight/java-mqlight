@@ -31,14 +31,57 @@ import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 public class MalformedDeliveryImpl extends BytesDeliveryImpl implements MalformedDelivery {
 
     private final MalformedReason reason;
+    private final String description;
+    private final String format;
+    private final int ccsid;
     
     protected MalformedDeliveryImpl(NonBlockingClientImpl client, QOS qos, String shareName, String topic, String topicPattern, long ttl,
-            ByteBuffer data, Map<String, Object> properties, DeliveryRequest req, MalformedReason reason) {
+                                    ByteBuffer data, Map<String, Object> properties, DeliveryRequest req, MalformedReason reason,
+                                    String malformedDescription, String malformedMQMDFormat, int malformedMQMDCCSID) {
         super(client, qos, shareName, topic, topicPattern, ttl, data, properties, req);
         this.reason = reason;
+        this.description = malformedDescription;
+        this.format = malformedMQMDFormat;
+        this.ccsid = malformedMQMDCCSID;
     }
 
+    @Override
+    public Type getType() {
+        return Type.MALFORMED;
+    }
+    
     public MalformedReason getReason() {
         return reason;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public String getMQMDFormat() {
+        return format;
+    }
+    
+    public int getMQMDCodedCharSetId() {
+        return ccsid;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(getClass().getCanonicalName());
+        sb.append("@").append(Integer.toHexString(hashCode()))
+          .append(" [data=").append(getData())
+          .append(", description=").append(getDescription())
+          .append(", mqmd ccsid=").append(getMQMDCodedCharSetId())
+          .append(", properties=").append(getProperties())
+          .append(", qos=").append(getQOS())
+          .append(", reason=").append(getReason())
+          .append(", share=").append(getShare())
+          .append(", topic=").append(getTopic())
+          .append(", topic pattern=").append(getTopicPattern())
+          .append(", ttl=").append(getTtl())
+          .append(", type=").append(getType())
+          .append("]");
+        return sb.toString();
     }
 }

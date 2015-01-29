@@ -35,4 +35,10 @@ public interface MalformedDelivery extends BytesDelivery {
     }
     
     MalformedReason getReason();
+    
+    String getDescription();
+    
+    String getMQMDFormat();
+    
+    int getMQMDCodedCharSetId();
 }

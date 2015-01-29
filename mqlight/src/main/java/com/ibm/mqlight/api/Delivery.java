@@ -36,7 +36,7 @@ public interface Delivery {
      * TODO: should these be BINARY and TEXT?
      */
     enum Type {
-        BYTES, STRING
+        BYTES, STRING, MALFORMED
     };
     
     /**
