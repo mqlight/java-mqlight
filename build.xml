@@ -31,7 +31,7 @@
 		<echo message="Running inside MQ Build environment"/>
 		<property name="output.root" location="${env.BROOT}/appmsging/java"/>
 		<property name="protonSource" value="${env.BROOT}/appmsging/qpid-proton/qpid-proton-0.8/proton-j/src"/>
-		<exec executable="${env.BROOT}/bin/mqvrmf" outputproperty="version">
+		<exec executable="mqvrmf" outputproperty="version">
 			<arg value="-J"/>
 		</exec>
 		<property name="level" value="${env.LEVEL}" />
