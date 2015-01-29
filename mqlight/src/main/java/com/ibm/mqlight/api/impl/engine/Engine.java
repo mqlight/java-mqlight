@@ -417,7 +417,7 @@ public class Engine extends Component {
     }
     
     private void processEventConnectionRemoteState(Event event) {
-        logger.debug("CONNECTION_REMOTE_STATE: ", event.getConnection());
+        logger.debug("CONNECTION_REMOTE_STATE: {}", event.getConnection());
         
         if (event.getConnection().getRemoteState() == EndpointState.CLOSED) {
             if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
@@ -518,12 +518,13 @@ public class Engine extends Component {
     }
     
     private void processEventLinkLocalState(Event event) {
-        logger.debug("LINK_LOCAL ", event.getLink());
+        Link link = event.getLink();
+        logger.debug("LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
     }
     
     private void processEventLinkRemoteState(Event event) {
         Link link = event.getLink();
-        logger.debug("LINK_REMOTE ", link);
+        logger.debug("LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
         if (link instanceof Receiver) {
             if (link.getLocalState() == EndpointState.ACTIVE &&
                 link.getRemoteState() == EndpointState.ACTIVE) {
@@ -535,6 +536,7 @@ public class Engine extends Component {
                 if (link.getLocalState() != EndpointState.CLOSED) {
                     link.close();
                 }
+                link.free();
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
                 
@@ -546,9 +548,11 @@ public class Engine extends Component {
                 if (link.getLocalState() != EndpointState.CLOSED) {
                     // TODO: trace an error - as the server has closed our sending link unexpectedly...
                     link.close();
+                    link.free();
                 }
             }
         }
+        
     }
     
     private void processEventSessionLocalState(Event event) {
