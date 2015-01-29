@@ -45,7 +45,7 @@ import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
-import org.apache.qpid.proton.engine.impl.TransportImpl;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,7 +326,7 @@ public class Engine extends Component {
                 TimerPromiseImpl promise = new TimerPromiseImpl(this, engineConnection);
                 engineConnection.timerPromise = promise;
                 timer.schedule(engineConnection.heartbeatInterval, promise);
-                ((TransportImpl)engineConnection.transport).writeEmptyFrame();
+                engineConnection.transport.writeEmptyFrame();
                 writeToNetwork(engineConnection);
             }
         }
@@ -466,7 +466,7 @@ public class Engine extends Component {
                 }
             }
         } else if (event.getConnection().getRemoteState() == EndpointState.ACTIVE) {
-            UnsignedInteger ui = ((org.apache.qpid.proton.engine.impl.ConnectionImpl)event.getConnection()).getRemoteIdleTimeOut();
+            UnsignedInteger ui = event.getConnection().getRemoteIdleTimeOut();
             if (ui != null) {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 engineConnection.heartbeatInterval = ui.longValue() / 2;
