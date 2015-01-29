@@ -548,8 +548,8 @@ public class Engine extends Component {
                 if (link.getLocalState() != EndpointState.CLOSED) {
                     // TODO: trace an error - as the server has closed our sending link unexpectedly...
                     link.close();
-                    link.free();
                 }
+                link.free();
             }
         }
         
