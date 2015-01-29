@@ -108,15 +108,16 @@ public class NettyNetworkService implements NetworkService {
         public void channelWritabilityChanged(ChannelHandlerContext ctx)
                 throws Exception {
             logger.debug("channelWritabilityChanged");
-            WriteRequest request = null;
-            synchronized(pendingWrites) {
-                if (ctx.channel().isWritable() && !pendingWrites.isEmpty()) {
-                    request = pendingWrites.removeFirst();
-                }
-            }
-            if (request != null) {
-                doWrite(request);
-            }
+            doWrite(null);
+//            WriteRequest request = null;
+//            synchronized(pendingWrites) {
+//                if (ctx.channel().isWritable() && !pendingWrites.isEmpty()) {
+//                    request = pendingWrites.removeFirst();
+//                }
+//            }
+//            if (request != null) {
+//                doWrite(request);
+//            }
         }
         
         @Override
@@ -165,42 +166,46 @@ public class NettyNetworkService implements NetworkService {
             }
         }
         
-        LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
-        
         @Override
         public void write(ByteBuffer buffer, Promise<Boolean> promise) {
             ByteBuf byteBuf = Unpooled.wrappedBuffer(buffer);
             doWrite(new WriteRequest(byteBuf, promise));
         }
         
+        
+        LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
+        boolean writeInProgress = false;
+        
         private void doWrite(final WriteRequest writeRequest) {
-            logger.debug("doWrite");
-            if (channel.isWritable()) {
-                logger.debug(" -- doing write");
-                final ChannelFuture f = channel.pipeline().writeAndFlush(writeRequest.buffer);
+            logger.debug("doWrite {}" + writeRequest);
+            WriteRequest toProcess = null;
+            synchronized(pendingWrites) {
+                if (writeRequest != null) {
+                    pendingWrites.addLast(writeRequest);
+                }
+                if (!writeInProgress && channel.isWritable() && !pendingWrites.isEmpty()) {
+                    toProcess = pendingWrites.removeFirst();
+                    writeInProgress = true;
+                }
+            }
+            
+            if (toProcess != null) {
+                final Promise<Boolean> writeCompletePromise = toProcess.promise;
+                logger.debug("writeAndFlush {}", toProcess);
+                final ChannelFuture f = channel.pipeline().writeAndFlush(toProcess.buffer);
                 f.addListener(new GenericFutureListener<ChannelFuture>() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
                         boolean havePendingWrites = false;
-                        WriteRequest nextRequest = null;
                         synchronized(pendingWrites) {
+                            writeInProgress = false;
                             havePendingWrites = !pendingWrites.isEmpty();
-                            if (future.isSuccess() && future.channel().isWritable() && havePendingWrites) {
-                                nextRequest = pendingWrites.removeFirst();
-                            }
                         }
                         logger.debug("doWrite (complete)");
-                        writeRequest.promise.setSuccess(!havePendingWrites);
-                        if (nextRequest != null) {
-                            doWrite(nextRequest);
-                        }
+                        writeCompletePromise.setSuccess(!havePendingWrites);
+                        doWrite(null);
                     }
                 });
-            } else {
-                synchronized(pendingWrites) {
-                    pendingWrites.addLast(writeRequest);
-                    logger.debug(" -- deferring write");
-                }
             }
         }
 
