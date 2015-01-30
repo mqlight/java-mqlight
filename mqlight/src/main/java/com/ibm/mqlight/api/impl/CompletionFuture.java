@@ -79,7 +79,7 @@ public class CompletionFuture<T> {
         }
     }
     
-    public synchronized void setListener(CallbackService callbackService, final CompletionListener<T> listener, final T context) throws StateException {
+    public void setListener(CallbackService callbackService, final CompletionListener<T> listener, final T context) throws StateException {
         boolean callCallback = false;
         synchronized(this) {
             if (!complete) {

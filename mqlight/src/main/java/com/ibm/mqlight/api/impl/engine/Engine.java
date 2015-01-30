@@ -22,6 +22,7 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.EnumSet;
 
 import org.apache.qpid.proton.Proton;
@@ -45,7 +46,6 @@ import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +112,7 @@ public class Engine extends Component {
                 if (or.endpoint.getUser() == null) {
                     sasl.setMechanisms(new String[]{"ANONYMOUS"});
                 } else {
-                    sasl.plain(or.endpoint.getUser(), new String(or.endpoint.getPassword()));
+                    sasl.plain(or.endpoint.getUser(), or.endpoint.getPassword());
                 }
                 Session session = protonConnection.session();
                 session.open();
@@ -170,7 +170,7 @@ public class Engine extends Component {
                 link = link.next(EnumSet.of(EndpointState.ACTIVE),
                                             EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
             }
-            Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes());
+            Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
             
             linkSender.send(sr.data, 0, sr.length);
             if (sr.qos == QOS.AT_MOST_ONCE) {
@@ -298,9 +298,9 @@ public class Engine extends Component {
             // Message from network telling us that it has completed our disconnect request.
             DisconnectResponse dr = (DisconnectResponse)message;
             CloseRequest cr = (CloseRequest)dr.context;
-            cr.connection.dead = true;
-            cr.connection.notifyInflightQos0(true);
             if (cr != null) {
+                cr.connection.dead = true;
+                cr.connection.notifyInflightQos0(true);
                 cr.getSender().tell(new CloseResponse(cr), this);
             }
         } else if (message instanceof ConnectionError) {
@@ -445,10 +445,14 @@ public class Engine extends Component {
                         engineConnection.notifyInflightQos0(true);
                         engineConnection.dead = true;
                         engineConnection.channel.close(null);
-                        String condition = event.getConnection().getRemoteCondition().getCondition().toString();
-                        if (condition == null) condition = "";
-                        String description = event.getConnection().getRemoteCondition().getDescription();
-                        if (description == null) description = "";
+                        String condition = "";
+                        if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getCondition() != null)) {
+                            condition = event.getConnection().getRemoteCondition().getCondition().toString();
+                        }
+                        String description = "";
+                        if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getDescription() != null)) {
+                            description = event.getConnection().getRemoteCondition().getDescription();
+                        }
                         engineConnection.requestor.tell(new DisconnectNotification(engineConnection, condition, description), this);
                     }
                 }

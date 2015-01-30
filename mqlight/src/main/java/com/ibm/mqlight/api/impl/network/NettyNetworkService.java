@@ -153,7 +153,7 @@ public class NettyNetworkService implements NetworkService {
             }
         }
 
-        private class WriteRequest {
+        private static class WriteRequest {
             protected final ByteBuf buffer;
             protected final Promise<Boolean> promise;
             protected WriteRequest(ByteBuf buffer, Promise<Boolean> promise) {

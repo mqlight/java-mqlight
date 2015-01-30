@@ -64,7 +64,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     
     private static ThreadPoolExecutor executor;
     
-    private class State {
+    private static class State {
         String lookupUri;
         int retryCount;
         String user;
@@ -102,7 +102,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             if (amount < 0) break;
             out.write(buffer, 0, amount);
         }
-        return out.toString();
+        return out.toString("UTF-8");
     }
     
     protected void doHttpLookup(final String httpUri, final EndpointPromise future) {

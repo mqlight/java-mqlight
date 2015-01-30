@@ -39,7 +39,6 @@ public class TimerServiceImpl implements TimerService {
 
     static {
         executor = new ScheduledThreadPoolExecutor(1);
-        executor.setMaximumPoolSize(5); // TODO 5 == plucked from the air
         executor.setKeepAliveTime(500, TimeUnit.MILLISECONDS);
         executor.allowCoreThreadTimeOut(true);
         executor.setRemoveOnCancelPolicy(true);
@@ -47,7 +46,7 @@ public class TimerServiceImpl implements TimerService {
     
     private static final HashMap<Promise<Void>, Timer> promiseToTimer = new HashMap<>();
     
-    private class Timer implements Runnable {
+    private static class Timer implements Runnable {
         private final Promise<Void> promise;
         private final HashMap<Promise<Void>, Timer> promiseToTimer;
         private ScheduledFuture<?> future;

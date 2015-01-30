@@ -69,7 +69,7 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
             } else {
                 clientException = new ClientException("The network operation failed.  See linked exception for more information", exception);
             }
-            component.tell(new ConnectResponse(channel, clientException, context), Component.NOBODY);
+            component.tell(new ConnectResponse(getChannel(), clientException, context), Component.NOBODY);
         }
     }
     

@@ -1,0 +1,41 @@
+<!--
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
+ *   5724-H72
+ *
+ *   (C) Copyright IBM Corp. 2015
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
+-->
+<FindBugsFilter>
+    <!-- Allow samples to call System.exit(int) -->
+	<Match>
+		<Package name="com.ibm.mqlight.api.samples">
+			<Bug code="DM_EXIT"/>
+		</Package>
+	</Match>
+	
+	<!-- Allow messages passed to/from Engine component to expose a byte[] -->
+	<Match>
+		<Class name="com.ibm.mqlight.api.impl.engine.DeliveryRequest">
+			<Bug code="EI_EXPOSE_REP2"/>
+		</Class>
+	</Match>
+	<Match>
+		<Class name="com.ibm.mqlight.api.impl.engine.SendRequest">
+			<Bug code="EI_EXPOSE_REP2"/>
+		</Class>
+	</Match>
+	
+</FindBugsFilter>

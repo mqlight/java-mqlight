@@ -102,7 +102,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final TimerService timer;
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
     
-    protected static final Class<?>[] validPropertyValueTypes = new Class[] {
+    static final Class<?>[] validPropertyValueTypes = new Class[] {
         Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, byte[].class, String.class
     };
     
@@ -625,7 +625,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof CallbackExceptionNotification) {
             Exception exception = ((CallbackExceptionNotification)message).exception;
             logger.error("Exception thrown from inside callback", exception);
-            pendingStops.addLast((InternalStop<?>)message);
             stateMachine.fire(NonBlockingClientTrigger.STOP);
             if (lastException == null) {
                 if (exception instanceof ClientException) {

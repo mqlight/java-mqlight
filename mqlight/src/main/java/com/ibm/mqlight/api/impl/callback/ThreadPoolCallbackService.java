@@ -87,7 +87,9 @@ public class ThreadPoolCallbackService implements CallbackService {
 
     @Override
     public void run(Runnable runnable, Object orderingCtx, Promise<Void> promise) {
-        workLists[Math.abs(orderingCtx.hashCode()) % poolSize].put(runnable, promise);
+        int hash = orderingCtx.hashCode();
+        if (hash == Integer.MIN_VALUE) hash = Integer.MIN_VALUE + 1;    // Avoid possibility that Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+        workLists[Math.abs(hash) % poolSize].put(runnable, promise);
     }
 
 }
