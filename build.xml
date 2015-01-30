@@ -19,13 +19,18 @@
  *   </copyright>
 -->
 
-<project name="mqlight" default="all" basedir=".">
+<project name="mqlight" default="all" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
 	<property environment="env"/>
 	<property name="src" location="mqlight/src/main/java"/>
 	<property name="lib" location="lib"/>
 	<property name="nonship" location="nonship"/>
 	<property name="unittest.src" location="mqlight/src/test/java"/>
 
+	<!-- Taskdef for the Jacoco code coverage tool -->
+	<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+		<classpath path="${nonship}/jacocoant.jar"/>
+	</taskdef>
+	
 	<!-- If the 'BROOT' environment variable is set - generate output relative to BROOT -->
 	<target name="broot.present" if="env.BROOT">
 		<echo message="Running inside MQ Build environment"/>
@@ -58,6 +63,7 @@
 		<property name="doc" location="${output.root}/doc"/>
 		<property name="unittest" location="${output.root}/unittest"/>
 		<property name="unittest.classes" location="${unittest}/classes"/>
+		<property name="unittest.coverage" location="${unittest}/coverage"/>
 		<property name="unittest.output" location="${unittest}/output"/>
 		<property name="classes" location="${output.root}/classes"/>
 	</target>
@@ -75,6 +81,7 @@
 		<mkdir dir="${ship}/mqlight-${version}"/>
 		<mkdir dir="${doc}"/>
 		<mkdir dir="${unittest.classes}"/>
+		<mkdir dir="${unittest.coverage}"/>
 		<mkdir dir="${unittest.output}"/>
 	</target>
 
@@ -157,30 +164,33 @@
 		<available file="${unittest}/mqlight-api-${version}-unittests.jar" property="unittests.present"/>
 	</target>
 
-	<target name="run.ut" depends="setup, check.ut" if="unittests.present">
+	<target name="execute.ut.tests" depends="setup, check.ut" if="unittests.present">
 		<delete file="${unittest}/tests.failed"/>
+		<delete file="${unittest}/coverage.failed"/>
 
-		<junit failureproperty="junit.failed">
-			<formatter type="plain" usefile="true"/>
-			<formatter type="xml" usefile="true"/>
-			<classpath>
-				<fileset dir="${lib}">
-					<include name="**/*.jar"/>
-				</fileset>
-				<fileset dir="${nonship}">
-					<include name="**/*.jar"/>
-				</fileset>
-				<fileset dir="${ship}/mqlight-${version}">
-					<include name="mqlight-api-${version}.jar"/>
-				</fileset>
-				<pathelement path="${unittest.classes}"/>
-			</classpath>
-			<batchtest todir="${unittest.output}">
-				<fileset dir="${unittest.src}">
-					<include name="**/Test*.java"/>
-				</fileset>
-			</batchtest>
-		</junit>
+		<jacoco:coverage destfile="${unittest.coverage}/jacoco.exec" excludes="org.*:com.ibm.mqlight.api.samples.*">
+			<junit failureproperty="junit.failed" fork="true" forkmode="once">
+				<formatter type="plain" usefile="true"/>
+				<formatter type="xml" usefile="true"/>
+				<classpath>
+					<fileset dir="${lib}">
+						<include name="**/*.jar"/>
+					</fileset>
+					<fileset dir="${nonship}">
+						<include name="**/*.jar"/>
+					</fileset>
+					<fileset dir="${ship}/mqlight-${version}">
+						<include name="mqlight-api-${version}.jar"/>
+					</fileset>
+					<pathelement path="${unittest.classes}"/>
+				</classpath>
+				<batchtest todir="${unittest.output}">
+					<fileset dir="${unittest.src}">
+						<include name="**/Test*.java"/>
+					</fileset>
+				</batchtest>
+			</junit>
+		</jacoco:coverage>
 
 		<junitreport todir="${unittest}" tofile="junit.xml">
 			<fileset dir="${unittest.output}">
@@ -191,13 +201,49 @@
 		<concat destfile="${unittest}/javatest.log" append="true">
 			<fileset dir="${unittest.output}" includes="TEST-*.txt"/>
 		</concat>
+		
+		<jacoco:report>
+			<executiondata>
+				<file file="${unittest.coverage}/jacoco.exec"/>
+			</executiondata>
+
+		    <structure name="MQ Light Non-blocking Java Client">
+		        <classfiles>
+		            <fileset dir="${classes}">
+		        	    <exclude name="org/**/*"/>
+		        		<exclude name="com/ibm/mqlight/api/samples/**/*"/>
+		            </fileset>
+		        </classfiles>
+		        <sourcefiles encoding="UTF-8">
+		            <fileset dir="${src}"/>
+		        </sourcefiles>
+		    </structure>
+		                        
+		    <html destdir="${unittest.coverage}"/>
+			<html destfile="${unittest.coverage}/java-utcoverage.zip"/>
+			<check failonviolation="false" violationsproperty="coverage.failed">
+				<rule>
+					<!-- Require at least 80% instruction coverage from the unit tests -->
+					<limit counter="INSTRUCTION" value="COVEREDRATIO" minimum="0.5"/>  <!-- TODO: set the bar higher, we agreed >= 0.8! -->
+				</rule>
+			</check>
+		</jacoco:report>
 	</target>
 
-	<target name="utstatus" depends="run.ut" if="junit.failed">
+	<target name="ut.status" depends="execute.ut.tests" if="junit.failed">
 		<touch file="${unittest}/tests.failed"/>
 	</target>
+	
+	<target name="coverage.status" depends="execute.ut.tests" if="coverage.failed">
+		<touch file="${unittest}/coverage.failed"/>
+	</target>
 
-	<target name="unittest" depends="compile.ut, utstatus"/>
+	<target name="run.ut" depends="ut.status, coverage.status"/>
+	
+	<target name="unittest" depends="compile.ut, ut.status, coverage.status">
+		<fail if="junit.failed" message="Junit tests failed"/>
+		<fail if="coverage.failed" message="Unit test cover coverage below required threashold"/>
+	</target>
 
 	<target name="mqlight" depends="package, compile.ut"/>
 
