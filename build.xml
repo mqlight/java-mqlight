@@ -228,7 +228,7 @@
 			<check failonviolation="false" violationsproperty="coverage.failed">
 				<rule>
 					<!-- Require at least 80% instruction coverage from the unit tests -->
-					<limit counter="INSTRUCTION" value="COVEREDRATIO" minimum="0.5"/>  <!-- TODO: set the bar higher, we agreed >= 0.8! -->
+					<limit counter="INSTRUCTION" value="COVEREDRATIO" minimum="0.8"/>
 				</rule>
 			</check>
 		</jacoco:report>

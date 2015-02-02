@@ -397,8 +397,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         String share;
         if (linkName.startsWith("share:")) {
             share = linkName.substring("share:".length());
-            topicPattern = share.substring(share.indexOf(':'));
-            share = share.substring(0, share.indexOf(':')-1);
+            topicPattern = share.substring(share.indexOf(':')+1);
+            share = share.substring(0, share.indexOf(':'));
         } else {
             topicPattern = linkName.substring("private:".length());
             share = null;

@@ -34,8 +34,10 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
+import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
 import com.ibm.mqlight.api.ClientState;
+import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.DestinationAdapter;
 import com.ibm.mqlight.api.DestinationListener;
@@ -45,12 +47,26 @@ import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.SendOptions;
+import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.endpoint.EndpointService;
 import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
+import com.ibm.mqlight.api.impl.engine.CloseRequest;
+import com.ibm.mqlight.api.impl.engine.CloseResponse;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
+import com.ibm.mqlight.api.impl.engine.DisconnectNotification;
+import com.ibm.mqlight.api.impl.engine.Engine;
+import com.ibm.mqlight.api.impl.engine.EngineConnection;
+import com.ibm.mqlight.api.impl.engine.OpenRequest;
+import com.ibm.mqlight.api.impl.engine.OpenResponse;
+import com.ibm.mqlight.api.impl.engine.SendRequest;
+import com.ibm.mqlight.api.impl.engine.SendResponse;
+import com.ibm.mqlight.api.impl.engine.SubscribeRequest;
+import com.ibm.mqlight.api.impl.engine.SubscribeResponse;
+import com.ibm.mqlight.api.impl.engine.UnsubscribeRequest;
+import com.ibm.mqlight.api.impl.engine.UnsubscribeResponse;
 import com.ibm.mqlight.api.timer.TimerService;
 
 public class TestNonBlockingClientImpl {
@@ -63,17 +79,73 @@ public class TestNonBlockingClientImpl {
     private class StubCallbackService implements CallbackService {
         @Override public void run(Runnable runnable, Object orderingCtx, Promise<Void> promise) {}
     }
-    
+
     private class StubTimerService implements TimerService {
         @Override public void schedule(long delay, Promise<Void> promise) {}
         @Override public void cancel(Promise<Void> promise) {}
     }
     
+    private class StubEndpoint implements Endpoint {
+        @Override public String getHost() { return null; }
+        @Override public int getPort() { return 0; }
+        @Override public boolean useSsl() { return false; }
+        @Override public String getUser() { return null; }
+        @Override public String getPassword() {return null;}
+    }
+    
+    private class MockEndpointService implements EndpointService {
+        int count = 0;
+        @Override
+        public void lookup(EndpointPromise promise) {
+            if (count++ % 2 == 0) {
+                promise.setSuccess(new StubEndpoint());
+            } else {
+                promise.setWait(1000);
+            }
+        }
+        @Override public void onSuccess(Endpoint endpoint) {}
+    }
+    
+    private class MockTimerService implements TimerService {
+        @Override
+        public void schedule(long delay, Promise<Void> promise) {
+            promise.setSuccess(null);
+        }
+        @Override
+        public void cancel(Promise<Void> promise) {
+            promise.setSuccess(null);
+        }
+        
+    }
+
+
 //    private class StubDestinationListener<T> implements DestinationListener<T> {
 //        @Override public void onMessage(NonBlockingClient client, T context, Delivery delivery) {}
 //        @Override public void onMalformed(NonBlockingClient client, T context, MalformedDelivery delivery) {}
 //        @Override public void onUnsubscribed(NonBlockingClient client, T context, String topicPattern, String share) {}
 //    }
+
+    private class MockNonBlockingClientListener implements NonBlockingClientListener<Void> {
+        private final boolean throwAssertionFailures;
+        public MockNonBlockingClientListener(boolean throwAssertionFailures) {
+            this.throwAssertionFailures = throwAssertionFailures;
+        }
+        @Override public void onStarted(NonBlockingClient client, Void context) {
+            if (throwAssertionFailures) throw new AssertionFailedError("onStarted should not have been called");
+        }
+        @Override public void onStopped(NonBlockingClient client, Void context, ClientException exception) {
+            if (throwAssertionFailures) throw new AssertionFailedError("onStopped should not have been called");
+        }
+        @Override public void onRestarted(NonBlockingClient client, Void context) {
+            if (throwAssertionFailures) throw new AssertionFailedError("onRestarted should not have been called");
+        }
+        @Override public void onRetrying(NonBlockingClient client, Void context, ClientException exception) {
+            if (throwAssertionFailures) throw new AssertionFailedError("onRetrying should not have been called");
+        }
+        @Override public void onDrain(NonBlockingClient client, Void context) {
+            if (throwAssertionFailures) throw new AssertionFailedError("onDrain should not have been called");
+        }
+    }
 
     @Test public void autoGeneratedClientId() {
         StubEndpointService endpointService = new StubEndpointService();
@@ -381,5 +453,368 @@ public class TestNonBlockingClientImpl {
         assertFalse("Object", NonBlockingClientImpl.isValidPropertyValue(new Object()));
         assertFalse("char", NonBlockingClientImpl.isValidPropertyValue('c'));
         assertFalse("BigDecimal", NonBlockingClientImpl.isValidPropertyValue(new BigDecimal(3)));
+    }
+
+    @Test
+    public void endpointServiceFailureStopsClient() {
+        final ClientException expectedException = new ClientException("badness!");
+
+        class BadEndpointService implements EndpointService {
+            @Override
+            public void lookup(EndpointPromise promise) {
+                promise.setFailure(expectedException);
+            }
+            @Override
+            public void onSuccess(Endpoint endpoint) {
+                throw new AssertionFailedError("Should not have been called!");
+            }
+        }
+
+        class TestClientListener extends MockNonBlockingClientListener {
+            private ClientException actualException;
+            public TestClientListener() {
+                super(true);
+            }
+            @Override
+            public void onStopped(NonBlockingClient client, Void context, ClientException exception) {
+                actualException = exception;
+            }
+        }
+
+        TestClientListener listener = new TestClientListener();
+        
+        NonBlockingClientImpl client = 
+                new NonBlockingClientImpl(new BadEndpointService(), new SameThreadCallbackService(), new MockComponent(), new StubTimerService(), null, listener, null);
+        
+        assertEquals(ClientState.STOPPED, client.getState());
+        assertSame(expectedException, listener.actualException);
+    }
+    
+    @Test
+    public void endpointServiceRetry() {
+        class RetryEndpointService implements EndpointService {
+            boolean first = true;
+            @Override
+            public void lookup(EndpointPromise promise) {
+                if (first) {
+                    first = false;
+                    promise.setWait(1000);
+                } else {
+                    promise.setSuccess(new StubEndpoint());
+                }
+            }
+            @Override
+            public void onSuccess(Endpoint endpoint) {
+                throw new AssertionFailedError("Should not have been called!");
+            }
+        }
+        
+        class TestTimerService implements TimerService {
+            long lastDelay = -1;
+            @Override
+            public void schedule(long delay, Promise<Void> promise) {
+                lastDelay = delay;
+                promise.setSuccess(null);
+            }
+            @Override
+            public void cancel(Promise<Void> promise) { promise.setSuccess(null);}
+        }
+        
+        class TestClientListener extends MockNonBlockingClientListener {
+            private boolean onRetryingCalled = false;
+            public TestClientListener() {
+                super(true);
+            }
+            @Override
+            public void onRetrying(NonBlockingClient client, Void context, ClientException exception) {
+                onRetryingCalled = true;
+            }
+        }
+        
+        TestTimerService timer = new TestTimerService();
+        TestClientListener listener = new TestClientListener();
+        
+        NonBlockingClientImpl client = 
+                new NonBlockingClientImpl(new RetryEndpointService(), new SameThreadCallbackService(), new MockComponent(), timer, null, listener, null);
+        
+        assertEquals(ClientState.RETRYING, client.getState());
+        assertTrue(listener.onRetryingCalled);
+        assertEquals(1000, timer.lastDelay);
+    }
+
+    private NonBlockingClientImpl openCommon(MockComponent engine, MockNonBlockingClientListener listener) {
+        NonBlockingClientImpl client = 
+                new NonBlockingClientImpl(new MockEndpointService(), new SameThreadCallbackService(), engine, new MockTimerService(), null, listener, null);
+        assertEquals(ClientState.STARTING, client.getState());
+        assertEquals(1, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(0) instanceof OpenRequest);
+        return client;
+    }
+
+    @Test
+    public void openSuccess() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onStarted(NonBlockingClient client, Void context) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, new EngineConnection()), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+    }
+    
+    @Test
+    public void openRetryableFailure() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onRetrying(NonBlockingClient client, Void context, ClientException exception) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, new ClientException("too bad!")), engine);
+        assertEquals(ClientState.RETRYING, client.getState());
+    }
+    
+    private NonBlockingClientImpl stoppedClient() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onStopped(NonBlockingClient client, Void context, ClientException exception) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, new ClientException("sasl")), engine);
+        assertEquals(ClientState.STOPPED, client.getState());
+        return client;
+    }
+    
+    @Test
+    public void openFatalFailure() {
+        stoppedClient();
+    }
+    
+    @Test(expected=StateException.class)
+    public void sendWhileStoppedThrowsException() {
+        NonBlockingClientImpl client = stoppedClient();
+        client.send("/kittens", "data", null);
+    }
+    
+    @Test(expected=StateException.class)
+    public void subscribeWhileStoppedThrowsException() {
+        NonBlockingClientImpl client = stoppedClient();
+        client.subscribe("/kittens", new DestinationAdapter<Object>() {}, null, null);
+    }
+    
+    @Test(expected=StateException.class)
+    public void unsubscribeWhileStoppedThrowsException() {
+        NonBlockingClientImpl client = stoppedClient();
+        client.unsubscribe("/kittens", null, null);
+    }
+    
+    @Test
+    public void testSubscribeUnsubscribe() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onStarted(NonBlockingClient client, Void context) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        EngineConnection engineConnection = new EngineConnection();
+        
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+
+        class TestDestinationAdapter extends DestinationAdapter<Void> {
+            private boolean onUnsubscribeCalled;
+            private String unsubscribeTopicPattern;
+            private String unsubscribeShare;
+            @Override
+            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+                onUnsubscribeCalled = true;
+                unsubscribeTopicPattern = topicPattern;
+                unsubscribeShare = share;
+            }
+        }
+        TestDestinationAdapter destAdapter = new TestDestinationAdapter();
+        client.subscribe("/kittens", destAdapter, null, null);
+        assertEquals(2, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(1) instanceof SubscribeRequest);
+        SubscribeRequest subRequest = (SubscribeRequest)engine.getMessages().get(1);
+        assertEquals("private:/kittens", subRequest.topic);
+        client.tell(new SubscribeResponse(engineConnection, "private:/kittens"), engine);
+        
+        client.unsubscribe("/kittens", null, null);
+        assertEquals(3, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(2) instanceof UnsubscribeRequest);
+        client.tell(new UnsubscribeResponse(engineConnection, "private:/kittens", false), engine);
+        
+        assertTrue(destAdapter.onUnsubscribeCalled);
+        assertEquals("/kittens", destAdapter.unsubscribeTopicPattern);
+        assertEquals(null, destAdapter.unsubscribeShare);
+    }
+    
+    private class MockCompletionListener implements CompletionListener<Void> {
+        protected boolean onSuccessCalled = false;
+        protected boolean onErrorCalled = false;
+        protected Exception onErrorException = null;
+        
+        @Override
+        public void onSuccess(NonBlockingClient client, Void context) {
+            onSuccessCalled = true;
+        }
+
+        @Override
+        public void onError(NonBlockingClient client, Void context, Exception exception) {
+            onErrorCalled = true;
+            onErrorException = exception;
+        }
+        
+    }
+    @Test
+    public void testSendSucceeds() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onStarted(NonBlockingClient client, Void context) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        EngineConnection engineConnection = new EngineConnection();
+        
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+        
+        MockCompletionListener compListener = new MockCompletionListener();
+        client.send("/kittens", "data", null, compListener, null);
+        assertEquals(2, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(1) instanceof SendRequest);
+        SendRequest sendRequest = (SendRequest)engine.getMessages().get(1);
+        
+        client.tell(new SendResponse(sendRequest, null), engine);
+        assertTrue("Completion listener for send should have been called", compListener.onSuccessCalled);
+    }
+    
+    @Test
+    public void testSendFails() {
+        class TestClientListener extends MockNonBlockingClientListener {
+            public TestClientListener() { super(true); }
+            @Override public void onStarted(NonBlockingClient client, Void context) {}
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        EngineConnection engineConnection = new EngineConnection();
+        
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+        
+        MockCompletionListener compListener = new MockCompletionListener();
+        client.send("/kittens", "data", null, compListener, null);
+        assertEquals(2, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(1) instanceof SendRequest);
+        SendRequest sendRequest = (SendRequest)engine.getMessages().get(1);
+        
+        final Exception exception = new Exception("something nasty, I'm sure");
+        client.tell(new SendResponse(sendRequest, exception), engine);
+        assertTrue("Completion listener for send should have been called", compListener.onErrorCalled);
+        assertEquals("Exception passed to completion listener should match", exception, compListener.onErrorException);
+    }
+    
+    @Test
+    public void throwingExceptionInCallbackStopsClient() {
+        final RuntimeException exception = new RuntimeException("");
+        class TestClientListener extends MockNonBlockingClientListener {
+            ClientException onStoppedException = null;
+            public TestClientListener() { super(true); }
+            @Override public void onStarted(NonBlockingClient client, Void context) {
+                throw exception;
+            }
+            @Override
+            public void onStopped(NonBlockingClient client, Void context, ClientException exception) {
+                onStoppedException = exception;
+            }
+        }
+        MockComponent engine = new MockComponent();
+        TestClientListener listener = new TestClientListener();
+        EngineConnection engineConnection = new EngineConnection();
+        
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STOPPING, client.getState());
+        
+        assertEquals(2, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(1) instanceof CloseRequest);
+        CloseRequest closeRequest = (CloseRequest)engine.getMessages().get(1);
+        client.tell(new CloseResponse(closeRequest), engine);
+        assertEquals(ClientState.STOPPED, client.getState());
+        
+        assertEquals("Expected exception to have been propagated to onStopped", exception, listener.onStoppedException.getCause());
+    }
+    
+    @Test
+    public void crackLinkName() {
+        String[] results = NonBlockingClientImpl.crackLinkName("private:/kittens");
+        assertEquals(2, results.length);
+        assertEquals("/kittens", results[0]);
+        assertTrue(results[1] == null);
+        
+        results = NonBlockingClientImpl.crackLinkName("share:sharename:/puppies");
+        assertEquals(2, results.length);
+        assertEquals("/puppies", results[0]);
+        assertEquals("sharename", results[1]);
+    }
+    
+    @Test
+    public void testStopFailsSends() {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        EngineConnection engineConnection = new EngineConnection();
+        
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+        
+        MockCompletionListener inflightQos0Listener = new MockCompletionListener();
+        client.send("/inflight/qos0", "data", null, SendOptions.builder().setQos(QOS.AT_MOST_ONCE).build(), inflightQos0Listener, null);
+        MockCompletionListener inflightQos1Listener = new MockCompletionListener();
+        client.send("/inflight/qos1", "data", null, SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build(), inflightQos1Listener, null);
+        
+        client.tell(new DisconnectNotification(engineConnection, "you got", "disconnected!"), engine);
+        assertEquals(ClientState.RETRYING, client.getState());
+        
+        MockCompletionListener queuedQos0Listener = new MockCompletionListener();
+        client.send("/queued/qos0", "data", null, SendOptions.builder().setQos(QOS.AT_MOST_ONCE).build(), queuedQos0Listener, null);
+        MockCompletionListener queuedQos1Listener = new MockCompletionListener();
+        client.send("/queued/qos1", "data", null, SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build(), queuedQos1Listener, null);
+        
+        client.stop(null, null);
+        assertEquals(4, engine.getMessages().size());
+        assertTrue(engine.getMessages().get(3) instanceof OpenRequest);
+        openRequest = (OpenRequest)engine.getMessages().get(3);
+        client.tell(new OpenResponse(openRequest, new ClientException("")), engine);
+        assertEquals(ClientState.STOPPED, client.getState());
+        
+        // If the client is stopped with messages in-flight (e.g. potentially sent to the server) then expect:
+        // a) QOS 0 to be marked as success (as the client delivers them 'at most once' and so is optimistic...)
+        // b) QOS 1 to be marked as failure (as the client delivers them 'at least once' and so is pessimistic...)
+        assertTrue(inflightQos0Listener.onSuccessCalled);
+        assertTrue(inflightQos1Listener.onErrorCalled);
+        
+        // If the client has queued (but never attempted to send) a message then stopping will always result
+        // in the application being notified that the operation failed - as the client can be sure that the
+        // message has never been sent.
+        assertTrue(queuedQos0Listener.onErrorCalled);
+        assertTrue(queuedQos1Listener.onErrorCalled);
     }
 }

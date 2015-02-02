@@ -113,4 +113,16 @@ public class EngineConnection {
         this.collector = collector;
         this.channel = channel;
     }
+    
+    /**
+     * For unit testing.
+     */
+    public EngineConnection() {
+        requestor = null;
+        session = null;
+        channel = null;
+        connection = null;
+        collector = null;
+        transport = null;
+    }
 }
