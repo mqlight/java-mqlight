@@ -32,7 +32,7 @@
 	</taskdef>
 	
 	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
-		<classpath path="${nonship}/findbugs-2.0.1/lib/findbugs-ant.jar"/>
+		<classpath path="../../MakeSystem/tools/findbugs/lib/findbugs-ant.jar"/>
 	</taskdef>
 	
 	<!-- If the 'BROOT' environment variable is set - generate output relative to BROOT -->
@@ -235,7 +235,7 @@
 	</target>
 
 	<target name="findbugs" depends="package">
-		<findbugs home="${nonship}/findbugs-2.0.1"
+		<findbugs home="../../MakeSystem/tools/findbugs"
 				  output="html"
 				  outputFile="${unittest}/javafindbugs.html"
 				  excludeFilter="findbugs.excludes.xml"
@@ -270,9 +270,10 @@
 
 	<target name="run.ut" depends="ut.status, coverage.status, findbugs.status"/>
 	
-	<target name="unittest" depends="compile.ut, ut.status, coverage.status">
+	<target name="unittest" depends="compile.ut, ut.status, coverage.status, findbugs.status">
 		<fail if="junit.failed" message="Junit tests failed"/>
 		<fail if="coverage.failed" message="Unit test cover coverage below required threashold"/>
+		<fail if="findbugs.failed" message="Findbugs found bugs!"/>
 	</target>
 
 	<target name="mqlight" depends="package, compile.ut"/>
