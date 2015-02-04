@@ -57,7 +57,6 @@ import com.ibm.mqlight.api.impl.engine.CloseRequest;
 import com.ibm.mqlight.api.impl.engine.CloseResponse;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 import com.ibm.mqlight.api.impl.engine.DisconnectNotification;
-import com.ibm.mqlight.api.impl.engine.Engine;
 import com.ibm.mqlight.api.impl.engine.EngineConnection;
 import com.ibm.mqlight.api.impl.engine.OpenRequest;
 import com.ibm.mqlight.api.impl.engine.OpenResponse;
