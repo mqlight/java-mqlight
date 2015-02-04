@@ -1,22 +1,19 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
- *   5724-H72
- *    
- *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ * <copyright
+ * notice="lm-source-program"
+ * pids="5725-P60"
+ * years="2015"
+ * crc="3568777996" >
+ * Licensed Materials - Property of IBM
+ *
+ * 5725-P60
+ *
+ * (C) Copyright IBM Corp. 2015
+ *
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with
+ * IBM Corp.
+ * </copyright>
  */
 
 package com.ibm.mqlight.api.samples;
@@ -46,7 +43,7 @@ import com.ibm.mqlight.api.samples.ArgumentParser.Results;
 public class Receive {
 
     private static ScheduledThreadPoolExecutor scheduledExecutor = new ScheduledThreadPoolExecutor(1);
-    
+
     private static void showUsage() {
         PrintStream out = System.out;
         out.println("Usage: Receive [options]");
@@ -81,19 +78,19 @@ public class Receive {
                     "                        received.");
         out.println();
     }
-    
+
     protected static class Listener implements DestinationListener<Void> {
         private final String filename;
         private final boolean verbose;
         private final long delayMillis;
         int count = 0;
-        
+
         protected Listener(String filename, boolean verbose, long delayMillis) {
             this.filename = filename;
             this.verbose = verbose;
             this.delayMillis = delayMillis;
         }
-        
+
         @Override
         public void onMessage(NonBlockingClient client, Void context, final Delivery delivery) {
             ++count;
@@ -137,11 +134,11 @@ public class Receive {
                         public void run() {
                             delivery.confirm();
                         }
-                        
+
                     }, delayMillis, TimeUnit.MILLISECONDS);
                 }
             } else {
-                
+
                 try (FileOutputStream out = new FileOutputStream(filename)) {
                     ByteBuffer data;
                     if (delivery instanceof BytesDelivery) {
@@ -169,10 +166,10 @@ public class Receive {
         public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
         }
     }
-    
+
     public static void main(String[] cmdline) {
         scheduledExecutor.setRemoveOnCancelPolicy(true);
-        
+
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-h", "--help", Boolean.class, null)
               .expect("-s", "--service", String.class, "amqp://localhost")
@@ -184,7 +181,7 @@ public class Receive {
               .expect("-f", "--file", String.class, null)
               .expect("-d", "--delay", Double.class, 0.0)
               .expect(null, "--verbose", Boolean.class, false);
-        
+
         Results tmpArgs = null;
         try {
             tmpArgs = parser.parse(cmdline);
@@ -194,24 +191,24 @@ public class Receive {
             System.exit(0);
         }
         final Results args = tmpArgs;
-        
+
         if (args.parsed.get("-h").equals(true) || args.unparsed.length != 0) {
             showUsage();
             System.exit(1);
         }
-        
+
         ClientOptions opts;
         if (args.parsed.containsKey("-i")) {
             opts = ClientOptions.builder().setId((String)args.parsed.get("-i")).build();
         } else {
             opts = ClientOptions.builder().build();
         }
-        
+
         NonBlockingClient.create((String)args.parsed.get("-s"), opts, new NonBlockingClientAdapter<Void>() {
             @Override
             public void onStarted(NonBlockingClient client, Void context) {
                 System.out.printf("Connected to %s using client-id %s\n", client.getService(), client.getId());
-                
+
                 long delayMillis = 0;
                 SubscribeOptionsBuilder subOptBuilder = SubscribeOptions.builder();
                 delayMillis = Math.round((Double)args.parsed.get("-d") * 1000);
@@ -254,7 +251,7 @@ public class Receive {
                 if (throwable != null) System.err.println(throwable.getMessage());
                 client.stop(null, null);
             }
-            
+
             @Override
             public void onStopped(NonBlockingClient client, Void context,
                     ClientException throwable) {

@@ -1,22 +1,19 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
- *   5724-H72
- *    
- *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ * <copyright
+ * notice="lm-source-program"
+ * pids="5725-P60"
+ * years="2015"
+ * crc="3568777996" >
+ * Licensed Materials - Property of IBM
+ *
+ * 5725-P60
+ *
+ * (C) Copyright IBM Corp. 2015
+ *
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with
+ * IBM Corp.
+ * </copyright>
  */
 
 package com.ibm.mqlight.api.samples;
@@ -75,7 +72,7 @@ public class Send {
     }
 
     private static ScheduledThreadPoolExecutor scheduledExecutor = new ScheduledThreadPoolExecutor(1);
-    
+
     protected static class SendRunnable implements Runnable, CompletionListener<String> {
         private final NonBlockingClient client;
         private final String topic;
@@ -132,10 +129,10 @@ public class Send {
             client.stop(null, null);
         }
     }
-    
+
     public static void main(String[] cmdline) {
         scheduledExecutor.setRemoveOnCancelPolicy(true);
-        
+
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-h", "--help", Boolean.class, null)
               .expect("-s", "--service", String.class, "amqp://localhost")
@@ -156,12 +153,12 @@ public class Send {
             System.exit(0);
         }
         final ArgumentParser.Results args = tmpArgs;
-        
+
         if (args.parsed.get("-h").equals(true)) {
             showUsage();
             System.exit(0);
         }
-        
+
         ClientOptions clientOpts = null;
         if (args.parsed.containsKey("-i")) {
             clientOpts = ClientOptions.builder().setId((String)args.parsed.get("-i")).build();
@@ -177,7 +174,7 @@ public class Send {
                     optsBuilder.setTtl((Integer)args.parsed.get("--message-ttl") * 1000);
                 }
                 SendOptions opts = optsBuilder.build();
-                
+
                 if (args.parsed.containsKey("-f")) {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     try (FileInputStream in = new FileInputStream((String)args.parsed.get("-f"))) {
@@ -224,14 +221,14 @@ public class Send {
                     scheduledExecutor.schedule(sendRunnable, 0, TimeUnit.SECONDS);
                 }
             }
-            
+
             @Override
             public void onRetrying(NonBlockingClient client, Void context, ClientException throwable) {
                 System.err.println("*** error ***");
                 if (throwable != null) System.err.println(throwable.getMessage());
                 client.stop(null, null);
             }
-            
+
             @Override
             public void onStopped(NonBlockingClient client, Void context, ClientException throwable) {
                 if (throwable != null) {

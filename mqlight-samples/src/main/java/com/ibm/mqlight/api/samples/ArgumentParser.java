@@ -1,22 +1,19 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
- *   5724-H72
- *    
- *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ * <copyright
+ * notice="lm-source-program"
+ * pids="5725-P60"
+ * years="2015"
+ * crc="3568777996" >
+ * Licensed Materials - Property of IBM
+ *
+ * 5725-P60
+ *
+ * (C) Copyright IBM Corp. 2015
+ *
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with
+ * IBM Corp.
+ * </copyright>
  */
 
 package com.ibm.mqlight.api.samples;
@@ -34,7 +31,7 @@ public class ArgumentParser {
             this.unparsed = unparsed;
         }
     }
-    
+
     private static class ExpectedArgument {
         private final String shortName;
         private final String longName;
@@ -45,12 +42,12 @@ public class ArgumentParser {
             this.type = type;
         }
     }
-    
+
     private final HashMap<String, ExpectedArgument> expected = new HashMap<>();
     private final HashMap<String, Object> defaults = new HashMap<>();
-    
+
     public ArgumentParser() {}
-    
+
     public ArgumentParser expect(String shortName, String longName, Class<?> type, Object defaultValue) {
         if (!(type == Double.class || type == String.class || type == Boolean.class || type == Integer.class)) {
             throw new IllegalArgumentException("Unsupported type: " + (type == null ? null : type.getClass()));
@@ -81,10 +78,10 @@ public class ArgumentParser {
         }
         return this;
     }
-    
+
     public Results parse(String[] args) {
         HashMap<String, Object> parsed = new HashMap<>(defaults);
-        
+
         int i=0;
         while(i < args.length) {
             ExpectedArgument ea = null;
@@ -126,7 +123,7 @@ public class ArgumentParser {
                     }
                 }
             }
-            
+
             if (ea == null) {
                 break;
             } else {
@@ -147,9 +144,9 @@ public class ArgumentParser {
             }
             ++i;
         }
-        
-        
-        
+
+
+
 //        int i = 0;
 //        while(i < args.length) {
 //            ExpectedArgument ea = expected.get(args[i]);
@@ -180,7 +177,7 @@ public class ArgumentParser {
 //            if (ea.longName != null) parsed.put(ea.longName, value);
 //            ++i;
 //        }
-        
+
         // This doesn't work for - e.g.
         // -colour=red
         // -x5
