@@ -1,29 +1,32 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api;
 
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.EndpointService;
 import com.ibm.mqlight.api.impl.Component;
@@ -81,7 +84,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
     protected static final ClientOptions defaultClientOptions = ClientOptions.builder().build();
     protected static final SendOptions defaultSendOptions = SendOptions.builder().build();
     protected static final SubscribeOptions defaultSubscribeOptions = SubscribeOptions.builder().build();
-    
+
     /**
      * Creates a new instance of the <code>NonBlockingClient</code> in starting state.
      * @param service a URI for the service to connect to, for example: <code>amqp://example.org:5672</code>.
@@ -97,8 +100,8 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @return a new instance of <code>NonBlockingClient</code>
      * @throws IllegalArgumentException thrown if one or more of the <code>options</code> is not valid.
      */
-    public static <T> NonBlockingClient create(String service, ClientOptions options, 
-            NonBlockingClientListener<T> listener, T context) 
+    public static <T> NonBlockingClient create(String service, ClientOptions options,
+            NonBlockingClientListener<T> listener, T context)
     throws IllegalArgumentException {
         return new NonBlockingClientImpl(service, options, listener, context);
     }
@@ -121,11 +124,12 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
                                                CallbackService callbackService,
                                                NetworkService networkService,
                                                TimerService timerService,
+                                               GsonBuilder gsonBuilder,
                                                ClientOptions options,
                                                NonBlockingClientListener<T>listener,
                                                T context)
     throws IllegalArgumentException {
-        return new NonBlockingClientImpl(endpointService, callbackService, networkService, timerService, options, listener, context);
+        return new NonBlockingClientImpl(endpointService, callbackService, networkService, timerService, gsonBuilder, options, listener, context);
     }
 
     /**
@@ -136,7 +140,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
     public static <T> NonBlockingClient create(String service, NonBlockingClientListener<T> listener, T context) {
         return create(service, defaultClientOptions, listener, context);
     }
-    
+
     /**
      * @return the client ID, as assigned to this instance of the client either explicitly via the
      *         {@link ClientOptions} object passed in to the {@link NonBlockingClient#create(String, NonBlockingClientListener, Object)}
@@ -144,23 +148,27 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *         unique string by the client implementation.
      */
     public abstract String getId();
-    
+
     /**
-     * @return the service to which the client is connected (as specified on the 
+     * @return the service to which the client is connected (as specified on the
      *         {@link NonBlockingClient#create(String, NonBlockingClientListener, Object)} call or
      *         <code>null</code> if the client is not, currently, connected to the MQ Light server.
      */
     public abstract String getService();
-    
+
     /**
      * @return the current state of this client.
      */
-    public abstract ClientState getState();   
+    public abstract ClientState getState();
 
     /**
      * Sends a string message to a topic.
      * @param topic the topic to send the message to.
      * @param data the string data to send to the topic.
+     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
+     *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
+     *                   <code>byte[]</code>, and <code>String</code>.
      * @param sendOptions a set of options that determine how the send operation works.
      * @param listener a listener object that is notified when the send operation completes.  For 'at most once' quality of
      *                 service messages, this is notified (of success) when the message has been flushed to the network.
@@ -179,6 +187,10 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * Sends a <code>ByteBuffer</code> to a topic.
      * @param topic the topic to send the message to.
      * @param data the byte buffer to send to the topic.
+     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
+     *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
+     *                   <code>byte[]</code>, and <code>String</code>.
      * @param sendOptions a set of options that determine exactly how the send operation works.
      * @param listener a listener object that is notified when the send operation completes.  For 'at most once' quality of
      *                 service messages, this is notified (of success) when the message has been flushed to the network.
@@ -192,52 +204,182 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      */
     public abstract <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
     throws StateException;
-    
+
+    /**
+     * Sends a JSON object to a topic.
+     * @param topic the topic to send the message to.
+     * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
+     *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object)} to
+     *             perform the conversion).
+     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
+     *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
+     *                   <code>byte[]</code>, and <code>String</code>.
+     * @param sendOptions a set of options that determine exactly how the send operation works.
+     * @param listener a listener object that is notified when the send operation completes.  For 'at most once' quality of
+     *                 service messages, this is notified (of success) when the message has been flushed to the network.
+     *                 For 'at least once' quality of service messages, this is notified (of success) when receipt of the
+     *                 message has been confirmed by the service.
+     * @param context a context object that is passed into the listener.  This can be used within the listener code to
+     *                identify the specific instance of the send method relating to the listener invocation.
+     * @throws StateException if the client is in stopped or stopping state when this method is invoked.
+     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
+     *         invocations of the send method to be chained.
+     */
+    public abstract <T> boolean send(String topic, Object json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
+            throws StateException;
+
+    /**
+     * Sends a JSON object to a topic.  This form of send can handle objects that use Java Generics.
+     * @param topic the topic to send the message to.
+     * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
+     *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object, Type))} to
+     *             perform the conversion).
+     * @param type provides type information about the <code>json</code> object.  This allows Java types that make use of
+     *             Java Generics to be converted to JSON.
+     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
+     *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
+     *                   <code>byte[]</code>, and <code>String</code>.
+     * @param sendOptions a set of options that determine exactly how the send operation works.
+     * @param listener a listener object that is notified when the send operation completes.  For 'at most once' quality of
+     *                 service messages, this is notified (of success) when the message has been flushed to the network.
+     *                 For 'at least once' quality of service messages, this is notified (of success) when receipt of the
+     *                 message has been confirmed by the service.
+     * @param context a context object that is passed into the listener.  This can be used within the listener code to
+     *                identify the specific instance of the send method relating to the listener invocation.
+     * @throws StateException if the client is in stopped or stopping state when this method is invoked.
+     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
+     *         invocations of the send method to be chained.
+     */
+    public abstract <T> boolean send(String topic, Object json, Type type, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
+            throws StateException;
+
+    /**
+     * Sends a String containing JSON data to a topic.  This form of send can be used to integrate with other
+     * JSON libraries.
+     * @param topic the topic to send the message to.
+     * @param json a String which is assumed to contain JSON information.  No checking is performed on this string, it is
+     *             simply transferred as the body of a message which the appropriate
+     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
+     *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
+     *                   <code>byte[]</code>, and <code>String</code>.
+     * @param sendOptions a set of options that determine exactly how the send operation works.
+     * @param listener a listener object that is notified when the send operation completes.  For 'at most once' quality of
+     *                 service messages, this is notified (of success) when the message has been flushed to the network.
+     *                 For 'at least once' quality of service messages, this is notified (of success) when receipt of the
+     *                 message has been confirmed by the service.
+     * @param context a context object that is passed into the listener.  This can be used within the listener code to
+     *                identify the specific instance of the send method relating to the listener invocation.
+     * @throws StateException if the client is in stopped or stopping state when this method is invoked.
+     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
+     *         invocations of the send method to be chained.
+     */
+    public abstract <T> boolean sendJson(String topic, String json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
+            throws StateException;
     /**
      * Send a message to the MQ Light server.  This is equivalent to calling:
-     * <code>send(topic, data, new SendOptions(), listener, context)</code>
+     * <code>send(topic, data, properties, SendOptions.builder().build(), listener, context)</code>
      * @see NonBlockingClient#send(String, String, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, String data, Map<String, Object> properties, CompletionListener<T> listener, T context)
     throws StateException {
         return send(topic, data, properties, defaultSendOptions, listener, context);
     }
-    
+
     /**
      * Send a message to the MQ Light server.  This is equivalent to calling:
-     * <code>send(topic, data, new SendOptions(), listener, context)</code>
+     * <code>send(topic, data, properties, SendOptions.builder().build(), listener, context)</code>
      * @see NonBlockingClient#send(String, ByteBuffer, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties, CompletionListener<T> listener, T context)
     throws StateException {
         return send(topic, data, properties, defaultSendOptions, listener, context);
     }
-    
+
+    /**
+     * Sends a message to the MQ Light server.  This is equivalent to calling:
+     * <code>send(topic, json, properties, SendOptions.builder().build(), listener, context)</code>
+     * @see NonBlockingClient#send(String, Object, Map, SendOptions, CompletionListener, Object)
+     */
+    public <T> boolean send(String topic, Object json, Map<String, Object> properties, CompletionListener<T> listener, T context)
+    throws StateException {
+        return send(topic, json, properties, defaultSendOptions, listener, context);
+    }
+
+    /**
+     * Sends a message to the MQ Light server.  This is equivalent to calling:
+     * <code>send(topic, json, type, properties, SendOptions.builder().build(), listener, context)</code>
+     * @see NonBlockingClient#send(String, Object, Type, Map, SendOptions, CompletionListener, Object)
+     */
+    public <T> boolean send(String topic, Object json, Type type, Map<String, Object> properties, CompletionListener<T> listener, T context)
+    throws StateException {
+        return send(topic, json, type, properties, defaultSendOptions, listener, context);
+    }
+
+    /**
+     * Sends a message to the MQ Light server.  This is equivalent to calling:
+     * <code>sendJson(topic, json, properties, SendOptions.builder().build(), listener, context)</code>
+     * @see NonBlockingClient#sendJson(String, String, Map, SendOptions, CompletionListener, Object)
+     */
+    public <T> boolean sendJson(String topic, String json, Map<String, Object> properties, CompletionListener<T> listener, T context)
+    throws StateException {
+        return sendJson(topic, json, properties, defaultSendOptions, listener, context);
+    }
+
     /**
      * Send a message to the MQ Light server.  This is equivalent to calling:
-     * <code>send(topic, data, new SendOptions(), null, null)</code>
+     * <code>send(topic, data, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, String, Map, SendOptions, CompletionListener, Object)
      */
     public boolean send(String topic, String data, Map<String, Object> properties) throws StateException {
         return send(topic, data, properties, defaultSendOptions, null, null);
     }
-    
+
     /**
      * Send a message to the MQ Light server.  This is equivalent to calling:
-     * <code>send(topic, data, new SendOptions(), null, null)</code>
+     * <code>send(topic, data, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, ByteBuffer, Map, SendOptions, CompletionListener, Object)
      */
     public boolean send(String topic, ByteBuffer data, Map<String, Object> properties) throws StateException {
         return send(topic, data, properties, defaultSendOptions, null, null);
     }
-    
+
+    /**
+     * Send a message to the MQ Light server.  This is equivalent to calling:
+     * <code>send(topic, json, properties, SendOptions.builder().build(), null, null)</code>
+     * @see NonBlockingClient#send(String, Object, Map, SendOptions, CompletionListener, Object)
+     */
+    public boolean send(String topic, Object json, Map<String, Object> properties) throws StateException {
+        return send(topic, json, properties, defaultSendOptions, null, null);
+    }
+
+    /**
+     * Send a message to the MQ Light server.  This is equivalent to calling:
+     * <code>send(topic, json, type, properties, SendOptions.builder().build(), null, null)</code>
+     * @see NonBlockingClient#send(String, Object, Type, Map, SendOptions, CompletionListener, Object)
+     */
+    public boolean send(String topic, Object json, Type type, Map<String, Object> properties) throws StateException {
+        return send(topic, json, type, properties, defaultSendOptions, null, null);
+    }
+
+    /**
+     * Send a message to the MQ Light server.  This is equivalent to calling:
+     * <code>send(topic, json, properties, SendOptions.builder().build(), null, null)</code>
+     * @see NonBlockingClient#sendJson(String, String, Map, SendOptions, CompletionListener, Object)
+     */
+    public boolean sendJson(String topic, String json, Map<String, Object> properties) throws StateException {
+        return sendJson(topic, json, properties, defaultSendOptions, null, null);
+    }
+
     /**
      * Requests that the client transitions into started state.
      * This prepares the client to send and/or receive messages from the server. As new instances of
-     * <code>NonBlockingClient</code> are created in <code>starting</code> state, this method need 
+     * <code>NonBlockingClient</code> are created in <code>starting</code> state, this method need
      * only be called if an instance of the client has been stopped using the
      * {@link NonBlockingClient#stop(CompletionListener, Object)} method.
-     * 
+     *
      * @param listener this listener will be invoked when the start operation completes.  This can
      *                 either be when the client has attained started state, or when a subsequent
      *                 call to stop results in the client attaining stopped state before it ever
@@ -261,15 +403,15 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
 
     /**
      * Subscribes the client to a destination, based on the supplied topic pattern and
-     * share parameters.  The <code>topicPattern</code> parameter is matched against the 
+     * share parameters.  The <code>topicPattern</code> parameter is matched against the
      * topic that messages are sent to, allowing the messaging service to determine whether a
      * particular message will be delivered to a particular destination, and hence the subscribing client.
      * @param topicPattern the topic pattern to subscribe to.  This determines which messages will be
      *                     held at the subscribed to destination pending delivery to this client.
      * @param subOptions a set of options that control the behaviour of the destination subscribed to
      *                   and influence how this client receives messages from the destination.
-     * @param destListener a listener that is notified when messages arrive at the client and also 
-     *                      when the destination is unsubscribed from using the 
+     * @param destListener a listener that is notified when messages arrive at the client and also
+     *                      when the destination is unsubscribed from using the
      *                      {@link NonBlockingClient#unsubscribe(String, String, int, CompletionListener, Object)} method.
      * @param compListener a listener that is notified when the subscribe operation completes.  If a
      *                     value of <code>null</code> is specified then no-one is notified.
@@ -285,10 +427,10 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
      *         allow invocations of the unsubscribe method to be chained.
      */
-    public abstract <T> NonBlockingClient subscribe(String topicPattern, SubscribeOptions subOptions, 
+    public abstract <T> NonBlockingClient subscribe(String topicPattern, SubscribeOptions subOptions,
                                                     DestinationListener<T> destListener, CompletionListener<T> compListener, T context)
     throws StateException, IllegalArgumentException;
-    
+
     /**
      * Subscribes to a destination.  This is equivalent to calling:
      * <code>subscribe(topicPattern, new SubscribeOptions(), listener, context)</code>
@@ -303,7 +445,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * Unsubscribes from a destination.  Once complete, this stops messages received by the destination
      * from being sent to this client.
      * @param topicPattern a topic pattern that identifies the destination to unsubscribe from.  This must match
-     *                     one of the topic patterns previously subscribed to using the 
+     *                     one of the topic patterns previously subscribed to using the
      *                     {@link NonBlockingClient#subscribe(String, SubscribeOptions, DestinationListener, CompletionListener, Object)}
      *                     method.
      * @param share a share name that identifies the destination to unsubscribe from.  This must match the
@@ -326,7 +468,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      */
     public abstract <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
     throws StateException, IllegalArgumentException;
-    
+
     /**
      * Unsubscribes from a destination.  This is equivalent to calling:
      * <code>unsubscribe(topicPattern, null, ttl)</code>
@@ -336,22 +478,22 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
     throws StateException, IllegalArgumentException {
         return unsubscribe(topicPattern, null, ttl, listener, context);
     }
-    
+
     /**
-     * Unsubscribes from a destination.  This is equivalent to calling the 
+     * Unsubscribes from a destination.  This is equivalent to calling the
      * {@link NonBlockingClient#unsubscribe(String, String, int, CompletionListener, Object)} method without
      * specifying a ttl (time-to-live) value.  This has the effect of unsubscribing from the destination
      * without changing the ttl value currently assigned to the destination.
      */
     public abstract <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
     throws StateException;
-    
+
     /**
      * Unsubscribes from a destination.  This is equivalent to calling:
      * <code>unsubscribe(topicPattern, null, listerner, context)</code>
      * @see NonBlockingClient#unsubscribe(String, String, CompletionListener, Object)
      */
-    public <T> NonBlockingClient unsubscribe(String topicPattern, CompletionListener<T> listener, T context) 
+    public <T> NonBlockingClient unsubscribe(String topicPattern, CompletionListener<T> listener, T context)
     throws StateException {
         return unsubscribe(topicPattern, null, listener, context);
     }

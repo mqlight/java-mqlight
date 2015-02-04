@@ -1,27 +1,28 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api.impl;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
@@ -41,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.oxo42.stateless4j.StateMachine;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
 import com.ibm.mqlight.api.ClientState;
@@ -95,17 +98,20 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         LogbackLogging.setup();
     }
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     private final EndpointService endpointService;
     private final CallbackService callbackService;
     private final Component engine;
     private final TimerService timer;
+    private final GsonBuilder gsonBuilder;
+    private final Gson gson;
+
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
-    
+
     static final Class<?>[] validPropertyValueTypes = new Class[] {
         Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, byte[].class, String.class
     };
-    
+
     private final LinkedList<InternalStart<?>> pendingStarts = new LinkedList<>();
     private final LinkedList<InternalStop<?>> pendingStops = new LinkedList<>();
     private final String clientId;
@@ -113,28 +119,28 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final LinkedList<QueueableWork> pendingWork = new LinkedList<>();
 
     private volatile String serviceUri = null;
-    
+
     private Endpoint currentEndpoint = null;
     private EngineConnection currentConnection = null;
     private HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
-    
+
     private final NonBlockingClientListenerWrapper<?> clientListener;
-    
+
     private boolean remakingInboundLinks = false;
-    
+
     private int undrainedSends = 0;
     private boolean pendingDrain = false;
-    
+
     private boolean stoppedByUser = false;
     private ClientException lastException = null;
 
     long retryDelay = 0;
-    
+
     private Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
-    
+
     // topic pattern -> information about subscribed destination
     private final HashMap<String, SubData> subscribedDestinations = new HashMap<>();
-    
+
     static class SubData {
         private enum State {
             BROKEN,         // A link attach has previously been attempted - but the client's connection to the server is currently broken
@@ -149,10 +155,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         private final int credit;
         private final boolean autoConfirm;
         private final int ttl;
-        
+
         InternalSubscribe<?> inProgressSubscribe;
         InternalUnsubscribe<?> inProgressUnsubscribe;
-        
+
         public SubData(DestinationListenerWrapper<?> listener, QOS qos, int credit, boolean autoConfirm, int ttl) {
             this.listener = listener;
             this.qos = qos;
@@ -161,7 +167,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             this.ttl = ttl;
         }
     }
-    
+
     protected String generateClientId() {
         SecureRandom sr = new SecureRandom();
         String i = Integer.toHexString(sr.nextInt());
@@ -173,6 +179,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             CallbackService callbackService,
             Component engine,
             TimerService timerService,
+            GsonBuilder gsonBuilder,
             ClientOptions options,
             NonBlockingClientListener<T>listener,
             T context) {
@@ -183,33 +190,37 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         this.callbackService = callbackService;
         this.engine = engine;
         this.timer = timerService;
+        this.gsonBuilder = gsonBuilder == null ? new GsonBuilder() : gsonBuilder;
+        this.gson = this.gsonBuilder.create();
         if (options == null) options = defaultClientOptions;
         clientId = options.getId() != null ? options.getId() : generateClientId();
         clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
         stateMachine = NonBlockingFSMFactory.newStateMachine(this);
         endpointService.lookup(new EndpointPromiseImpl(this));
     }
-    
+
     public <T> NonBlockingClientImpl(EndpointService endpointService,
                                      CallbackService callbackService,
                                      NetworkService networkService,
                                      TimerService timerService,
+                                     GsonBuilder gsonBuilder,
                                      ClientOptions options,
                                      NonBlockingClientListener<T>listener,
                                      T context) {
-        this(endpointService, callbackService, new Engine(networkService, timerService), timerService, options, listener, context);
+        this(endpointService, callbackService, new Engine(networkService, timerService), timerService, gsonBuilder, options, listener, context);
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
         this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options == null ? null : options.getUser(),  options == null ? null : options.getPassword()),
-             new ThreadPoolCallbackService(5), 
-             new NettyNetworkService(), 
+             new ThreadPoolCallbackService(5),
+             new NettyNetworkService(),
              new TimerServiceImpl(),
+             null,
              options,
              listener,
              context);
     }
- 
+
     @Override
     public String getId() {
         return clientId;
@@ -221,7 +232,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     private volatile ClientState externalState = ClientState.STARTING;
-    
+
     @Override
     public ClientState getState() {
         return externalState;
@@ -250,7 +261,40 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         protonMsg.setBody(new AmqpValue(new Binary(dataBytes)));
         return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
     }
-    
+
+    @Override
+    public <T> boolean send(String topic, Object json,
+            Map<String, Object> properties, SendOptions sendOptions,
+            CompletionListener<T> listener, T context) throws StateException {
+        String jsonString;
+        synchronized(gson) {
+            jsonString = gson.toJson(json);
+        }
+        return sendJson(topic, jsonString, properties, sendOptions, listener, context);
+    }
+
+    @Override
+    public <T> boolean send(String topic, Object json, Type type,
+            Map<String, Object> properties, SendOptions sendOptions,
+            CompletionListener<T> listener, T context) throws StateException {
+        String jsonString;
+        synchronized(gson) {
+            jsonString = gson.toJson(json, type);
+        }
+        return sendJson(topic, jsonString, properties, sendOptions, listener, context);
+    }
+
+    @Override
+    public <T> boolean sendJson(String topic, String json,
+            Map<String, Object> properties, SendOptions sendOptions,
+            CompletionListener<T> listener, T context)
+    throws StateException {
+        org.apache.qpid.proton.message.Message protonMsg = Proton.message();
+        protonMsg.setBody(new AmqpValue(json));
+        protonMsg.setContentType("application/json");
+        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+    }
+
     protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
         String[] topicFragments = unencodedTopic.split("(?=(?!^)/)|(?<=/)");
         StringBuilder amqpAddress = new StringBuilder("amqp:///");
@@ -263,7 +307,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 } catch(UnsupportedEncodingException e) {
                     throw new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
                 }
-                
+
             }
         }
         return amqpAddress.toString();
@@ -286,7 +330,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
         if (topic == null) throw new IllegalArgumentException("topic cannot be null");
 
-        protonMsg.setAddress(encodeTopic(topic)); 
+        protonMsg.setAddress(encodeTopic(topic));
         protonMsg.setTtl(sendOptions.getTtl());
         Map<String, Object> amqpProperties = new HashMap<>();
         if ((properties != null) && !properties.isEmpty()) {
@@ -304,7 +348,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
             protonMsg.setApplicationProperties(new ApplicationProperties(amqpProperties));
         }
-        
+
         byte data[] = new byte[2 * 1024];
         int length;
         while (true) {
@@ -315,7 +359,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 data = new byte[data.length * 2];
             }
         }
-        
+
         InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), data, length);
         ++undrainedSends;
         tell(is, this);
@@ -350,7 +394,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
         return subTopic;
     }
-    
+
     @Override
     public <T> NonBlockingClient subscribe(String topicPattern,
             SubscribeOptions subOptions, DestinationListener<T> destListener,
@@ -361,9 +405,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         if (subOptions == null) subOptions = defaultSubscribeOptions;
         String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
-        InternalSubscribe<T> is = new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int)(subOptions.getTtl() / 1000L), destListener, context);
+        InternalSubscribe<T> is =
+                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int)(subOptions.getTtl() / 1000L), gsonBuilder, destListener, context);
         tell(is, this);
-        
+
         is.future.setListener(callbackService, compListener, context);
         return this;
     }
@@ -376,7 +421,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, ttl == 0);
         tell(us, this);
-        
+
         us.future.setListener(callbackService, listener, context);
         return this;
     }
@@ -387,11 +432,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, false);
         tell(us, this);
-        
+
         us.future.setListener(callbackService, listener, context);
         return this;
     }
-    
+
     protected static String[] crackLinkName(String linkName) {
         String topicPattern;
         String share;
@@ -424,9 +469,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             OpenResponse or = (OpenResponse)message;
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
-                if ((or.exception.getMessage() != null) && 
+                if ((or.exception.getMessage() != null) &&
                     (or.exception.getMessage().toLowerCase().contains("sasl") || or.exception.getMessage().toLowerCase().contains("failedloginexception"))) {
-                    
+
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_RETRY);
@@ -435,7 +480,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 currentConnection = or.connection;
                 stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_OK);
             }
-        } else if (message instanceof InternalSend) { 
+        } else if (message instanceof InternalSend) {
             InternalSend<?> is = (InternalSend<?>)message;
             NonBlockingClientState state = stateMachine.getState();
             if (NonBlockingClientState.acceptingWorkStates.contains(state)) {
@@ -447,7 +492,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else {  // Assume state is in NonBlockingClientState.sendFail
                 is.future.postFailure(callbackService, new StateException("Cannot send messages because the client is in stopped state"));
             }
-            
+
         } else if (message instanceof SendResponse) {
             SendResponse sr = (SendResponse)message;
             InternalSend<?> is = outstandingSends.remove(sr.request);
@@ -505,7 +550,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else { // Assume state is in NonBlockingClientState.rejectingWorkStates
                 is.future.postFailure(callbackService, new StateException("Cannot subscribe because the client is in stopped state"));
             }
-            
+
         } else if (message instanceof SubscribeResponse) {
             SubscribeResponse sr = (SubscribeResponse)message;
             SubData sd = subscribedDestinations.get(sr.topic);
@@ -518,7 +563,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     Message m = (Message) sd.pending.removeFirst();
                     tell(m, m.getSender());
                 }
-                
+
                 // If the client is in the process of re-making its in-bound links - see if this process is now complete...
                 if (remakingInboundLinks) {
                     boolean allRemade = true;
@@ -539,10 +584,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             String amqpTopic = buildAmqpTopicName(iu.topicPattern, iu.share);
             SubData sd = subscribedDestinations.get(amqpTopic);
             NonBlockingClientState state = stateMachine.getState();
-            
+
             if (NonBlockingClientState.acceptingWorkStates.contains(state)) {
                 if (sd == null) {
-                    StateException se = new StateException("Client is not subscribed to " + 
+                    StateException se = new StateException("Client is not subscribed to " +
                             ((iu.share == null || "".equals(iu.share)) ? "private" : "shared") +
                             "destination " + iu.topicPattern);
                     iu.future.postFailure(callbackService, se);
@@ -550,7 +595,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     if (sd.state == SubData.State.ATTACHING) {
                         pendingWork.addLast(iu);
                     } else if (sd.state == SubData.State.DETATCHING) {
-                        StateException se = new StateException("Client is not subscribed to " + 
+                        StateException se = new StateException("Client is not subscribed to " +
                                 ((iu.share == null || "".equals(iu.share)) ? "private" : "shared") +
                                 "destination " + iu.topicPattern);
                         iu.future.postFailure(callbackService, se);
@@ -570,7 +615,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 iu.future.postFailure(callbackService, new StateException("Cannot unsubscribe because the client is in stopped state"));
             }
         } else if (message instanceof UnsubscribeResponse) {
-            // This needs to be tolerant of receiving an unsubscribe response before we've issued an 
+            // This needs to be tolerant of receiving an unsubscribe response before we've issued an
             // unsubscribe request (in the case that the server closes the link)
             UnsubscribeResponse ur = (UnsubscribeResponse)message;
             SubData sd = subscribedDestinations.remove(ur.topic);
@@ -584,7 +629,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 Message m = (Message) sd.pending.removeFirst();
                 tell(m, m.getSender());  // Put this back into the queue of events
             }
-            
+
             // If the client is in the process of re-making its in-bound links - see if this process is now complete...
             if (remakingInboundLinks) {
                 boolean allRemade = true;
@@ -684,7 +729,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
     }
 
-    
+
     @Override
     public void blessEndpoint() {
         serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp://") +
@@ -696,14 +741,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public void cleanup() {
         pendingDeliveries.clear();
-        
+
         // Fire a drain notification if required.
         undrainedSends = 0;
         if (pendingDrain) {
             pendingDrain = false;
             clientListener.onDrain(callbackService);
         }
-        
+
         // Flush any pending subscribe operations into pending work queue
         for (Map.Entry<String, SubData> entry : subscribedDestinations.entrySet()) {
             SubData subData = entry.getValue();
@@ -724,7 +769,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         }
         subscribedDestinations.clear();
-        
+
         // For any inflight sends - fail AT_LEAST_ONCE, succeed AT_MOST_ONCE
         for (InternalSend<?> send : outstandingSends.values()) {
             if (send.qos == QOS.AT_MOST_ONCE) {
@@ -733,7 +778,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 send.future.postFailure(callbackService, new StateException("Cannot send messages because the client is in stopped state"));
             }
         }
-        
+
         // Fail any pending work
         for (QueueableWork work : pendingWork) {
             if (work instanceof InternalSend<?>) {
@@ -750,7 +795,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 iu.future.postFailure(callbackService, stateException);
             }
         }
-        
+
         timerPromise = null;
         currentConnection = null;
         remakingInboundLinks = false;
@@ -850,12 +895,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         externalState = ClientState.STARTED;
         clientListener.onRestarted(callbackService);
     }
-    
+
     @Override
     public void breakInboundLinks() {
-        
+
         pendingDeliveries.clear();
-        
+
         undrainedSends = 0;
         if (pendingDrain) {
             pendingDrain = false;
@@ -871,7 +916,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         }
         outstandingSends.clear();
-        
+
         for (Map.Entry<String, SubData>entry : subscribedDestinations.entrySet()) {
             SubData subData = entry.getValue();
             while(!subData.pending.isEmpty()) {
@@ -880,7 +925,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             subData.state = SubData.State.BROKEN;
         }
     }
-    
+
     // Result: true == it might have worked, false == it really didn't work!
     protected boolean doDelivery(DeliveryRequest request) {
         boolean result = pendingDeliveries.remove(request);

@@ -1,26 +1,27 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api;
 
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -34,9 +35,9 @@ import org.junit.Test;
 import com.ibm.mqlight.api.impl.Message;
 
 public class TestNonBlockingClient {
-    
+
     private Object NULL = new Object();
-    
+
     private class MockNonBlockingClient extends NonBlockingClient {
         private LinkedList<Object> expectedValues = new LinkedList<Object>();
         private MockNonBlockingClient(Object[] expectedValues) {
@@ -56,7 +57,7 @@ public class TestNonBlockingClient {
                 throw new AssertionFailedError("Expected only a single method of MockNonBlockingClient to have been called");
             }
             if (expectedValues.size() != values.length) {
-                throw new AssertionFailedError("Mis-match between number of expected values (" + expectedValues.size() + 
+                throw new AssertionFailedError("Mis-match between number of expected values (" + expectedValues.size() +
                         ") and number of actual values (" + values.length  + ")");
             }
             int count = 0;
@@ -71,6 +72,7 @@ public class TestNonBlockingClient {
             }
             expectedValues = null;
         }
+
         @Override
         public <T> boolean send(String topic, String data,
                 Map<String, Object> properties, SendOptions sendOptions,
@@ -88,7 +90,33 @@ public class TestNonBlockingClient {
             testAgainstExpectedValues(new Object[] {"send", topic, data, properties, sendOptions, listener, context});
             return false;
         }
-        
+
+        @Override
+        public <T> boolean send(String topic, Object json,
+                Map<String, Object> properties, SendOptions sendOptions,
+                CompletionListener<T> listener, T context)
+                throws StateException {
+            testAgainstExpectedValues(new Object[] {"send", topic, json, properties, sendOptions, listener, context});
+            return false;
+        }
+
+        @Override
+        public <T> boolean send(String topic, Object json, Type type,
+                Map<String, Object> properties, SendOptions sendOptions,
+                CompletionListener<T> listener, T context)
+                throws StateException {
+            testAgainstExpectedValues(new Object[] {"send", topic, json, type, properties, sendOptions, listener, context});
+            return false;
+        }
+        @Override
+        public <T> boolean sendJson(String topic, String json,
+                Map<String, Object> properties, SendOptions sendOptions,
+                CompletionListener<T> listener, T context)
+                throws StateException {
+            testAgainstExpectedValues(new Object[] {"sendJson", topic, json, properties, sendOptions, listener, context});
+            return false;
+        }
+
         @Override
         public <T> NonBlockingClient subscribe(String topicPattern, SubscribeOptions subOptions,
                 DestinationListener<T> destListener, CompletionListener<T> compListener, T context)
@@ -112,9 +140,8 @@ public class TestNonBlockingClient {
             testAgainstExpectedValues(new Object[] {"unsubscribe", topicPattern, share, listener, context});
             return null;
         }
-        
     }
-    
+
     private class StubCompletionListener implements CompletionListener<Object> {
         @Override public void onSuccess(NonBlockingClient client, Object context) {}
         @Override public void onError(NonBlockingClient client, Object context, Exception exception) {}
@@ -126,7 +153,7 @@ public class TestNonBlockingClient {
         @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share) {}
     }
 
-    @Test 
+    @Test
     public void send1() {
         String topic = "topic";
         String data = "data";
@@ -134,8 +161,8 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, MockNonBlockingClient.defaultSendOptions, NULL, NULL});
         client.send(topic, data, properties);
     }
-    
-    @Test 
+
+    @Test
     public void send2() {
         String topic = "topic";
         ByteBuffer data = ByteBuffer.allocate(1);
@@ -143,8 +170,8 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, MockNonBlockingClient.defaultSendOptions, NULL, NULL});
         client.send(topic, data, properties);
     }
-    
-    @Test 
+
+    @Test
     public void send3() {
         String topic = "topic";
         ByteBuffer data = ByteBuffer.allocate(1);
@@ -154,8 +181,8 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, MockNonBlockingClient.defaultSendOptions, listener, context});
         client.send(topic, data, properties, listener, context);
     }
-    
-    @Test 
+
+    @Test
     public void send4() {
         String topic = "topic";
         String data = "data";
@@ -165,7 +192,106 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, NonBlockingClient.defaultSendOptions, listener, context});
         client.send(topic, data, properties, listener, context);
     }
-    
+
+    @Test
+    public void send5() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, NonBlockingClient.defaultSendOptions, listener, context});
+        client.send(topic, data, properties, listener, context);
+    }
+
+    @Test
+    public void send6() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        SendOptions sendOptions = SendOptions.builder().build();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, sendOptions, listener, context});
+        client.send(topic, data, properties, sendOptions, listener, context);
+    }
+
+    @Test
+    public void send7() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, properties, NonBlockingClient.defaultSendOptions, NULL, NULL});
+        client.send(topic, data, properties);
+    }
+
+    @Test
+    public void send8() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        Type type = Integer.class.getGenericSuperclass();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, type, properties, NonBlockingClient.defaultSendOptions, listener, context});
+        client.send(topic, data, type, properties, listener, context);
+    }
+
+    @Test
+    public void send9() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        SendOptions sendOptions = SendOptions.builder().build();
+        Type type = Integer.class.getGenericSuperclass();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, type, properties, sendOptions, listener, context});
+        client.send(topic, data, type, properties, sendOptions, listener, context);
+    }
+
+    @Test
+    public void send10() {
+        String topic = "topic";
+        Object data = new int[] {1, 2, 3};
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        Type type = Integer.class.getGenericSuperclass();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"send",  topic, data, type, properties, NonBlockingClient.defaultSendOptions, NULL, NULL});
+        client.send(topic, data, type, properties);
+    }
+
+    @Test
+    public void send11() {
+        String topic = "topic";
+        String data = "[1, 2, 3]";
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"sendJson",  topic, data, properties, NonBlockingClient.defaultSendOptions, listener, context});
+        client.sendJson(topic, data, properties, listener, context);
+    }
+
+    @Test
+    public void send12() {
+        String topic = "topic";
+        String data = "[1, 2, 3]";
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        StubCompletionListener listener = new StubCompletionListener();
+        Object context = new Object();
+        SendOptions sendOptions = SendOptions.builder().build();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"sendJson",  topic, data, properties, sendOptions, listener, context});
+        client.sendJson(topic, data, properties, sendOptions, listener, context);
+    }
+
+    @Test
+    public void send13() {
+        String topic = "topic";
+        String data = "[1, 2, 3]";
+        HashMap<String, Object> properties = new HashMap<String, Object>();
+        MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"sendJson",  topic, data, properties, NonBlockingClient.defaultSendOptions, null, null});
+        client.sendJson(topic, data, properties);
+    }
+
     @Test
     public void subscribe() {
         String topicPattern = "topicPattern";
@@ -175,7 +301,7 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"subscribe", topicPattern, NonBlockingClient.defaultSubscribeOptions, destListener, compListener, context});
         client.subscribe(topicPattern, destListener, compListener, context);
     }
-    
+
     @Test
     public void unsubscribe1() {
         String topicPattern = "topicPattern";
@@ -184,7 +310,7 @@ public class TestNonBlockingClient {
         MockNonBlockingClient client = new MockNonBlockingClient(new Object[] {"unsubscribe", topicPattern, NULL, listener, context});
         client.unsubscribe(topicPattern, listener, context);
     }
-    
+
     @Test
     public void unsubscribe2() {
         String topicPattern = "topicPattern";

@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api.impl;
@@ -35,6 +35,8 @@ import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.codec.DecodeException;
 
+import com.google.gson.GsonBuilder;
+import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.MalformedDelivery;
 import com.ibm.mqlight.api.QOS;
@@ -45,20 +47,22 @@ import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 class DestinationListenerWrapper<T> {
 
     private final NonBlockingClientImpl client;
+    private final GsonBuilder gsonBuilder;
     private final DestinationListener<T> listener;
     private final T context;
-    
+
     private static final Symbol malformedConditionSymbol = Symbol.getSymbol("x-opt-message-malformed-condition");
     private static final Symbol malformedDescriptionSymbol = Symbol.getSymbol("x-opt-message-malformed-description");
     private static final Symbol malformedMQMDFormatSymbol = Symbol.getSymbol("x-opt-message-malformed-MQMD.Format");
     private static final Symbol malformedMQMDCCSIDSymbol = Symbol.getSymbol("x-opt-message-malformed-MQMD.CodedCharSetId");
-    
-    protected DestinationListenerWrapper(NonBlockingClientImpl client, DestinationListener<T> listener, T context) {
+
+    protected DestinationListenerWrapper(NonBlockingClientImpl client, GsonBuilder gsonBuilder, DestinationListener<T> listener, T context) {
         this.client = client;
+        this.gsonBuilder = gsonBuilder;
         this.listener = listener;
         this.context = context;
     }
-    
+
     protected void onUnsubscribed(final CallbackService callbackService, final String topicPattern, final String share) {
         if (listener != null) {
             callbackService.run(new Runnable() {
@@ -68,20 +72,21 @@ class DestinationListenerWrapper<T> {
             }, client, new CallbackPromiseImpl(client, true));
         }
     }
-    
+
     protected void onDelivery(final CallbackService callbackService, final DeliveryRequest deliveryRequest, final QOS qos, final boolean autoConfirm) {
         callbackService.run(new Runnable() {
             public void run() {
                 byte[] data = deliveryRequest.data;
-                
+
                 MalformedDelivery.MalformedReason malformedReason = null;
                 String malformedDescription = null;
                 String malformedMQMDFormat = null;
                 int malformedMQMDCCSID = 0;
-                
+
                 byte[] payloadBytes = null;
                 String payloadString = null;
-                
+                boolean payloadIsJson = false;
+
                 org.apache.qpid.proton.message.Message msg = Proton.message();
                 try {
                     msg.decode(data, 0, data.length);
@@ -104,12 +109,13 @@ class DestinationListenerWrapper<T> {
                         }
                     } else if (msgBodyValue instanceof String) {
                         payloadString = (String)msgBodyValue;
+                        payloadIsJson = "application/json".equalsIgnoreCase(msg.getContentType());
                     } else {
                         malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
                         malformedDescription = "The message payload uses an AMQP format that the MQ Light client cannot process";
                         payloadBytes = data;
                     }
-                    
+
                     if ((msg.getApplicationProperties() != null) && (msg.getApplicationProperties().getValue() != null)) {
                         Map<?, ?> msgMap = msg.getApplicationProperties().getValue();
                         for (Map.Entry<?, ?> entry : msgMap.entrySet()) {
@@ -144,7 +150,7 @@ class DestinationListenerWrapper<T> {
                     if (topic == null) topic = "";
                     else if (topic.startsWith("/")) topic = topic.substring(1);
                     ttl = msg.getTtl();
-                    
+
                     if (msg.getDeliveryAnnotations() != null) {
                         Map<Symbol, Object> annotations = msg.getDeliveryAnnotations().getValue();
                         String condition = null;
@@ -160,17 +166,17 @@ class DestinationListenerWrapper<T> {
                             } else if (condition.equals("PAYLOADNOTAMQP")) {
                                 malformedReason = MalformedDelivery.MalformedReason.PAYLOADNOTAMQP;
                             }
-                            
-                            if (malformedReason != null && 
+
+                            if (malformedReason != null &&
                                 annotations.containsKey(malformedDescriptionSymbol) &&
                                 annotations.get(malformedDescriptionSymbol) instanceof String) {
                                 malformedDescription = (String)annotations.get(malformedDescriptionSymbol);
-                                
+
                                 if (annotations.containsKey(malformedMQMDFormatSymbol) &&
                                     annotations.get(malformedMQMDFormatSymbol) instanceof String) {
                                     malformedMQMDFormat = (String)annotations.get(malformedMQMDFormatSymbol);
                                 }
-                                
+
                                 if (annotations.containsKey(malformedMQMDCCSIDSymbol) &&
                                     annotations.get(malformedMQMDCCSIDSymbol) instanceof Integer) {
                                     malformedMQMDCCSID = (Integer)annotations.get(malformedMQMDCCSIDSymbol);
@@ -179,27 +185,32 @@ class DestinationListenerWrapper<T> {
                         }
                     }
                 }
-                
+
                 if (payloadBytes != null) {
                     if (malformedReason == null) {
                         BytesDeliveryImpl delivery = new BytesDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes), properties, autoConfirm ? null : deliveryRequest);
                         listener.onMessage(client, context, delivery);
                     } else {
-                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes), 
+                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadBytes),
                                 properties, autoConfirm ? null : deliveryRequest, malformedReason, malformedDescription, malformedMQMDFormat, malformedMQMDCCSID);
                         listener.onMalformed(client, context, delivery);
                     }
                 } else {
                     if (malformedReason == null) {
-                        StringDeliveryImpl delivery = new StringDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, payloadString, properties, autoConfirm ? null : deliveryRequest);
+                        Delivery delivery;
+                        if (payloadIsJson) {
+                            delivery = new JsonDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, payloadString, gsonBuilder, properties, autoConfirm ? null : deliveryRequest);
+                        } else {
+                            delivery = new StringDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, payloadString, properties, autoConfirm ? null : deliveryRequest);
+                        }
                         listener.onMessage(client, context, delivery);
                     } else {
-                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadString.getBytes(Charset.forName("UTF-8"))), 
+                        MalformedDeliveryImpl delivery = new MalformedDeliveryImpl(client, qos, shareName, topic, topicPattern, ttl, ByteBuffer.wrap(payloadString.getBytes(Charset.forName("UTF-8"))),
                                 properties, autoConfirm ? null : deliveryRequest, malformedReason, malformedDescription, malformedMQMDFormat, malformedMQMDCCSID);
                         listener.onMalformed(client, context, delivery);
                     }
                 }
-                
+
                 if (autoConfirm) {
                     client.doDelivery(deliveryRequest);
                 }
