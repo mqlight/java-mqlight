@@ -233,7 +233,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * Sends a JSON object to a topic.  This form of send can handle objects that use Java Generics.
      * @param topic the topic to send the message to.
      * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
-     *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object, Type))} to
+     *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object, Type)} to
      *             perform the conversion).
      * @param type provides type information about the <code>json</code> object.  This allows Java types that make use of
      *             Java Generics to be converted to JSON.
