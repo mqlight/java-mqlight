@@ -144,7 +144,7 @@ public class TestDeliveryImpl {
     }
 
     @Test
-    public void duplicateConform() {
+    public void duplicateConfirm() {
         MockClient client = new MockClient(true);
         DeliveryRequest deliveryRequest = new DeliveryRequest(null, null, null, null, null);
         MockDelivery delivery =
