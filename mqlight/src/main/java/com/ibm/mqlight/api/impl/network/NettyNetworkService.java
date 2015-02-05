@@ -149,7 +149,6 @@ public class NettyNetworkService implements NetworkService {
                     });
                 }
             } else if (nwfuture != null) {
-                System.out.println(nwfuture);
                 nwfuture.setSuccess(null);
             }
         }
