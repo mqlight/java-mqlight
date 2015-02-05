@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 package com.ibm.mqlight.api.impl.endpoint;
 
@@ -44,15 +44,15 @@ import com.ibm.mqlight.api.impl.LogbackLogging;
 
 /*
  * TODO
- { "mqlight": [ 
-     { "name": "mqlsampleservice", 
-       "label": "mqlight", 
-       "plan": "default", 
-       "credentials": 
-         { "username": "jBruGnaTHuwq", 
-           "connectionLookupURI": "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090", 
-           "password": "xhUQve2gdgAN", 
-           "version": "2" 
+ { "mqlight": [
+     { "name": "mqlsampleservice",
+       "label": "mqlight",
+       "plan": "default",
+       "credentials":
+         { "username": "jBruGnaTHuwq",
+           "connectionLookupURI": "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090",
+           "password": "xhUQve2gdgAN",
+           "version": "2"
          }
       } ] }
  */
@@ -61,9 +61,9 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     static {
         LogbackLogging.setup();
     }
-    
+
     private static ThreadPoolExecutor executor;
-    
+
     private static class State {
         String lookupUri;
         int retryCount;
@@ -73,7 +73,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         int nextEndpointIndex;
     }
     private final State state = new State();
-    
+
     private static class BluemixThreadFactory implements ThreadFactory {
         private final ThreadGroup group;
         private final AtomicInteger number = new AtomicInteger();
@@ -87,11 +87,11 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             return result;
         }
     }
-    
+
     protected String getVcapServices() {
         return System.getenv("VCAP_SERVICES");
     }
-    
+
     protected String hitUri(String httpUri) throws IOException {
         URL url = new URL(httpUri);
         InputStream in = url.openStream();
@@ -104,21 +104,21 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         }
         return out.toString("UTF-8");
     }
-    
+
     protected void doHttpLookup(final String httpUri, final EndpointPromise future) {
-        
+
         synchronized(this) {
             if (executor == null) {
                 // TODO: 5 threads == number pulled from thin air.
                 executor = new ThreadPoolExecutor(5, 5, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new BluemixThreadFactory());
             }
         }
-        
+
         executor.execute(new Runnable() {
             public void run() {
                 try {
                     String serviceJson = hitUri(httpUri);
-                    
+
                     JsonParser parser = new JsonParser();
                     JsonObject root = parser.parse(serviceJson).getAsJsonObject();
                     JsonArray services = root.get("service").getAsJsonArray();
@@ -129,7 +129,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                             String uri = serviceElement.getAsString();
                             state.endpoints.add(new EndpointImpl(uri, state.user, state.password));
                         }
-                        
+
                         if (state.endpoints.isEmpty()) {
                             state.endpoints = null;
                             state.nextEndpointIndex = 0;
@@ -138,7 +138,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                             state.nextEndpointIndex = 1;
                         }
                     }
-                    
+
                     if (endpoint == null) {
                         doRetry(future);
                     } else {
@@ -149,15 +149,15 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     doRetry(future);
                 } catch(JsonParseException parseException) {
                     future.setFailure(new ClientException(
-                            "Could not parse the JSON returned by the MQ Light Bluemix lookup service.  See linked exception for more information", parseException));
+                            "Could not parse the JSON returned by the IBM MQ Light Bluemix lookup service.  See linked exception for more information", parseException));
                 } catch(IllegalArgumentException iae) {
                     future.setFailure(new ClientException(
-                            "Endpoint information returned by MQ Light Bluemix lookup service was not valid.  See linked exception for more information", iae));
+                            "Endpoint information returned by IBM MQ Light Bluemix lookup service was not valid.  See linked exception for more information", iae));
                 }
             }
         });
     }
-    
+
     protected void doRetry(EndpointPromise future) {
         int retry;
         synchronized(state) {
@@ -166,19 +166,19 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         }
         future.setWait(calculateDelay(retry));
     }
-    
+
     @Override
     public void lookup(EndpointPromise future) {
         try {
             String lookupUri = null;
             Endpoint endpoint = null;
             boolean retry = false;
-            
+
             synchronized(state) {
                 if (state.lookupUri == null) {
                     String vcapServices = getVcapServices();
                     if (vcapServices != null) {
-                        
+
                             JsonParser parser = new JsonParser();
                             JsonObject root = parser.parse(vcapServices).getAsJsonObject();
                             for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
@@ -193,7 +193,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                             }
                     }
                 }
-                
+
                 lookupUri = state.lookupUri;
                 if (state.lookupUri != null) {
                     if (state.endpoints == null) {
@@ -206,9 +206,10 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     }
                 }
             }
-            
+
             if (lookupUri == null) {
-                future.setFailure(new ClientException("Could not locate a valid VCAP_SERVICES environment variable"));
+                future.setFailure(new ClientException("Could not locate a valid IBM Bluemix VCAP_SERVICES environment variable. " +
+                                                      "Check 'service' parameter to NonBlockingClient.create(...) method."));
             } else if (retry) {
                 doRetry(future);
             } else if (endpoint != null) {
@@ -217,8 +218,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         } catch(JsonParseException e) {
             // Can't parse VCAP_SERVICES values
             future.setFailure(new ClientException(
-                    "Could not parse the JSON present in the VCAP_SERVICES environment variable.  See linked exception for more information", e));
-        } 
+                    "Could not parse the JSON present in the IBM Bluemix VCAP_SERVICES environment variable.  See linked exception for more information", e));
+        }
     }
 
     @Override
@@ -228,7 +229,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             if (state.endpoints != null) {
                 index = state.endpoints.indexOf(endpoint);
             }
-            
+
             if (index == 0) {
                 state.nextEndpointIndex = 0;
             } else if (index > 0) {
