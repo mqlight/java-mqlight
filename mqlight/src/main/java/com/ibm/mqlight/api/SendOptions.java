@@ -84,6 +84,7 @@ public class SendOptions {
          *         called on.
          */
         public SendOptionsBuilder setQos(QOS qos) {
+            if (qos == null) throw new IllegalArgumentException("qos argument cannot be null");
             this.qos = qos;
             return this;
         }
@@ -94,10 +95,12 @@ public class SendOptions {
          * @return the instance of <code>SendOptionsBuilder</code> that this method was
          *         called on.
          * @throws IllegalArgumentException if an invalid <code>ttl</code> value is specified.
-         *         Valid <code>ttl</code> values must be > 0.
+         *         Valid <code>ttl</code> values must be an unsigned non-zero integer number.
          */
         public SendOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
-            if (ttl <= 0) throw new IllegalArgumentException("ttl value '" + ttl + "' is invalid, must be an unsigned non-zero integer number");
+            if (ttl < 1 || ttl > 4294967295L) {
+                throw new IllegalArgumentException("ttl value '" + ttl + "' is invalid, must be an unsigned non-zero integer number");
+            }
             this.ttl = ttl;
             return this;
         }
