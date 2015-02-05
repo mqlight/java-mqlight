@@ -9,8 +9,8 @@ public class TestClientOptions {
     @Test
     public void clientIdLength() {
         ClientOptions.builder().setId("012345678901234567890123456789012345678901234567").build();  // 48-char
-
         ClientOptions.builder().setId("0").build();
+        ClientOptions.builder().setId(null).build();
 
         try {
             ClientOptions.builder().setId("").build();

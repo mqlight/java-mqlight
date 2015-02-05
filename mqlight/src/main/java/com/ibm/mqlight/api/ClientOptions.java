@@ -119,14 +119,16 @@ public class ClientOptions {
          * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
          */
         public ClientOptionsBuilder setId(String id) {
-            if (id.length() > 48) {
-                throw new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
-            } else if (id.length() < 1) {
-                throw new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
-            }
-            for (int i = 0; i < id.length(); ++i) {
-                if (!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%/._".contains(id.substring(i, i+1))) {
-                    throw new IllegalArgumentException("Client identifier '" + id + "' contains invalid character: '" + id.substring(i, i+1) + "'");
+            if (id != null) {
+                if (id.length() > 48) {
+                    throw new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
+                } else if (id.length() < 1) {
+                    throw new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
+                }
+                for (int i = 0; i < id.length(); ++i) {
+                    if (!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%/._".contains(id.substring(i, i+1))) {
+                        throw new IllegalArgumentException("Client identifier '" + id + "' contains invalid character: '" + id.substring(i, i+1) + "'");
+                    }
                 }
             }
             this.id = id;
