@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api.impl.engine;
@@ -70,18 +70,18 @@ import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.timer.TimerService;
 
 public class Engine extends Component {
-    
+
     private final NetworkService network;
     private final TimerService timer;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     public Engine(NetworkService network, TimerService timer) {
         if (network == null) throw new IllegalArgumentException("NetworkService argument cannot be null");
         if (timer == null) throw new IllegalArgumentException("TimerService argument cannot be null");
         this.network = network;
         this.timer = timer;
     }
-    
+
     @Override
     protected void onReceive(Message message) {
         if (message instanceof OpenRequest) {
@@ -117,7 +117,7 @@ public class Engine extends Component {
                 Session session = protonConnection.session();
                 session.open();
                 protonConnection.collect(collector);
-                
+
                 EngineConnection engineConnection = new EngineConnection(protonConnection, session, or.getSender(), transport, collector, cr.channel);
                 engineConnection.openRequest = or;
                 protonConnection.setContext(engineConnection);
@@ -143,7 +143,7 @@ public class Engine extends Component {
         } else if (message instanceof SendRequest) {
             SendRequest sr = (SendRequest)message;
             EngineConnection engineConnection = sr.connection;
-            
+
             // Look to see if there is already a suitable sending link, and open one if there is not...
             Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
                                                           EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
@@ -171,7 +171,7 @@ public class Engine extends Component {
                                             EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
             }
             Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
-            
+
             linkSender.send(sr.data, 0, sr.length);
             if (sr.qos == QOS.AT_MOST_ONCE) {
                 d.settle();
@@ -179,7 +179,7 @@ public class Engine extends Component {
                 engineConnection.inProgressOutboundDeliveries.put(d, sr);
             }
             linkSender.advance();
-            engineConnection.drained = false;            
+            engineConnection.drained = false;
             int delta = engineConnection.transport.head().remaining();
             // If the link was also opened as part of processing this request then increase the
             // amount of data expected (as the linkSender.send() won't count against the amount of
@@ -206,14 +206,14 @@ public class Engine extends Component {
                 source.setAddress(sr.topic);
                 Target target = new Target();
                 target.setAddress(sr.topic);
-                
+
                 if (sr.ttl > 0) {
                     source.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
                     source.setTimeout(new UnsignedInteger(sr.ttl));
                     target.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
                     target.setTimeout(new UnsignedInteger(sr.ttl));
                 }
-                
+
                 linkReceiver.setSource(source);
                 linkReceiver.setTarget(target);
                 if (sr.qos == QOS.AT_LEAST_ONCE) {
@@ -223,10 +223,10 @@ public class Engine extends Component {
                     linkReceiver.setSenderSettleMode(SenderSettleMode.SETTLED);
                     linkReceiver.setReceiverSettleMode(ReceiverSettleMode.FIRST);
                 }
-                
+
                 linkReceiver.open();
                 linkReceiver.flow(sr.initialCredit);
-                
+
                 writeToNetwork(engineConnection);
             }
         } else if (message instanceof UnsubscribeRequest) {
@@ -252,16 +252,16 @@ public class Engine extends Component {
             EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(dr.request.topicPattern);
             subData.settled++;
             subData.unsettled--;
-            
+
             double available = subData.maxLinkCredit - subData.unsettled;
             if ((available / subData.settled) <= 1.25 ||
                 (subData.unsettled == 0 && subData.settled > 0)) {
                 subData.receiver.flow(subData.settled);
                 subData.settled = 0;
             }
-            
+
             writeToNetwork(engineConnection);
-            
+
         } else if (message instanceof WriteResponse) {
             // Message from network telling us that a write operation has completed...
             // Try to flush any pending data to the network...
@@ -283,7 +283,7 @@ public class Engine extends Component {
             EngineConnection engineConnection = (EngineConnection)dr.channel.getContext();
             while (dr.buffer.remaining() > 0) {
                 int origLimit = dr.buffer.limit();
-                ByteBuffer tail = engineConnection.transport.tail();                
+                ByteBuffer tail = engineConnection.transport.tail();
                 int amount = Math.min(tail.remaining(), dr.buffer.remaining());
                 dr.buffer.limit(dr.buffer.position() + amount);
                 tail.put(dr.buffer);
@@ -291,7 +291,7 @@ public class Engine extends Component {
                 engineConnection.transport.process();
                 process(engineConnection.collector);
             }
-            
+
             // Write any data from Proton to the network.
             writeToNetwork(engineConnection);
         } else if (message instanceof DisconnectResponse) {
@@ -346,10 +346,10 @@ public class Engine extends Component {
             //nn.tell(new WriteRequest(connection, buf), this);
         }
     }
-    
+
     // TODO: Proton 0.8 provides an Event.dispatch() method that could be used to replace this code...
     private void process(Collector collector) {
-  
+
         while (collector.peek() != null) {
             Event event = collector.peek();
             logger.debug("Processing event: {}", event.getType());
@@ -378,7 +378,7 @@ public class Engine extends Component {
                 break;
             case LINK_LOCAL_CLOSE:
             case LINK_LOCAL_DETACH:
-            case LINK_LOCAL_OPEN:        
+            case LINK_LOCAL_OPEN:
                 processEventLinkLocalState(event);
                 break;
             case LINK_REMOTE_CLOSE:
@@ -402,7 +402,7 @@ public class Engine extends Component {
             case TRANSPORT_ERROR:
             case TRANSPORT_HEAD_CLOSED:
             case TRANSPORT_TAIL_CLOSED:
-                processEventTransport(event); 
+                processEventTransport(event);
                 break;
             default:
                 throw new IllegalStateException("Unknown event type: " + event.getType());
@@ -410,15 +410,15 @@ public class Engine extends Component {
             collector.pop();
         }
     }
-    
+
     private void processEventConnectionLocalState(Event event) {
         logger.debug("CONNECTION_LOCAL_STATE: {}", event.getConnection());
         // TODO: do we care about this event?
     }
-    
+
     private void processEventConnectionRemoteState(Event event) {
         logger.debug("CONNECTION_REMOTE_STATE: {}", event.getConnection());
-        
+
         if (event.getConnection().getRemoteState() == EndpointState.CLOSED) {
             if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
@@ -436,8 +436,15 @@ public class Engine extends Component {
                         engineConnection.dead = true;
                         engineConnection.channel.close(null);
                         String errorDescription = event.getConnection().getRemoteCondition().getDescription();
-                        ClientException clientException = 
-                                new ClientException(errorDescription == null ? "The server closed the connection without providing any error information." : errorDescription);
+                        String errMsg = null;
+                        if (errorDescription == null) {
+                            errMsg = "The server closed the connection without providing any error information.";
+                        } else if (errorDescription.startsWith("javax.security.auth.login.FailedLoginException")) {
+                            errMsg = "Failed to authenticate with server - invalid username or password";
+                        } else {
+                            errMsg = errorDescription;
+                        }
+                        ClientException clientException = new ClientException(errMsg);
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
                 } else {    // TODO: should we also special case closeRequest in progress??
@@ -479,7 +486,7 @@ public class Engine extends Component {
             }
         }
     }
-    
+
     private void processEventDelivery(Event event) {
         EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
         Delivery delivery = event.getDelivery();
@@ -488,7 +495,7 @@ public class Engine extends Component {
             Exception exception = null;
             if (delivery.getRemoteState() instanceof Rejected) {
                 Rejected rejected = (Rejected)delivery.getRemoteState();
-                // If we ever need to check the symbolic error code returned by the server - 
+                // If we ever need to check the symbolic error code returned by the server -
                 // this is accessible via the getCondition() method - e.g.
                 //     rejected.getError().getCondition() => 'MAX_TTL_EXCEEDED'
                 String description = rejected.getError().getDescription();
@@ -509,23 +516,23 @@ public class Engine extends Component {
             byte[] data = new byte[amount];
             receiver.recv(data, 0, amount);
             receiver.advance();
-           
+
             EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(event.getLink().getName());
             subData.unsettled++;
             QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
             subData.subscriber.tell(new DeliveryRequest(data, qos, event.getLink().getName(), delivery, event.getConnection()), this);
         }
     }
-    
+
     private void processEventLinkFlow(Event event) {
-        
+
     }
-    
+
     private void processEventLinkLocalState(Event event) {
         Link link = event.getLink();
         logger.debug("LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
     }
-    
+
     private void processEventLinkRemoteState(Event event) {
         Link link = event.getLink();
         logger.debug("LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
@@ -543,7 +550,7 @@ public class Engine extends Component {
                 link.free();
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                 EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
-                
+
                 // TODO: can we assume that getRemoteConnection will be null if there is no error?
                 sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), link.getRemoteCondition() != null), this);
             }
@@ -556,15 +563,15 @@ public class Engine extends Component {
                 link.free();
             }
         }
-        
+
     }
-    
+
     private void processEventSessionLocalState(Event event) {
         logger.debug("processEventSessionLocalState ", event.getSession());
-        
+
         // TODO: do we care about this event?
     }
-    
+
     private void processEventSessionRemoteState(Event event) {
         logger.debug("processEventSessionRemoteState", event.getSession());
         if (event.getSession().getLocalState() == EndpointState.ACTIVE &&
@@ -575,10 +582,10 @@ public class Engine extends Component {
             engineConnection.openRequest = null;
             engineConnection.requestor.tell(new OpenResponse(req, engineConnection), this);
         }
-        
+
         // TODO: should reject remote party trying to establish sessions with us
     }
-    
+
     private void processEventTransport(Event event) {
         logger.debug("processEventTransport", event.getTransport());
     }
