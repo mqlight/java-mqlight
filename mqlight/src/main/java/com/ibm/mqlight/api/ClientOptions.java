@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api;
@@ -33,13 +33,13 @@ import java.io.File;
  * </pre>
  */
 public class ClientOptions {
-    
+
     private final String id;
     private final String user;
     private final String password;
     private final File certFile;
     private final boolean verifyName;
-    
+
     private ClientOptions(String id, String user, String password, File certFile, boolean verifyName) {
         this.id = id;
         this.user = user;
@@ -47,27 +47,27 @@ public class ClientOptions {
         this.certFile = certFile;
         this.verifyName = verifyName;
     }
-    
+
     public String getId() {
         return id;
     }
-    
+
     public String getUser() {
         return user;
     }
-    
+
     public String getPassword() {
         return password;
     }
-    
+
     public File getCertificateFile() {
         return certFile;
     }
-    
+
     public boolean getVerifyName() {
         return verifyName;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
@@ -92,37 +92,42 @@ public class ClientOptions {
     public static ClientOptionsBuilder builder() {
         return new ClientOptionsBuilder();
     }
-    
+
     /**
      * A builder for <code>ClientOptions</code> objects.
      */
     public static class ClientOptionsBuilder {
-        
+
         private String id = null;
         private String user = null;
         private String password = null;
         private File certFile = null;
         private boolean verifyName = true;
-        
+
         private ClientOptionsBuilder() {}
-        
+
         /**
          * Sets a client identifier, that will be associated with the <code>NonBlockingClient</code> object
          * returned by {@link NonBlockingClient#create(String, ClientOptions, NonBlockingClientListener, Object)}.
-         * 
+         *
          * @param id a unique identifier for this client. If this is not set then the default is the string "AUTO_"
          *           followed by a randomly chosen 7 digit hex value (with hex characters lowercase). A maximum of one
          *           instance of the client (as identified by the value of this parameter) can be connected the an
          *           MQ Light server at a given point in time.  If another instance of the same client connects, then
-         *           the previously connected instance will be disconnected. This is reported, to the first client, 
+         *           the previously connected instance will be disconnected. This is reported, to the first client,
          *           as a ReplacedException, and the client transitioning into stopped state.
          * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
          */
         public ClientOptionsBuilder setId(String id) {
+            if (id.length() > 48) {
+                throw new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
+            } else if (id.length() < 1) {
+                throw new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
+            }
             this.id = id;
             return this;
         }
-        
+
         /**
          * Sets the credentials, that will be associated with the <code>NonBlockingClient</code> object
          * returned by {@link NonBlockingClient#create(String, ClientOptions, NonBlockingClientListener, Object)}.
@@ -137,7 +142,7 @@ public class ClientOptions {
             this.password = password;
             return this;
         }
-        
+
         /**
          * Specifies a trust store for SSL/TLS certificates that the client will trust.
          * @param certificateFile a trust store that contains SSL/TLS certificates that
@@ -150,7 +155,7 @@ public class ClientOptions {
             this.certFile = certificateFile;
             return this;
         }
-        
+
         /**
          * Determines whether the client validates that the CN name of the server's certificate
          * matches its DNS name.
@@ -163,7 +168,7 @@ public class ClientOptions {
             this.verifyName = verifyName;
             return this;
         }
-        
+
         /**
          * @return an instance of the <code>ClientOptions</code> object, built using the various
          *         settings of this <code>ClientOptionsBuilder</code> class at the point this method
