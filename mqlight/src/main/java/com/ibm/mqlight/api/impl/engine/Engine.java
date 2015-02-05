@@ -190,7 +190,9 @@ public class Engine extends Component {
             if (linkOpened) {
                 delta += sr.length;
             }
-            engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
+            if (sr.qos == QOS.AT_MOST_ONCE) {
+                engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
+            }
             writeToNetwork(engineConnection);
         } else if (message instanceof SubscribeRequest) {
             SubscribeRequest sr = (SubscribeRequest) message;
