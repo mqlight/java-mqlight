@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api.impl.network;
@@ -60,23 +60,23 @@ public class NettyNetworkService implements NetworkService {
     static {
         LogbackLogging.setup();
     }
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static Bootstrap insecureBootstrap;
     private static Bootstrap secureBootstrap;
-    
+
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
-        
+
         private final Logger logger = LoggerFactory.getLogger(getClass());
-        
+
         private final SocketChannel channel;
         private NetworkListener listener = null;
         private AtomicBoolean closed = new AtomicBoolean(false);
-        
+
         protected NettyInboundHandler(SocketChannel channel) {
             this.channel = channel;
         }
-        
+
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             logger.debug("channel read");
@@ -108,14 +108,14 @@ public class NettyNetworkService implements NetworkService {
             }
             decrementUseCount();
         }
-        
+
         @Override
         public void channelWritabilityChanged(ChannelHandlerContext ctx)
                 throws Exception {
             logger.debug("channelWritabilityChanged");
             doWrite(null);
         }
-        
+
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             logger.debug("channelInactive");
@@ -127,7 +127,7 @@ public class NettyNetworkService implements NetworkService {
                 decrementUseCount();
             }
         }
-        
+
         protected void setListener(NetworkListener listener) {
             logger.debug("setting listener");
             this.listener = listener;
@@ -139,7 +139,7 @@ public class NettyNetworkService implements NetworkService {
             boolean alreadyClosed = closed.getAndSet(true);
             if (!alreadyClosed) {
                 final ChannelFuture f = channel.disconnect();
-                if (nwfuture != null) {                                                             // TODO: in general, should be able to handle null futures.
+                if (nwfuture != null) {
                     f.addListener(new GenericFutureListener<ChannelFuture>() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
@@ -148,7 +148,8 @@ public class NettyNetworkService implements NetworkService {
                         }
                     });
                 }
-            } else {
+            } else if (nwfuture != null) {
+                System.out.println(nwfuture);
                 nwfuture.setSuccess(null);
             }
         }
@@ -161,17 +162,17 @@ public class NettyNetworkService implements NetworkService {
                 this.promise = promise;
             }
         }
-        
+
         @Override
         public void write(ByteBuffer buffer, Promise<Boolean> promise) {
             ByteBuf byteBuf = Unpooled.wrappedBuffer(buffer);
             doWrite(new WriteRequest(byteBuf, promise));
         }
-        
-        
+
+
         LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
         boolean writeInProgress = false;
-        
+
         private void doWrite(final WriteRequest writeRequest) {
             logger.debug("doWrite {}" + writeRequest);
             WriteRequest toProcess = null;
@@ -184,7 +185,7 @@ public class NettyNetworkService implements NetworkService {
                     writeInProgress = true;
                 }
             }
-            
+
             if (toProcess != null) {
                 final Promise<Boolean> writeCompletePromise = toProcess.promise;
                 logger.debug("writeAndFlush {}", toProcess);
@@ -206,7 +207,7 @@ public class NettyNetworkService implements NetworkService {
         }
 
         private Object context;
-        
+
         @Override
         public synchronized void setContext(Object context) {
             this.context = context;
@@ -224,7 +225,7 @@ public class NettyNetworkService implements NetworkService {
         protected ConnectListener(ChannelFuture cFuture, Promise<NetworkChannel> promise, NetworkListener listener) {
             this.promise = promise;
             this.listener = listener;
-            
+
         }
         @Override
         public void operationComplete(ChannelFuture cFuture) throws Exception {
@@ -239,9 +240,9 @@ public class NettyNetworkService implements NetworkService {
                 decrementUseCount();
             }
         }
-        
+
     }
-    
+
     @Override
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
         logger.debug("> connect {} {}", endpoint.getHost(), endpoint.getPort());
@@ -250,13 +251,13 @@ public class NettyNetworkService implements NetworkService {
         f.addListener(new ConnectListener(f, promise, listener));
         logger.debug("< connect");
     }
-    
+
     private static int useCount = 0;
-    
+
     /**
      * Request a {@link Bootstrap} for obtaining a {@link Channel} and track
      * that the workerGroup is being used.
-     * 
+     *
      * @param secure
      *            a {@code boolean} indicating whether or not a secure channel
      *            will be required
@@ -292,7 +293,7 @@ public class NettyNetworkService implements NetworkService {
         }
         return (secure) ? secureBootstrap : insecureBootstrap;
     }
-    
+
     /**
      * Decrement the use count of the workerGroup and request a graceful
      * shutdown once it is no longer being used by anyone.
@@ -300,7 +301,7 @@ public class NettyNetworkService implements NetworkService {
     private static synchronized void decrementUseCount() {
         --useCount;
         if (useCount <= 0) {
-            /* 
+            /*
              * NB: workerGroup is shared between both secure and insecure, so
              * we only need to call shutdown via the group on one of them
              */
