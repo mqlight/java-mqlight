@@ -129,6 +129,7 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setCredit(int credit) {
+            if (credit < 0) throw new IllegalArgumentException("Credit value '" + credit + "' is invalid, must be >= 0");
             this.credit = credit;
             return this;
         }
@@ -140,6 +141,7 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setQos(QOS qos) {
+            if (qos == null) throw new IllegalArgumentException("QOS value cannot be null");
             this.qos = qos;
             return this;
         }
@@ -152,6 +154,9 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setShare(String shareName) {
+            if (shareName != null && shareName.contains(":")) {
+                throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
+            }
             this.shareName = shareName;
             return this;
         }

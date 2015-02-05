@@ -417,6 +417,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
     throws StateException, IllegalArgumentException {
         if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
+        if ((share != null) && share.contains(":")) throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
         if (ttl != 0) throw new IllegalArgumentException("TTL cannot be non-zero");
 
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, ttl == 0);
@@ -430,6 +431,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
     throws StateException {
         if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
+        if ((share != null) && share.contains(":")) throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, false);
         tell(us, this);
 

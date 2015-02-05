@@ -324,6 +324,30 @@ public class TestNonBlockingClientImpl {
     }
 
     @Test
+    public void invalidShareNameIntoUnsubscribe() {
+        StubEndpointService endpointService = new StubEndpointService();
+        StubCallbackService callbackService = new StubCallbackService();
+        MockComponent component = new MockComponent();
+        StubTimerService timerService = new StubTimerService();
+        NonBlockingClientImpl client = new NonBlockingClientImpl(endpointService, callbackService, component, timerService, null, null, null, null);
+
+        // Null share, listener and context object should be fine...
+        client.unsubscribe("topicPattern", null, 0, null, null);
+        client.unsubscribe("topicPattern", null, null, null);
+
+        // Share name containing colon should throw an exception
+        try {
+            client.unsubscribe("topic", "sha:re", 0, null, null);
+            throw new AssertionFailedError("Null topic pattern should have thrown an exception (1)");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        // Null share name is still fine though...
+        client.unsubscribe("topic", null, null, null);
+
+    }
+
+    @Test
     public void nonzeroTtlIntoUnsubscribe() {
         StubEndpointService endpointService = new StubEndpointService();
         StubCallbackService callbackService = new StubCallbackService();
