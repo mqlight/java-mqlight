@@ -124,6 +124,11 @@ public class ClientOptions {
             } else if (id.length() < 1) {
                 throw new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
             }
+            for (int i = 0; i < id.length(); ++i) {
+                if (!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%/._".contains(id.substring(i, i+1))) {
+                    throw new IllegalArgumentException("Client identifier '" + id + "' contains invalid character: '" + id.substring(i, i+1) + "'");
+                }
+            }
             this.id = id;
             return this;
         }

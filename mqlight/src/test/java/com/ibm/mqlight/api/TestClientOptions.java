@@ -26,4 +26,18 @@ public class TestClientOptions {
             // Expected
         }
     }
+
+    @Test
+    public void clientIdValidChars() {
+        ClientOptions.builder().setId("abcdefghijklmnopqrstuvwxyz").build();
+        ClientOptions.builder().setId("ABCDEFGHIJKLMNOPQRSTUVWXYZ").build();
+        ClientOptions.builder().setId("0123456789").build();
+        ClientOptions.builder().setId("%./_").build();
+        try {
+            ClientOptions.builder().setId("badid!").build();
+            throw new AssertionFailedError("ID should have been rejected");
+        } catch(IllegalArgumentException e) {
+            // Expected.
+        }
+    }
 }
