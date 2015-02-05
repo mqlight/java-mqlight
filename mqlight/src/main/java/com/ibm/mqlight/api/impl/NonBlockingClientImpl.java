@@ -534,7 +534,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     // Already subscribed - no pending actions on the subscription.
                     if (sd.state == SubData.State.ATTACHING || sd.state == SubData.State.ESTABLISHED) {
                         // Operation fails because it is attempting to subscribed to an already subscribed destination
-                        is.future.postFailure(callbackService, new StateException("Cannot subscribe because the client is in stopped state"));
+                        String[] topicElements = crackLinkName(is.topic);
+                        String errMsg = "Cannot subscribe because the client is already subscribe to topic '" + topicElements[0] + "'";
+                        if (topicElements[1] != null) {
+                            errMsg = errMsg + " and share '" + topicElements[1] + "'.";
+                        }
+                        is.future.postFailure(callbackService, new StateException(errMsg));
                     } else {
                         // Add to pending actions - so operation is attempted when current link is detatched.
                         sd.pending.addLast(is);
@@ -587,9 +592,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
             if (NonBlockingClientState.acceptingWorkStates.contains(state)) {
                 if (sd == null) {
-                    StateException se = new StateException("Client is not subscribed to " +
-                            ((iu.share == null || "".equals(iu.share)) ? "private" : "shared") +
-                            "destination " + iu.topicPattern);
+                    String errMsg = "Client is not subscribed to topic '" + iu.topicPattern + "'";
+                    if (iu.share != null) {
+                        errMsg = " and share '" + iu.share + "'";
+                    }
+                    StateException se = new StateException(errMsg);
                     iu.future.postFailure(callbackService, se);
                 } else if (sd.pending.isEmpty()) {
                     if (sd.state == SubData.State.ATTACHING) {
