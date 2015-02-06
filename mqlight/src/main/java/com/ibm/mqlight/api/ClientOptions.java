@@ -158,7 +158,7 @@ public class ClientOptions {
          *                        supplied with the JVM.
          * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
          */
-        public ClientOptionsBuilder setSslTrustCertficiate(File certificateFile) {
+        public ClientOptionsBuilder setSslTrustCertificate(File certificateFile) {
             this.certFile = certificateFile;
             return this;
         }
