@@ -472,7 +472,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
                 if ((or.exception.getMessage() != null) &&
-                    (or.exception.getMessage().toLowerCase().contains("sasl") || or.exception.getMessage().toLowerCase().contains("failedloginexception"))) {
+                    (or.exception.getMessage().toLowerCase().contains("sasl") || or.exception.getMessage().toLowerCase().contains("authenticate"))) {
 
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
