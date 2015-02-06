@@ -1,7 +1,8 @@
 ### Jazz Ignore 0
 
 core.ignore.recursive= \
-	{core}
+	{core} \
+	{target}
 
 core.ignore= \
 	{bin} \
