@@ -1,22 +1,22 @@
 /*
- *   <copyright 
- *   notice="oco-source" 
- *   pids="5725-P60" 
- *   years="2015" 
- *   crc="1438874957" > 
- *   IBM Confidential 
- *    
- *   OCO Source Materials 
- *    
+ *   <copyright
+ *   notice="oco-source"
+ *   pids="5725-P60"
+ *   years="2015"
+ *   crc="1438874957" >
+ *   IBM Confidential
+ *
+ *   OCO Source Materials
+ *
  *   5724-H72
- *    
+ *
  *   (C) Copyright IBM Corp. 2015
- *    
- *   The source code for the program is not published 
- *   or otherwise divested of its trade secrets, 
- *   irrespective of what has been deposited with the 
- *   U.S. Copyright Office. 
- *   </copyright> 
+ *
+ *   The source code for the program is not published
+ *   or otherwise divested of its trade secrets,
+ *   irrespective of what has been deposited with the
+ *   U.S. Copyright Office.
+ *   </copyright>
  */
 
 package com.ibm.mqlight.api.impl.engine;
@@ -40,7 +40,7 @@ public class EngineConnection {
     protected final Connection connection;
     protected final Session session;
     protected final Component requestor;    // Used for sending "you've been disconnected notifications
-    
+
     protected static class PendingQos0Response{
         long amount;
         SendResponse response;
@@ -53,16 +53,16 @@ public class EngineConnection {
             this.engine = engine;
         }
     }
-    
+
     // An (ordered) list of in-flight qos 0 transfers.  This is used to determine when to invoke
     // the associated callback (as supplied to the send method) based on how much data has been
     // written to the AMQP transport.
     protected final LinkedList<PendingQos0Response> inflightQos0 = new LinkedList<>();
-    
+
     protected void addInflightQos0(int delta, SendResponse response, Component component, Engine engine) {
         inflightQos0.addLast(new PendingQos0Response(bytesWritten + delta, response, component, engine));
     }
-    
+
     protected void notifyInflightQos0(boolean purge) {
         while(!inflightQos0.isEmpty()) {
             PendingQos0Response pendingResponse = inflightQos0.getFirst();
@@ -75,7 +75,6 @@ public class EngineConnection {
         }
     }
 
-    //protected final EngineConnection engineConnection;
     protected final Transport transport;
     protected final Collector collector;
     protected final NetworkChannel channel;
@@ -85,11 +84,10 @@ public class EngineConnection {
     protected OpenRequest openRequest = null;
     protected CloseRequest closeRequest = null;
     protected TimerPromiseImpl timerPromise = null;
-    protected long heartbeatInterval = 0;
-    protected boolean dead = false; // TODO: better name...
+    protected boolean closed = false;
     protected boolean drained = true;
     protected long bytesWritten = 0;
-    
+
     protected static class SubscriptionData {
         protected final Component subscriber;
         protected final int maxLinkCredit;
@@ -104,7 +102,7 @@ public class EngineConnection {
             this.settled = 0;
         }
     }
-    
+
     protected EngineConnection(Connection connection, Session session, Component requestor, Transport transport, Collector collector, NetworkChannel channel) {
         this.connection = connection;
         this.session = session;
@@ -113,7 +111,7 @@ public class EngineConnection {
         this.collector = collector;
         this.channel = channel;
     }
-    
+
     /**
      * For unit testing.
      */

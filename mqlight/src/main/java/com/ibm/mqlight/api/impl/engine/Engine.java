@@ -130,7 +130,6 @@ public class Engine extends Component {
             CloseRequest cr = (CloseRequest)message;
             Connection protonConnection = cr.connection.connection;
             EngineConnection engineConnection = (EngineConnection)protonConnection.getContext();
-            engineConnection.heartbeatInterval = 0;
             if (engineConnection.timerPromise != null) {
                 TimerPromiseImpl tmp = engineConnection.timerPromise;
                 engineConnection.timerPromise = null;
@@ -291,6 +290,7 @@ public class Engine extends Component {
                 tail.put(dr.buffer);
                 dr.buffer.limit(origLimit);
                 engineConnection.transport.process();
+                engineConnection.transport.tick(System.currentTimeMillis());
                 process(engineConnection.collector);
             }
 
@@ -301,7 +301,7 @@ public class Engine extends Component {
             DisconnectResponse dr = (DisconnectResponse)message;
             CloseRequest cr = (CloseRequest)dr.context;
             if (cr != null) {
-                cr.connection.dead = true;
+                cr.connection.closed = true;
                 cr.connection.notifyInflightQos0(true);
                 cr.getSender().tell(new CloseResponse(cr), this);
             }
@@ -309,26 +309,28 @@ public class Engine extends Component {
             // Message from network telling us that a error has occurred at the TCP/IP level.
             ConnectionError ce = (ConnectionError)message;
             EngineConnection engineConnection = (EngineConnection)ce.channel.getContext();
-            if (!engineConnection.dead) {
-                engineConnection.heartbeatInterval = 0;
+            if (!engineConnection.closed) {
                 if (engineConnection.timerPromise != null) {
                     TimerPromiseImpl tmp = engineConnection.timerPromise;
                     engineConnection.timerPromise = null;
                     timer.cancel(tmp);
                 }
                 engineConnection.notifyInflightQos0(true);
-                engineConnection.dead = true;
+                engineConnection.closed = true;
                 engineConnection.transport.close_tail();
                 engineConnection.requestor.tell(new DisconnectNotification(engineConnection, ce.cause.getClass().toString(), ce.cause.getMessage()), this);
             }
         } else if (message instanceof PopResponse) {
             PopResponse pr = (PopResponse)message;
             EngineConnection engineConnection = (EngineConnection)pr.promise.getContext();
-            if (engineConnection.heartbeatInterval > 0) {
+            long now = System.currentTimeMillis();
+            long timeout = engineConnection.transport.tick(now);
+            logger.debug("Timeout: {}", timeout);
+            if (timeout > 0) {
                 TimerPromiseImpl promise = new TimerPromiseImpl(this, engineConnection);
                 engineConnection.timerPromise = promise;
-                timer.schedule(engineConnection.heartbeatInterval, promise);
-                engineConnection.transport.writeEmptyFrame();
+                logger.debug("Scheduling at: {}", timeout - now);
+                timer.schedule(timeout - now, promise);
                 writeToNetwork(engineConnection);
             }
         }
@@ -344,6 +346,7 @@ public class Engine extends Component {
             tmp.flip();
             //ByteBuf buf = Unpooled.wrappedBuffer(head);
             engineConnection.transport.pop(amount);
+            engineConnection.transport.tick(System.currentTimeMillis());
             engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, amount, engineConnection));
             //nn.tell(new WriteRequest(connection, buf), this);
         }
@@ -415,7 +418,6 @@ public class Engine extends Component {
 
     private void processEventConnectionLocalState(Event event) {
         logger.debug("CONNECTION_LOCAL_STATE: {}", event.getConnection());
-        // TODO: do we care about this event?
     }
 
     private void processEventConnectionRemoteState(Event event) {
@@ -424,7 +426,6 @@ public class Engine extends Component {
         if (event.getConnection().getRemoteState() == EndpointState.CLOSED) {
             if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                engineConnection.heartbeatInterval = 0;
                 if (engineConnection.timerPromise != null) {
                     TimerPromiseImpl tmp = engineConnection.timerPromise;
                     engineConnection.timerPromise = null;
@@ -433,9 +434,9 @@ public class Engine extends Component {
                 if (engineConnection.openRequest != null) {
                     OpenRequest req = engineConnection.openRequest;
                     engineConnection.openRequest = null;
-                    if (!engineConnection.dead) {
+                    if (!engineConnection.closed) {
                         engineConnection.notifyInflightQos0(true);
-                        engineConnection.dead = true;
+                        engineConnection.closed = true;
                         engineConnection.channel.close(null);
                         String errorDescription = event.getConnection().getRemoteCondition().getDescription();
                         String errMsg = null;
@@ -450,9 +451,9 @@ public class Engine extends Component {
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
                 } else {    // TODO: should we also special case closeRequest in progress??
-                    if (!engineConnection.dead) {
+                    if (!engineConnection.closed) {
                         engineConnection.notifyInflightQos0(true);
-                        engineConnection.dead = true;
+                        engineConnection.closed = true;
                         engineConnection.channel.close(null);
                         String condition = "";
                         if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getCondition() != null)) {
@@ -467,9 +468,9 @@ public class Engine extends Component {
                 }
             } else {
                 EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                if (!engineConnection.dead) {
+                if (!engineConnection.closed) {
                     engineConnection.notifyInflightQos0(true);
-                    engineConnection.dead = true;
+                    engineConnection.closed = true;
                     CloseRequest cr = engineConnection.closeRequest;
                     NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
                     engineConnection.channel.close(future);
@@ -479,12 +480,12 @@ public class Engine extends Component {
                 }
             }
         } else if (event.getConnection().getRemoteState() == EndpointState.ACTIVE) {
-            UnsignedInteger ui = event.getConnection().getRemoteIdleTimeOut();
-            if (ui != null) {
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                engineConnection.heartbeatInterval = ui.longValue() / 2;
+            EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+            long now = System.currentTimeMillis();
+            long timeout = engineConnection.transport.tick(now);
+            if (timeout > 0) {
                 engineConnection.timerPromise = new TimerPromiseImpl(this, engineConnection);
-                timer.schedule(engineConnection.heartbeatInterval, engineConnection.timerPromise);
+                timer.schedule(timeout - now, engineConnection.timerPromise);
             }
         }
     }
