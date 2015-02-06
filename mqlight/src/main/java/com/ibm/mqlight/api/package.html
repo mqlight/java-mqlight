@@ -29,7 +29,7 @@
      NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter<Void>() {
          public void onStarted(NonBlockingClient client, Void context) {
              SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
-             client.send("/kittens", "Hello kitty!", null, opts, new CompletionListener<Void>() {
+             client.send("/public", "Hello World!", null, opts, new CompletionListener<Void>() {
                  public void onSuccess(NonBlockingClient client, Void context) {
                      client.stop(null, null);
                  }
@@ -42,11 +42,11 @@
      }, null);
    </pre>
    <p>
-   Example code for receiving messages published to the '/kittens' topic.
+   Example code for receiving messages published to the '/public' topic.
    <pre>
      public static void main(String[] args) {
          NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
-         client.subscribe("/kittens", new DestinationAdapter<Void>() {
+         client.subscribe("/public", new DestinationAdapter<Void>() {
              public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
                  switch (delivery.getType()) {
                  case BYTES:

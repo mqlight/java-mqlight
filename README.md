@@ -6,7 +6,7 @@ Example code for using the non-blocking client to send a message
 NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter() {
   public void onStarted(NonBlockingClient client, Void context) {
     SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
-    client.send("/kittens", "Hello kitty!", null, opts, new CompletionListener() {
+    client.send("/public", "Hello World!", null, opts, new CompletionListener() {
       public void onSuccess(NonBlockingClient client, Void context) {
         client.stop(null, null);
       }
@@ -19,12 +19,12 @@ NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter() {
 }, null);
 ```
 
-Example code for receiving messages published to the '/kittens' topic.
+Example code for receiving messages published to the '/public' topic.
 
 ```java
 public static void main(String[] args) {
   NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
-  client.subscribe("/kittens", new DestinationAdapter() {
+  client.subscribe("/public", new DestinationAdapter() {
     public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
       switch (delivery.getType()) {
         case BYTES:
