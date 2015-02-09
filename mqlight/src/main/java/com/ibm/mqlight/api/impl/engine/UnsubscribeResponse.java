@@ -23,10 +23,10 @@ import com.ibm.mqlight.api.impl.Message;
 public class UnsubscribeResponse extends Message {
     public final EngineConnection connection;
     public final String topic;
-    public final boolean isError;   // TODO: can we do better than just a flag?  Like an error description?
-    public UnsubscribeResponse(EngineConnection connection, String topic, boolean isError) {
+    public final Exception error;
+    public UnsubscribeResponse(EngineConnection connection, String topic, Exception error) {
         this.connection = connection;
         this.topic = topic;
-        this.isError = isError;
+        this.error = error;
     }
 }

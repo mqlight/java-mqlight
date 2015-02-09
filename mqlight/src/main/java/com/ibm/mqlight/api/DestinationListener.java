@@ -55,7 +55,9 @@ public interface DestinationListener<T> {
      *                     longer subscribed to.
      * @param share the share which identifies the destination that the client is no longer subscribed
      *              to.  This will be <code>null</code> if the destination was private.
+     * @param error if set, this {@link Exception} indicates that the unsubscribe occurred due to an error condition
+     *              which is detailed within. 
      *
      */
-    void onUnsubscribed(NonBlockingClient client, T context, String topicPattern, String share);
+    void onUnsubscribed(NonBlockingClient client, T context, String topicPattern, String share, Exception error);
 }

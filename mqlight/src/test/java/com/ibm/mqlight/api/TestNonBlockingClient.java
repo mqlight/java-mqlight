@@ -18,6 +18,9 @@
  */
 package com.ibm.mqlight.api;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -25,7 +28,6 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import junit.framework.AssertionFailedError;
-import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -147,7 +149,7 @@ public class TestNonBlockingClient {
     private class StubDestinationListener implements DestinationListener<Object> {
         @Override public void onMessage(NonBlockingClient client, Object context, Delivery delivery) {}
         @Override public void onMalformed(NonBlockingClient client, Object context, MalformedDelivery delivery) {}
-        @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share) {}
+        @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share, Exception error) {}
     }
 
     @Test

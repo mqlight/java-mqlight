@@ -18,7 +18,13 @@
  */
 package com.ibm.mqlight.api.impl;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -418,7 +424,7 @@ public class TestNonBlockingClientImpl {
             public void onMalformed(NonBlockingClient client, Void context, MalformedDelivery delivery) {
             }
             @Override
-            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share, Exception error) {
             }
         }
 
@@ -659,11 +665,13 @@ public class TestNonBlockingClientImpl {
             private boolean onUnsubscribeCalled;
             private String unsubscribeTopicPattern;
             private String unsubscribeShare;
+            private Exception unsubscribedError;
             @Override
-            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+            public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share, Exception error) {
                 onUnsubscribeCalled = true;
                 unsubscribeTopicPattern = topicPattern;
                 unsubscribeShare = share;
+                unsubscribedError = error;
             }
         }
         TestDestinationAdapter destAdapter = new TestDestinationAdapter();
@@ -677,11 +685,12 @@ public class TestNonBlockingClientImpl {
         client.unsubscribe("/kittens", null, null);
         assertEquals(3, engine.getMessages().size());
         assertTrue(engine.getMessages().get(2) instanceof UnsubscribeRequest);
-        client.tell(new UnsubscribeResponse(engineConnection, "private:/kittens", false), engine);
+        client.tell(new UnsubscribeResponse(engineConnection, "private:/kittens", null), engine);
 
         assertTrue(destAdapter.onUnsubscribeCalled);
         assertEquals("/kittens", destAdapter.unsubscribeTopicPattern);
         assertEquals(null, destAdapter.unsubscribeShare);
+        assertEquals(null, destAdapter.unsubscribedError);
     }
 
     private class MockCompletionListener implements CompletionListener<Void> {

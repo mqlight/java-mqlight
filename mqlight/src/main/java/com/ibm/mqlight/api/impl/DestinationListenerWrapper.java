@@ -60,11 +60,11 @@ class DestinationListenerWrapper<T> {
         this.context = context;
     }
 
-    protected void onUnsubscribed(final CallbackService callbackService, final String topicPattern, final String share) {
+    protected void onUnsubscribed(final CallbackService callbackService, final String topicPattern, final String share, final Exception error) {
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
-                    listener.onUnsubscribed(client, context, topicPattern, share);
+                    listener.onUnsubscribed(client, context, topicPattern, share, error);
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }

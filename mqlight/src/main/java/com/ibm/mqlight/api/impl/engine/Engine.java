@@ -62,8 +62,8 @@ import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
-import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.network.NetworkChannel;
+import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
 public class Engine extends Component {
@@ -552,7 +552,18 @@ public class Engine extends Component {
                 EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
 
                 // TODO: can we assume that getRemoteConnection will be null if there is no error?
-                sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), link.getRemoteCondition() != null), this);
+                ClientException clientException = null;
+                if(link.getRemoteCondition() != null) {
+                    String errorDescription = link.getRemoteCondition().getDescription();
+                    String errMsg = null;
+                    if (errorDescription == null) {
+                        errMsg = "The server indicated that the destination was unsubscribed due to an error condition, without providing any further error information.";
+                    } else {
+                        errMsg = errorDescription;
+                    }
+                    clientException = new ClientException(errMsg);
+                }
+                sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
             }
         } else if (link instanceof Sender) {
             if (link.getRemoteState() == EndpointState.CLOSED) {

@@ -35,5 +35,5 @@ public abstract class DestinationAdapter<T> implements DestinationListener<T> {
     public void onMalformed(NonBlockingClient client, T context, MalformedDelivery delivery) {}
 
     @Override
-    public void onUnsubscribed(NonBlockingClient client, T context, String topicPattern, String share) {}
+    public void onUnsubscribed(NonBlockingClient client, T context, String topicPattern, String share, Exception error) {}
 }

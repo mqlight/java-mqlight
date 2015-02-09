@@ -626,7 +626,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             UnsubscribeResponse ur = (UnsubscribeResponse)message;
             SubData sd = subscribedDestinations.remove(ur.topic);
             String[] parts = crackLinkName(ur.topic);
-            sd.listener.onUnsubscribed(callbackService, parts[0], parts[1]);
+            sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
             if (sd.inProgressUnsubscribe != null) {
                 sd.inProgressUnsubscribe.future.postSuccess(callbackService);
                 sd.inProgressUnsubscribe = null;
@@ -764,7 +764,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
             if (subData.state == SubData.State.ESTABLISHED) {
                 String parts[] = crackLinkName(entry.getKey());
-                subData.listener.onUnsubscribed(callbackService, parts[0], parts[1]);
+                subData.listener.onUnsubscribed(callbackService, parts[0], parts[1], null);
             }
             if (subData.inProgressUnsubscribe != null) {
                 subData.inProgressUnsubscribe.future.postFailure(callbackService, new StateException("Cannot unsubscribe because the client is in stopped state"));

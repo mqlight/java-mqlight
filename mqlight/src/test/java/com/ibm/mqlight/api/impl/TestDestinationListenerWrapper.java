@@ -18,13 +18,18 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.nio.BufferOverflowException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import junit.framework.AssertionFailedError;
-import static org.junit.Assert.*;
 
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
@@ -85,6 +90,7 @@ public class TestDestinationListenerWrapper {
         private Object actualContext = null;
         private String actualTopicPattern = null;
         private String actualShare = null;
+        private Exception actualError = null;
         private Delivery actualDelivery = null;
         private MockListener(Method exceptedMethod) {
             this.expectedMethod = exceptedMethod;
@@ -105,7 +111,7 @@ public class TestDestinationListenerWrapper {
             this.actualContext = context;
             this.actualDelivery = delivery;
         }
-        @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share) {
+        @Override public void onUnsubscribed(NonBlockingClient client, Object context, String topicPattern, String share, Exception error) {
             if (expectedMethod != Method.ON_UNSUBSCRIBED) {
                 throw new AssertionFailedError("onUnsubscribed should not have been called");
             }
@@ -113,6 +119,7 @@ public class TestDestinationListenerWrapper {
             this.actualContext = context;
             this.actualTopicPattern = topicPattern;
             this.actualShare = share;
+            this.actualError = error;
         }
 
         private void testClientAndContextMatch(NonBlockingClient expectedClient, Object expectedContext) {
@@ -135,19 +142,21 @@ public class TestDestinationListenerWrapper {
         Object expectedContext = new Object();
         String expectedPattern = "/kittens";
         String expectedShare = "share";
+        Exception expectedError = new Exception("fail");
         MockCallbackService callbackService = new MockCallbackService();
 
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
-        wrapper.onUnsubscribed(callbackService, expectedPattern, expectedShare);
+        wrapper.onUnsubscribed(callbackService, expectedPattern, expectedShare, expectedError);
         listener.testClientAndContextMatch(expectedClient, expectedContext);
         assertSame("Expected same topic pattern", expectedPattern, listener.actualTopicPattern);
         assertSame("Expected same share", expectedShare, listener.actualShare);
+        assertSame("Excepted same error", expectedError, listener.actualError);
     }
 
     @Test
     public void onUnsubscribedNullListener() {
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(new StubClient(), new GsonBuilder(), null, null);
-        wrapper.onUnsubscribed(new MockCallbackService(), "", "");
+        wrapper.onUnsubscribed(new MockCallbackService(), "", "", null);
     }
 
     private byte[] createSerializedProtonMessage(AmqpValue body, String topic, long ttl, Map<String, String> properties, Map<Symbol, Object> annotations, String contentType) {
