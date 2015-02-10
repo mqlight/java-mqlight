@@ -26,10 +26,6 @@ import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import java.util.HashSet;
 
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.LoggerContext;
-
 import com.github.oxo42.stateless4j.StateMachine;
 import com.github.oxo42.stateless4j.StateMachineConfig;
 import com.github.oxo42.stateless4j.StateRepresentation;
@@ -494,8 +490,7 @@ class NonBlockingFSMFactory {
         //}
     }
     public static void main(String[] args) throws IOException {
-        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        context.stop();
+      LogbackLogging.stop();
 
         //FileOutputStream dotFile = new FileOutputStream("statemachine.dot");
         generateDotFile(null);
