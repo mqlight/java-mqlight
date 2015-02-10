@@ -292,20 +292,60 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
     }
 
+    private static final Map<String, String> immutable = new HashMap<String, String>() {
+        // we need to do URI encoding, so we have a set of immutable characters that should not be encoded
+        // these are '/' and the RFC 2396 unreserved characters ("-", "_", ".", "!", "~", "*", "'", "(" and ")")
+        // and we also have the additional encoding of '+' to '%20' that URLEncoder doesn't seem to do
+        private static final long serialVersionUID = -6961093296676437685L;
+        {
+            put("%2F", "/");
+            put("%2D", "-");
+            put("%5F", "_");
+            put("%2E", ".");
+            put("%21", "!");
+            put("%7E", "~");
+            put("%2A", "*");
+            put("%27", "'");
+            put("%28", "(");
+            put("%29", ")");
+        }
+    };
+    
+    
+    /**
+     * URI encode the given topic address to a fully qualified AMQP URI.
+     * 
+     * @param unencodedTopic a {@link String} containing the unencoded topic address
+     * @return a {@link String} containing the correctly encoded AMQP URI
+     * @throws IllegalArgumentException
+     */
     protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
-        String[] topicFragments = unencodedTopic.split("(?=(?!^)/)|(?<=/)");
         StringBuilder amqpAddress = new StringBuilder("amqp:///");
-        for (int i = 0; i < topicFragments.length; ++i) {
-            if ("/".equals(topicFragments[i])) {
-                amqpAddress.append("/");
-            } else {
-                try {
-                    amqpAddress.append(URLEncoder.encode(topicFragments[i], "UTF-8"));
-                } catch(UnsupportedEncodingException e) {
-                    throw new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
+        try {
+            // use URLEncoder to do a first pass at encoding the topic URI
+            // then back over the encoded version, undoing any immutable transforms
+            String encodedTopic = URLEncoder.encode(unencodedTopic, "UTF-8");
+            int size = encodedTopic.length();
+            for (int i = 0; i < size; i++) {
+                char c = encodedTopic.charAt(i);
+                if (c == '+') {
+                    amqpAddress.append("%20");
+                } else if (c == '%') {
+                    String key = "" + c;
+                    key += encodedTopic.charAt(++i);
+                    key += encodedTopic.charAt(++i);
+                    String replacement = immutable.get(key);
+                    if (replacement == null) {
+                        amqpAddress.append(key);
+                    } else {
+                        amqpAddress.append(replacement);
+                    }
+                } else {
+                    amqpAddress.append(c);
                 }
-
             }
+        } catch(UnsupportedEncodingException e) {
+            throw new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
         }
         return amqpAddress.toString();
     }

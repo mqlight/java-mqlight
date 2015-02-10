@@ -385,6 +385,7 @@ public class TestNonBlockingClientImpl {
             {"/&kittens", "amqp:////%26kittens"},
             {"&/kittens", "amqp:///%26/kittens"},
             {"&/&kit&tens&/&pup&pies&/&", "amqp:///%26/%26kit%26tens%26/%26pup%26pies%26/%26"},
+            {"!£$%^&*()_+-=|,./<> ?@~;'#{}[]", "amqp:///!%C2%A3%24%25%5E%26*()_%2B-%3D%7C%2C./%3C%3E%20%3F%40~%3B'%23%7B%7D%5B%5D"}
         };
         for (int i = 0; i < testData.length; ++i) {
             assertEquals("test case #"+i, testData[i][1], NonBlockingClientImpl.encodeTopic(testData[i][0]));
