@@ -82,6 +82,13 @@ class EndpointImpl implements Endpoint {
                 }
                 this.password = userInfoSplit[1];
             }
+
+            if (serviceUri.getPath() != null
+                    && serviceUri.getPath().length() > 0
+                    && !serviceUri.getPath().equals("/")) {
+                throw new IllegalArgumentException("Unsupported URL '" + uri + "' paths (" + serviceUri.getPath() + ") " +
+                        "can't be part of a service URL");
+            }
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("service URI not valid", e);
         }

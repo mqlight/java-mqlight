@@ -28,6 +28,11 @@ public class TestEndpointImpl {
     }
     
     @Test(expected=IllegalArgumentException.class)
+    public void badUriExtraProtocol() {
+        new EndpointImpl("amqps://amqp://example.org", null, null);
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
     public void badUriHost() {
         new EndpointImpl("amqp://", null, null);
     }
