@@ -701,6 +701,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if ("ServerContext_Takeover".equals(dn.condition)) {
                 if (lastException == null) lastException = new ReplacedException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
+            } else if (dn.description.contains("javax.net.ssl")) {
+                if (lastException == null) lastException = new ClientException(dn.description);
+                stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
             } else {
                 if (lastException == null) lastException = new ClientException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
