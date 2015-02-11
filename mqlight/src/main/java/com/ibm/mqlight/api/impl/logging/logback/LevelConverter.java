@@ -34,7 +34,7 @@ public class LevelConverter extends ClassicConverter {
   @Override
   public String convert(ILoggingEvent event) {
     final Marker marker = event.getMarker();
-    final String result = marker == null ? event.getLevel().toString() : marker.getName();
+    final String result = marker == null ? (event.getLevel() == null ? "" : event.getLevel().toString()) : marker.getName();
     return result;
   }
 

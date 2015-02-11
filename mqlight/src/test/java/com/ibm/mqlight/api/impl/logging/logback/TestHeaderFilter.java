@@ -19,25 +19,23 @@
 
 package com.ibm.mqlight.api.impl.logging.logback;
 
-import java.util.Map;
+import static org.junit.Assert.assertEquals;
 
-import ch.qos.logback.classic.pattern.ClassicConverter;
-import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.junit.Test;
 
-import com.ibm.mqlight.api.logging.Logger;
+import ch.qos.logback.core.spi.FilterReply;
 
-/**
- * A logback converter to support a client id customer conversion specifier.
- * <p>
- * Note that the client id is obtained from the MDC (Mapped Diagnostic Context), which can be set from the {@link Logger#setClientId(String)} method.
- */
-public class ClientIdConverter extends ClassicConverter {
+import com.ibm.mqlight.api.impl.logging.LogMarker;
 
-  @Override
-  public String convert(ILoggingEvent event) {
-    final Map<String,String> mdc = event.getMDCPropertyMap();
-    final String clientId = mdc == null ? null : mdc.get(Logger.CLIENTID_KEY);
-    return clientId == null ? "*" : clientId;
+public class TestHeaderFilter {
+
+  @Test
+  public void testDecide() {
+
+    final HeaderFilter filter = new HeaderFilter();
+
+    assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent()));
+    assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { null })));
+    assertEquals("Unexpected filter response", FilterReply.ACCEPT, filter.decide(new MockILoggingEvent(null, HeaderFilter.HEADER_MARKER, "message", new Object[] { null })));
   }
-
 }

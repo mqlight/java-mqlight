@@ -38,14 +38,18 @@ public class ArgsConverter extends ClassicConverter {
   public String convert(ILoggingEvent event) {
     final Marker marker = event.getMarker();
     final Object [] args = event.getArgumentArray();
-    final int offset = TraceFilter.traceMarkerMap.containsKey(marker) ? 1 :0;
+    final int offset = TraceFilter.traceMarkerMap.containsKey(marker) ? 1 : 0;
     final StringBuilder sb = new StringBuilder();
-    if (marker == LogMarker.EXIT.getValue() && args.length > offset) sb.append(" returns");
-    for (int i=offset; i < args.length; i++) {
-      if (args[i] == null) {
-        sb.append(" <null>");
+    if (args != null) {
+      if (marker == LogMarker.EXIT.getValue()) {
+        if (args.length > offset) {
+          sb.append(" returns");
+          sb.append(" [" + args[offset] + "]");
+        }
       } else {
-        sb.append(" ["+args[i]+"]");
+        for (int i = offset; i < args.length; i++) {
+          sb.append(" [" + args[i] + "]");
+        }
       }
     }
     return sb.toString();

@@ -37,4 +37,9 @@ class LoggerFactoryImpl extends LoggerFactory {
   protected Logger getLoggerImpl(Class<?> clazz) {
     return new LoggerImpl(clazz);
   }
+
+  @Override
+  protected Logger getLoggerImpl(org.slf4j.Logger logger) {
+    return new LoggerImpl(logger);
+  }
 }

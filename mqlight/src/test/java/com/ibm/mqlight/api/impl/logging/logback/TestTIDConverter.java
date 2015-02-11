@@ -19,25 +19,21 @@
 
 package com.ibm.mqlight.api.impl.logging.logback;
 
-import java.util.Map;
+import static org.junit.Assert.assertEquals;
 
-import ch.qos.logback.classic.pattern.ClassicConverter;
-import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.junit.Test;
 
-import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.impl.logging.LogMarker;
 
-/**
- * A logback converter to support a client id customer conversion specifier.
- * <p>
- * Note that the client id is obtained from the MDC (Mapped Diagnostic Context), which can be set from the {@link Logger#setClientId(String)} method.
- */
-public class ClientIdConverter extends ClassicConverter {
+public class TestTIDConverter {
 
-  @Override
-  public String convert(ILoggingEvent event) {
-    final Map<String,String> mdc = event.getMDCPropertyMap();
-    final String clientId = mdc == null ? null : mdc.get(Logger.CLIENTID_KEY);
-    return clientId == null ? "*" : clientId;
+  @Test
+  public void testConvert() {
+
+    final TIDConverter converter = new TIDConverter();
+
+    final String tid = String.format("%04d", Thread.currentThread().getId());
+    assertEquals("Unexpected convertion", tid, converter.convert(new MockILoggingEvent()));
+    assertEquals("Unexpected convertion", tid, converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { null })));
   }
-
 }

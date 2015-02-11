@@ -160,8 +160,17 @@
 			</fileset>
 		</copy>
 	</target>
+	
+	<target name="copy.resources" depends="mkdirs">
+		<copy todir="${product.classes}">
+			<fileset dir="${product.src}">
+				<include name="**/*.xml"/>
+			</fileset>
+		</copy>
+	</target>
+					
 
-	<target name="package" depends="product.compile, samples.compile, javadoc, copy.licenses">
+	<target name="package" depends="product.compile, samples.compile, javadoc, copy.resources, copy.licenses">
 		<copy todir="${ship}/mqlight-${version}" file="mqlight/pom.xml"/>
 		<replace file="${ship}/mqlight-${version}/pom.xml" token="9.9.9999999999" value="${version}"/>
 		<jar jarfile="${ship}/mqlight-${version}/mqlight-api-${version}.jar" basedir="${product.classes}">
@@ -307,7 +316,7 @@
 			<check failonviolation="false" violationsproperty="coverage.failed">
 				<rule>
 					<!-- Require at least 80% instruction coverage from the unit tests -->
-					<limit counter="INSTRUCTION" value="COVEREDRATIO" minimum="0.7"/>
+					<limit counter="INSTRUCTION" value="COVEREDRATIO" minimum="0.8"/>
 				</rule>
 			</check>
 		</jacoco:report>

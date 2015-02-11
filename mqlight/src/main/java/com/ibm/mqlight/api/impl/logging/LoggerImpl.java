@@ -46,6 +46,15 @@ class LoggerImpl implements Logger {
     logger = org.slf4j.LoggerFactory.getLogger(clazz);
   }
 
+  /**
+   * Constructor, from an existing {@link org.slf4j.Logger}.
+   * 
+   * @param logger The SLF4J logger instance.
+   */
+  public LoggerImpl(org.slf4j.Logger logger) {
+    this.logger = logger;
+  }
+  
   @Override
   public void setClientId(String clientId) {
     MDC.put(CLIENTID_KEY, clientId);
@@ -107,7 +116,7 @@ class LoggerImpl implements Logger {
 
   @Override
   public void exit(String methodName) {
-    logger.trace(LogMarker.EXIT.getValue(), methodName);
+    logger.trace(LogMarker.EXIT.getValue(), methodName, (Object)null);
   }
 
   @Override
@@ -160,11 +169,15 @@ class LoggerImpl implements Logger {
 
   @Override
   public void throwing(String methodName, Throwable throwable) {
-    logger.trace(LogMarker.THROWING.getValue(), methodName, throwable);
+    // TODO this is invoking the Logger.trace(Marker, String, Object, Object) method so not sure if this will work as intended for all Logger implementations (i.e. the fact that an
+    // exception has been thrown may be lost)
+    logger.trace(LogMarker.THROWING.getValue(), methodName, null, throwable);
   }
 
   @Override
   public void throwing(Object source, String methodName, Throwable throwable) {
+    // TODO this is invoking the Logger.trace(Marker, String, Object, Object) method so not sure if this will work as intended for all Logger implementations (i.e. the fact that an
+    // exception has been thrown may be lost)
     logger.trace(LogMarker.THROWING.getValue(), methodName, source, throwable);
   }
 }

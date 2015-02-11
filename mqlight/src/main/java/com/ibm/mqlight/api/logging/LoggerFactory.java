@@ -26,12 +26,14 @@ import java.lang.reflect.Constructor;
  */
 public abstract class LoggerFactory {
   
+  public static final String LOGGER_FACTORY_IMPL_CLASS_NAME= "com.ibm.mqlight.api.impl.logging.LoggerFactoryImpl";
+  
   /** Implementation of a {@link LoggerFactory} */
   private static final LoggerFactory impl;
   static {
     LoggerFactory loggerFactoryImpl;
     try {
-      Class<?> classToInstantiate = Class.forName("com.ibm.mqlight.api.impl.logging.LoggerFactoryImpl");
+      Class<?> classToInstantiate = Class.forName(LOGGER_FACTORY_IMPL_CLASS_NAME);
       Constructor<?> constructor = classToInstantiate.getDeclaredConstructor(new Class[] {});
       constructor.setAccessible(true);
       loggerFactoryImpl = (LoggerFactory) constructor.newInstance(new Object[] {});
@@ -58,10 +60,28 @@ public abstract class LoggerFactory {
   }
   
   /**
+   * Obtains a {@link Logger} implementation for the specified {@link org.slf4j.Logger}.
+   *  
+   * @param clazz Class to be associated with the logger instance.
+   * @return {@link Logger} instance for trace and information logging.
+   */
+  public static Logger getLogger(org.slf4j.Logger logger) {
+    return impl.getLoggerImpl(logger);
+  }
+  
+  /**
    * Internal method to obtain the {@link Logger} implementation from the static {@link LoggerFactory} implementation.
    * 
    * @param clazz Class to be associated with the logger instance.
    * @return {@link Logger} instance for trace and information logging.
    */
   protected abstract Logger getLoggerImpl(Class<?> clazz);
+  
+  /**
+   * Internal method to obtain the {@link Logger} implementation from the static {@link LoggerFactory} implementation.
+   * 
+   * @param logger The SLF4J logger instance.
+   * @return {@link Logger} instance for trace and information logging.
+   */
+  protected abstract Logger getLoggerImpl(org.slf4j.Logger logger);
 }

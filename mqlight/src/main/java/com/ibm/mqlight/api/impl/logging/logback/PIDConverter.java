@@ -27,7 +27,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
  */
 public class PIDConverter extends ClassicConverter {
 
-  private static final String pid;
+  static final String pid;
   static {
     final String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
     pid = processName.split("@")[0];

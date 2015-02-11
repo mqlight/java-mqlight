@@ -66,6 +66,12 @@ public class LogbackLoggingImpl {
   private static AtomicBoolean setup = new AtomicBoolean(false);
 
   /**
+   * The MQ Light log level required when it has not been specified via the MQLIGHT_JAVA_LOG environment variable.
+   * Note that this is to support unit testing.
+   */
+  private static String defaultRequiredMQLightLogLevel = null;
+  
+  /**
    * Sets up logging. Can be called multiple times with no side-effect on all but the first invocation. Should be invoked from any class that an application writer might invoke
    * (e.g. the client and any pluggable components) ahead of any calls to the SLF4J logging framework (e.g. a static constructor would be a good place).
    * <p>
@@ -87,15 +93,8 @@ public class LogbackLoggingImpl {
         if (!context.isStarted()) {
           final ch.qos.logback.classic.Logger rootLogger = context.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
           
-          // Obtain the MQ Light log level from the MQLIGHT_JAVA_LOG environment variable
-          final String requiredMQLightLogLevel = System.getenv("MQLIGHT_JAVA_LOG");
-          Level mqlightLogLevel = null;
-          if (requiredMQLightLogLevel != null) {
-            mqlightLogLevel = Level.toLevel(requiredMQLightLogLevel);
-            if (mqlightLogLevel == null) {
-              rootLogger.error("ERROR: MQ Light log level '"+requiredMQLightLogLevel+"' is invalid");
-            }
-          }
+          // Obtain the required log level
+          final Level mqlightLogLevel = getMQLightLogLevel();
           
           // When the MQ Light log level is set, configure the logback trace for MQ Light
           // Note that this replaces any existing logback settings
@@ -129,10 +128,12 @@ public class LogbackLoggingImpl {
             
             StatusPrinter.print(context);
             
-            // Output header
-            final org.slf4j.Logger headerLogger = org.slf4j.LoggerFactory.getLogger("");
-            writeHeaderInfo(headerLogger);
-            logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
+            // Output trace header, when trace is enabled 
+            if (rootLogger.isTraceEnabled()) {
+              final org.slf4j.Logger headerLogger = org.slf4j.LoggerFactory.getLogger("");
+              writeHeaderInfo(headerLogger);
+              logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
+            }
           } else {
             rootLogger.setLevel(Level.WARN);
           }
@@ -142,6 +143,32 @@ public class LogbackLoggingImpl {
     }
   }
 
+  private static Level getMQLightLogLevel() {
+    // Obtain the MQ Light log level from the MQLIGHT_JAVA_LOG environment variable
+    String requiredMQLightLogLevel = System.getenv("MQLIGHT_JAVA_LOG");
+    if (requiredMQLightLogLevel == null) requiredMQLightLogLevel = defaultRequiredMQLightLogLevel;
+    Level mqlightLogLevel = null;
+    if (requiredMQLightLogLevel != null) {
+      mqlightLogLevel = Level.toLevel(requiredMQLightLogLevel);
+      if (mqlightLogLevel == null) {
+        logger.error("ERROR: MQ Light log level '"+requiredMQLightLogLevel+"' is invalid");
+      }
+    }
+    
+    return mqlightLogLevel;
+  }
+
+  /**
+   * *** For Unit testing purposes only ***
+   * <p>
+   * Sets the default MQ Light log level, when the MQLIGHT_JAVA_LOG environment variable has not been set.
+   * 
+   * @param value The default log level required, as a {@link String}.
+   */
+  static void setDefaultRequiredMQLightLogLevel(String value) {
+    defaultRequiredMQLightLogLevel = value;
+  }
+  
   /**
    * Helper method to write header information to the log.
    * 
@@ -171,7 +198,7 @@ public class LogbackLoggingImpl {
     }
     
 
-    logger.info(headerMarker, "\nSystem properties:");
+    logger.info(headerMarker, "\nRuntime properties:");
     logger.info(headerMarker, "Available processors: "+Runtime.getRuntime().availableProcessors());
     logger.info(headerMarker, "Total memory in bytes (now): "+Runtime.getRuntime().totalMemory());
     logger.info(headerMarker, "Free memory in bytes (now): "+Runtime.getRuntime().freeMemory());
@@ -224,5 +251,6 @@ public class LogbackLoggingImpl {
       final LoggerContext context = (LoggerContext) loggerFactory;
       context.stop();
     }
+    setup.getAndSet(false);
   }
 }
