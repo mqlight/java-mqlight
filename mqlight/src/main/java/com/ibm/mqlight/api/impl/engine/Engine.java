@@ -536,37 +536,51 @@ public class Engine extends Component {
     private void processEventLinkRemoteState(Event event) {
         Link link = event.getLink();
         logger.debug("LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
+        final Event.Type eventType = event.getType();
+        
         if (link instanceof Receiver) {
-            if (link.getLocalState() == EndpointState.ACTIVE &&
-                link.getRemoteState() == EndpointState.ACTIVE) {
+            if (eventType == Event.Type.LINK_REMOTE_OPEN) {
                 // Receiver link open has been ack'ed by server.
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
-                sd.subscriber.tell(new SubscribeResponse(engineConnection, link.getName()), this);
-            } else if (link.getRemoteState() == EndpointState.CLOSED) {
-                if (link.getLocalState() != EndpointState.CLOSED) {
-                    link.close();
+                if (link.getLocalState() == EndpointState.ACTIVE &&
+                        link.getRemoteState() == EndpointState.ACTIVE) {
+                    EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+                    EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
+                    sd.subscriber.tell(new SubscribeResponse(engineConnection, link.getName()), this);
                 }
-                link.free();
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
-
-                // TODO: can we assume that getRemoteConnection will be null if there is no error?
-                ClientException clientException = null;
-                if(link.getRemoteCondition() != null) {
-                    String errorDescription = link.getRemoteCondition().getDescription();
-                    String errMsg = null;
-                    if (errorDescription == null) {
-                        errMsg = "The server indicated that the destination was unsubscribed due to an error condition, without providing any further error information.";
-                    } else {
-                        errMsg = errorDescription;
+            } else if (eventType == Event.Type.LINK_REMOTE_CLOSE) {
+                // Receiver link has been closed by the server.
+                if (link.getRemoteState() == EndpointState.CLOSED) {
+                    if (link.getLocalState() != EndpointState.CLOSED) {
+                        link.close();
                     }
-                    clientException = new ClientException(errMsg);
+                    link.free();
+
+                    EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+                    EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
+
+                    if (sd == null) {
+                        // TODO: FFDC / IllegalStateException?
+                    } else {
+                        // we assume that getRemoteConnection will be null if there is no error
+                        ClientException clientException = null;
+                        if (link.getRemoteCondition() != null) {
+                            String errorDescription = link.getRemoteCondition().getDescription();
+                            String errMsg = null;
+                            if (errorDescription == null) {
+                                errMsg = "The server indicated that the destination was unsubscribed due to an error condition, " +
+                                         "without providing any further error information.";
+                            } else {
+                                errMsg = errorDescription;
+                            }
+                            clientException = new ClientException(errMsg);
+                        }
+                        sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
+                    }
                 }
-                sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
             }
         } else if (link instanceof Sender) {
-            if (link.getRemoteState() == EndpointState.CLOSED) {
+            if (eventType == Event.Type.LINK_REMOTE_CLOSE &&
+                    link.getRemoteState() == EndpointState.CLOSED) {
                 if (link.getLocalState() != EndpointState.CLOSED) {
                     // TODO: trace an error - as the server has closed our sending link unexpectedly...
                     link.close();
