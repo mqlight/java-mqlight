@@ -36,8 +36,8 @@ import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientAdapter;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.StringDelivery;
-import com.ibm.mqlight.api.SubscribeOptions.SubscribeOptionsBuilder;
 import com.ibm.mqlight.api.SubscribeOptions;
+import com.ibm.mqlight.api.SubscribeOptions.SubscribeOptionsBuilder;
 import com.ibm.mqlight.api.samples.ArgumentParser.Results;
 
 public class Receive {
@@ -163,7 +163,7 @@ public class Receive {
         }
 
         @Override
-        public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share) {
+        public void onUnsubscribed(NonBlockingClient client, Void context, String topicPattern, String share, Exception error) {
         }
     }
 
