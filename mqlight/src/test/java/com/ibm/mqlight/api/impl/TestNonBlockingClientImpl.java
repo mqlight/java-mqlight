@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -95,6 +96,7 @@ public class TestNonBlockingClientImpl {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
+        @Override public File getCertChainFile() { return null; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() {return null;}
     }

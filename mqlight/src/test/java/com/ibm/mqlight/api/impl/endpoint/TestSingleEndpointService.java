@@ -18,7 +18,11 @@
  */
 package com.ibm.mqlight.api.impl.endpoint;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -30,7 +34,7 @@ public class TestSingleEndpointService {
 
     @Test
     public void getOneEndpoint() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise endpointPromise = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         service.lookup(endpointPromise);
         
@@ -46,7 +50,7 @@ public class TestSingleEndpointService {
     
     @Test
     public void exhaustEndpoints() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise[] promises = new MockEndpointPromise[6];
         for (int i = 0; i < promises.length; ++i) { 
             promises[i] = new MockEndpointPromise(i % 2 == 0 ? MockEndpointPromise.Method.SUCCESS : MockEndpointPromise.Method.WAIT);
@@ -64,7 +68,7 @@ public class TestSingleEndpointService {
     
     @Test
     public void endpointSuccess() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise promise1 = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         MockEndpointPromise promise2 = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         

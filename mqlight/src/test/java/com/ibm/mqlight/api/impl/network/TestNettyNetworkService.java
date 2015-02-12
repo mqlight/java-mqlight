@@ -18,6 +18,11 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,7 +33,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 
 import junit.framework.AssertionFailedError;
-import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -145,6 +149,7 @@ public class TestNettyNetworkService {
         @Override public String getHost() { return host; }
         @Override public int getPort() { return port; }
         @Override public boolean useSsl() { return false; }
+        @Override public File getCertChainFile() { return null; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
     }

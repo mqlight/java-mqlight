@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -112,9 +113,9 @@ public class TestDeliveryImpl {
                 new MockDelivery(client, QOS.AT_LEAST_ONCE, null, "topic", "topic", 0, null, null);
         try {
             delivery.confirm();
-            throw new AssertionFailedError("Expected StateException to be thrown");
+            fail("Expected StateException to be thrown");
         } catch(StateException e) {
-            // Expected: delivery was auto-confirm...
+            // Expected: delivery was qos=0
         }
     }
     
@@ -125,7 +126,7 @@ public class TestDeliveryImpl {
                 new MockDelivery(client, QOS.AT_MOST_ONCE, null, "topic", "topic", 0, null, null);
         try {
             delivery.confirm();
-            throw new AssertionFailedError("Expected StateException to be thrown");
+            fail("Expected StateException to be thrown");
         } catch(StateException e) {
             // Expected: delivery was auto-confirm...
         }
@@ -148,7 +149,7 @@ public class TestDeliveryImpl {
                 new MockDelivery(client, QOS.AT_LEAST_ONCE, null, "topic", "topic", 0, null, deliveryRequest);
         try {
             delivery.confirm();
-            throw new AssertionFailedError("Expected StateException to be thrown");
+            fail("Expected StateException to be thrown");
         } catch(StateException e) {
             // Expected: network was lost since delivery was made
         }
@@ -163,7 +164,7 @@ public class TestDeliveryImpl {
         delivery.confirm();
         try {
             delivery.confirm();
-            throw new AssertionFailedError("Expected StateException to be thrown");
+            fail("Expected StateException to be thrown");
         } catch(StateException e) {
             // Expected: duplicate attempt to confirm.
         }

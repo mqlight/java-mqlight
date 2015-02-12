@@ -18,6 +18,7 @@
  */
 package com.ibm.mqlight.api.impl.endpoint;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -32,12 +33,21 @@ class EndpointImpl implements Endpoint {
     private String host;
     private int port;
     private boolean useSsl;
+    private File certChainFile;
     private String user;
     private String password;
     
-    protected EndpointImpl(String uri, String user, String password) throws IllegalArgumentException {
+    
+    protected EndpointImpl(final String uri, final String user,
+            final String password) throws IllegalArgumentException {
+        this(uri, user, password, null);
+    }
+    
+    protected EndpointImpl(final String uri, final String user,
+            final String password, final File certChainFile)
+            throws IllegalArgumentException {
         final String methodName = "<init>";
-        logger.entry(this, methodName, uri, user, "******");
+        logger.entry(this, methodName, uri, user, "******", certChainFile);
       
         // TODO: crack the URI into a host/port.
         if (user == null && password != null) {
@@ -120,6 +130,25 @@ class EndpointImpl implements Endpoint {
             throw exception;
         }
         
+
+        if (certChainFile != null) {
+            if (!certChainFile.exists()) {
+                final IllegalArgumentException exception = new IllegalArgumentException(
+                        "The file specified for sslTrustCertificate '"
+                                + certChainFile.getPath() + "' does not exist");
+                logger.throwing(this, methodName, exception);
+                throw exception;
+            }
+            if (!certChainFile.isFile()) {
+                final IllegalArgumentException exception = new IllegalArgumentException(
+                        "The file specified for sslTrustCertificate '"
+                                + certChainFile.getPath() + "' is not a regular file");
+                logger.throwing(this, methodName, exception);
+                throw exception;
+            }
+            this.certChainFile = certChainFile;
+        }
+        
         logger.exit(this, methodName);
     }
     
@@ -136,6 +165,11 @@ class EndpointImpl implements Endpoint {
     @Override
     public boolean useSsl() {
         return useSsl;
+    }
+    
+    @Override
+    public File getCertChainFile() {
+        return certChainFile;
     }
 
     @Override

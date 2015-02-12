@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl.endpoint;
 
+import java.io.File;
+
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
@@ -63,11 +65,11 @@ public class SingleEndpointService extends EndpointServiceImpl {
         logger.exit(this, methodName);
     }
 
-    public SingleEndpointService(String uri, String user, String password) {
+    public SingleEndpointService(String uri, String user, String password, File certChainFile) {
         final String methodName = "<init>";
-        logger.entry(this, methodName, uri, user, "******");
+        logger.entry(this, methodName, uri, user, "******", certChainFile);
       
-        endpoint = new EndpointImpl(uri, user, password);
+        endpoint = new EndpointImpl(uri, user, password, certChainFile);
         
         logger.exit(this, methodName);
     }

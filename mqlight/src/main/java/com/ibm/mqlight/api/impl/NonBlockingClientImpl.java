@@ -225,14 +225,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
-        this(service == null ? new BluemixEndpointService() : new SingleEndpointService(service,  options == null ? null : options.getUser(),  options == null ? null : options.getPassword()),
-             new ThreadPoolCallbackService(5),
-             new NettyNetworkService(),
-             new TimerServiceImpl(),
-             null,
-             options,
-             listener,
-             context);
+        this(service == null ? new BluemixEndpointService()
+                : new SingleEndpointService(service,
+                        options == null ? null : options.getUser(),
+                                options == null ? null : options.getPassword(),
+                                        options == null ? null : options.getCertificateFile()),
+                new ThreadPoolCallbackService(5), new NettyNetworkService(),
+                new TimerServiceImpl(), null, options, listener, context);
     }
 
     @Override

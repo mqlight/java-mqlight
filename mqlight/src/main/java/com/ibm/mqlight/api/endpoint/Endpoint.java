@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.endpoint;
 
+import java.io.File;
+
 /**
  * Bundles information that the client uses when establishing connections
  * to the system hosting the MQ Light server.
@@ -39,6 +41,12 @@ public interface Endpoint {
      *         be used.
      */
     boolean useSsl();
+    
+    /**
+     * @return an (optional) X.509 certificate chain file to use for the SSL/TLS
+     *         protected connection
+     */
+    File getCertChainFile();
     
     /**
      * @return the user name to use as part of a SASL PLAIN flow used to

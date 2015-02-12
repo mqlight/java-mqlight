@@ -18,6 +18,7 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.qpid.proton.amqp.Symbol;
@@ -149,37 +150,13 @@ public class TestEngine {
         
     }
     
-    private class StubEndpoint implements Endpoint {
-
-        @Override
-        public String getHost() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public int getPort() {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-        @Override
-        public boolean useSsl() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public String getUser() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public String getPassword() {
-            // TODO Auto-generated method stub
-            return null;
-        }
+    protected class StubEndpoint implements Endpoint {
+        @Override public String getHost() { return null; }
+        @Override public int getPort() { return 0; }
+        @Override public boolean useSsl() { return false; }
+        @Override public File getCertChainFile() { return null; }
+        @Override public String getUser() { return null; }
+        @Override public String getPassword() { return null; }
     }
     
     @Test

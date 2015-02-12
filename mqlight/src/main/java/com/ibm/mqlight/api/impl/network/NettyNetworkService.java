@@ -34,6 +34,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
@@ -292,7 +293,7 @@ public class NettyNetworkService implements NetworkService {
         final String methodName = "connect";
         logger.entry(this, methodName, endpoint, listener, promise);
       
-        final Bootstrap bootstrap = getBootstrap(endpoint.useSsl());
+        final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), endpoint.getCertChainFile());
         final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
         f.addListener(new ConnectListener(f, promise, listener));
         
@@ -304,16 +305,20 @@ public class NettyNetworkService implements NetworkService {
     /**
      * Request a {@link Bootstrap} for obtaining a {@link Channel} and track
      * that the workerGroup is being used.
-     *
+     * 
      * @param secure
      *            a {@code boolean} indicating whether or not a secure channel
      *            will be required
+     * @param certChainFile
+     *            an X.509 certificate chain file in PEM format (or {@code null}
+     *            to use the Java system default)
      * @return a netty {@link Bootstrap} object suitable for obtaining a
      *         {@link Channel} for the
      */
-    private static synchronized Bootstrap getBootstrap(final boolean secure) {
+    private static synchronized Bootstrap getBootstrap(final boolean secure,
+            final File certChainFile) {
         final String methodName = "getBootstrap";
-        logger.entry(methodName, secure);
+        logger.entry(methodName, secure, certChainFile);
       
         ++useCount;
         if (useCount == 1) {
@@ -326,7 +331,7 @@ public class NettyNetworkService implements NetworkService {
             secureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    SslContext sslCtx = SslContext.newClientContext();
+                    SslContext sslCtx = SslContext.newClientContext(certChainFile);
                     SSLEngine sslEngine = sslCtx.newEngine(ch.alloc());
                     sslEngine.setUseClientMode(true);
                     ch.pipeline().addFirst(new SslHandler(sslEngine));
