@@ -18,15 +18,26 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 class InternalUnsubscribe<T> extends Message implements QueueableWork {
+  
+    private static final Logger logger = LoggerFactory.getLogger(InternalUnsubscribe.class);
+  
     final CompletionFuture<T> future;
     final String topicPattern;
     final String share;
     final boolean zeroTtl;
     InternalUnsubscribe(NonBlockingClientImpl client, String topicPattern, String share, boolean zeroTtl) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, topicPattern, share, zeroTtl);
+      
         future = new CompletionFuture<>(client);
         this.topicPattern = topicPattern;
         this.share = share;
         this.zeroTtl = zeroTtl;
+        
+        logger.exit(this, methodName);
     }
 }

@@ -22,16 +22,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class NetworkClosePromiseImpl implements Promise<Void> {
 
+    private static final Logger logger = LoggerFactory.getLogger(NetworkClosePromiseImpl.class);
+  
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final Component component;
     private final Object context;
     
     public NetworkClosePromiseImpl(Component component, Object context) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, component, context);
+      
         this.component = component;
         this.context = context;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
@@ -41,18 +50,32 @@ public class NetworkClosePromiseImpl implements Promise<Void> {
 
     @Override
     public void setSuccess(Void x) throws IllegalStateException {
+        final String methodName = "setSuccess";
+        logger.entry(this, methodName, x);
+        
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException exception  = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         } else {
             component.tell(new DisconnectResponse(context), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void setFailure(Exception exception) throws IllegalStateException {
+        final String methodName = "setFailure";
+        logger.entry(this, methodName, exception);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException ex  = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, ex);
+            throw ex;
         }
+        
+        logger.exit(this, methodName);
         // TODO: should never be called!
     }
 }

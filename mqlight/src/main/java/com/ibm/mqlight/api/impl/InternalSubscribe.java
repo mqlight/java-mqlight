@@ -21,8 +21,13 @@ package com.ibm.mqlight.api.impl;
 import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class InternalSubscribe<T> extends Message implements QueueableWork {
+  
+    private static final Logger logger = LoggerFactory.getLogger(InternalSubscribe.class);
+  
     final CompletionFuture<T> future;
     final String topic;
     final QOS qos;
@@ -33,6 +38,9 @@ class InternalSubscribe<T> extends Message implements QueueableWork {
 
     InternalSubscribe(NonBlockingClientImpl client, String topic, QOS qos, int credit, boolean autoConfirm, int ttl,
                       GsonBuilder gsonBuilder, DestinationListener<T> destListener, T context) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, topic, qos, credit, autoConfirm, ttl, gsonBuilder, destListener, context);
+      
         future = new CompletionFuture<>(client);
         this.topic = topic;
         this.qos = qos;
@@ -40,5 +48,7 @@ class InternalSubscribe<T> extends Message implements QueueableWork {
         this.autoConfirm = autoConfirm;
         this.ttl = ttl;
         this.destListener = new DestinationListenerWrapper<T>(client, gsonBuilder, destListener, context);
+        
+        logger.exit(this, methodName);
     }
 }

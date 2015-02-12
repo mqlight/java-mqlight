@@ -23,20 +23,32 @@ import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class NonBlockingClientListenerWrapper<T>{
 
+    private static final Logger logger = LoggerFactory.getLogger(NonBlockingClientListenerWrapper.class);
+  
     NonBlockingClient client;
     NonBlockingClientListener<T> listener;
     T context;
     
     protected NonBlockingClientListenerWrapper(NonBlockingClient client, NonBlockingClientListener<T> listener, T context) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, listener, context);
+      
         this.client = client;
         this.listener = listener;
         this.context = context;
+        
+        logger.exit(this, methodName);
     }
     
     void onRestarted(CallbackService callbackService) {
+        final String methodName = "onRestarted";
+        logger.entry(this, methodName, callbackService);
+      
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
@@ -44,9 +56,14 @@ class NonBlockingClientListenerWrapper<T>{
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
+        
+        logger.exit(this, methodName);
     }
     
     void onRetrying(CallbackService callbackService, final ClientException exception) {
+        final String methodName = "onRetrying";
+        logger.entry(this, methodName, callbackService, exception);
+      
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
@@ -54,9 +71,14 @@ class NonBlockingClientListenerWrapper<T>{
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
+        
+        logger.exit(this, methodName);
     }
     
     void onStarted(CallbackService callbackService) {
+        final String methodName = "onStarted";
+        logger.entry(this, methodName, callbackService);
+      
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
@@ -64,9 +86,14 @@ class NonBlockingClientListenerWrapper<T>{
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
+        
+        logger.exit(this, methodName);
     }
     
     void onStopped(CallbackService callbackService, final ClientException exception) {
+        final String methodName = "onStopped";
+        logger.entry(this, methodName, callbackService);
+      
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
@@ -74,9 +101,14 @@ class NonBlockingClientListenerWrapper<T>{
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
+        
+        logger.exit(this, methodName);
     }
     
     void onDrain(CallbackService callbackService) {
+        final String methodName = "onDrain";
+        logger.entry(this, methodName, callbackService);
+      
         if (listener != null) {
             callbackService.run(new Runnable() {
                 public void run() {
@@ -84,5 +116,7 @@ class NonBlockingClientListenerWrapper<T>{
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
+        
+        logger.exit(this, methodName);
     }
 }

@@ -21,9 +21,13 @@ package com.ibm.mqlight.api.impl.endpoint;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class SingleEndpointService extends EndpointServiceImpl {
 
+    private static final Logger logger = LoggerFactory.getLogger(SingleEndpointService.class);
+  
     static {
         LogbackLogging.setup();
     }
@@ -34,6 +38,9 @@ public class SingleEndpointService extends EndpointServiceImpl {
     
     @Override
     public void lookup(EndpointPromise future) {
+        final String methodName = "lookup";
+        logger.entry(this, methodName, future);
+      
         if (exhausted) {
             exhausted = false;
             future.setWait(calculateDelay(retryCount++));
@@ -41,15 +48,27 @@ public class SingleEndpointService extends EndpointServiceImpl {
             exhausted = true;
             future.setSuccess(endpoint);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void onSuccess(Endpoint endpoint) {
+        final String methodName = "onSuccess";
+        logger.entry(this, methodName, endpoint);
+      
         exhausted = false;
         retryCount = 0;
+        
+        logger.exit(this, methodName);
     }
 
     public SingleEndpointService(String uri, String user, String password) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, uri, user, "******");
+      
         endpoint = new EndpointImpl(uri, user, password);
+        
+        logger.exit(this, methodName);
     }
 }

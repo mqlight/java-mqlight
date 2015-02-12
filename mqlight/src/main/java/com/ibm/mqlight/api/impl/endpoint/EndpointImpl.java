@@ -22,9 +22,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import com.ibm.mqlight.api.endpoint.Endpoint;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class EndpointImpl implements Endpoint {
 
+    private static final Logger logger = LoggerFactory.getLogger(EndpointImpl.class);
+  
     private String host;
     private int port;
     private boolean useSsl;
@@ -32,28 +36,41 @@ class EndpointImpl implements Endpoint {
     private String password;
     
     protected EndpointImpl(String uri, String user, String password) throws IllegalArgumentException {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, uri, user, "******");
+      
         // TODO: crack the URI into a host/port.
         if (user == null && password != null) {
-            throw new IllegalArgumentException("Can't have an empty user ID if you specify a password!");
+            final IllegalArgumentException exception = new IllegalArgumentException("Can't have an empty user ID if you specify a password!");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         } else if (user != null && password == null) {
-            throw new IllegalArgumentException("Can't have an empty password if you specify a user ID!");
+            final IllegalArgumentException exception = new IllegalArgumentException("Can't have an empty password if you specify a user ID!");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         }
         port = 5672;
         useSsl = false;
         try {
             URI serviceUri = new URI(uri);
             if (serviceUri.getScheme() == null) {
-                throw new IllegalArgumentException("No scheme in service URI");
+                final IllegalArgumentException exception = new IllegalArgumentException("No scheme in service URI");
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
             String protocol = serviceUri.getScheme().toLowerCase();
             if ("amqps".equals(protocol)) {
                 port = 5671;
                 useSsl = true;
             } else if (!"amqp".equals(protocol)) {
-                throw new IllegalArgumentException("Invalid protocol : " + protocol);
+                final IllegalArgumentException exception = new IllegalArgumentException("Invalid protocol : " + protocol);
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
             if (serviceUri.getHost() == null) {
-                throw new IllegalArgumentException("No host in service URI");
+                final IllegalArgumentException exception = new IllegalArgumentException("No host in service URI");
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
             host = serviceUri.getHost();
             if (serviceUri.getPort() > -1) {
@@ -68,13 +85,19 @@ class EndpointImpl implements Endpoint {
                 }
             } else {
                 if (user != null) {
-                    throw new IllegalArgumentException("User/password information both specified and in service URI");
+                    final IllegalArgumentException exception = new IllegalArgumentException("User/password information both specified and in service URI");
+                    logger.throwing(this, methodName, exception);
+                    throw exception;
                 }
                 String[] userInfoSplit = userInfo.split(":");
                 if (userInfoSplit.length == 1) {
-                    throw new IllegalArgumentException("If user information is specified in the URI, a password must also be specified");
+                    final IllegalArgumentException exception = new IllegalArgumentException("If user information is specified in the URI, a password must also be specified");
+                    logger.throwing(this, methodName, exception);
+                    throw exception;
                 } else if (userInfoSplit.length > 2) {
-                    throw new IllegalArgumentException("Invalid user/password information in service URI");
+                    final IllegalArgumentException exception = new IllegalArgumentException("Invalid user/password information in service URI");
+                    logger.throwing(this, methodName, exception);
+                    throw exception;
                 }
                 this.user = userInfoSplit[0];
                 if ("".equals(this.user)) {
@@ -86,12 +109,18 @@ class EndpointImpl implements Endpoint {
             if (serviceUri.getPath() != null
                     && serviceUri.getPath().length() > 0
                     && !serviceUri.getPath().equals("/")) {
-                throw new IllegalArgumentException("Unsupported URL '" + uri + "' paths (" + serviceUri.getPath() + ") " +
-                        "can't be part of a service URL");
+                final IllegalArgumentException exception =
+                    new IllegalArgumentException("Unsupported URL '" + uri + "' paths (" + serviceUri.getPath() + ") " + "can't be part of a service URL");
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("service URI not valid", e);
+            final IllegalArgumentException exception = new IllegalArgumentException("service URI not valid", e);
+            logger.throwing(this, methodName, exception);
+            throw exception;
         }
+        
+        logger.exit(this, methodName);
     }
     
     @Override

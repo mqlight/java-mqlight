@@ -23,17 +23,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
 
 public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
     
+    private static final Logger logger = LoggerFactory.getLogger(NetworkClosePromiseImpl.class);
+  
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final Component component;
     private final Object context;
     
     public NetworkConnectPromiseImpl(Component component, Object context) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, component, context);
+      
         this.component = component;
         this.context = context;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
@@ -45,20 +54,32 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
     
     @Override
     public void setSuccess(NetworkChannel channel) throws IllegalStateException {
+        final String methodName = "setSuccess";
+        logger.entry(this, methodName, channel);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException exception  = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         } else {
             synchronized(this) {
                 this.channel = channel;
             }
             component.tell(new ConnectResponse(channel, null, context), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void setFailure(Exception exception) throws IllegalStateException {
+        final String methodName = "setFailure";
+        logger.entry(this, methodName, exception);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException ex  = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, ex);
+            throw ex;
         } else {
             ClientException clientException;
             if (exception instanceof ClientException) {
@@ -68,6 +89,8 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
             }
             component.tell(new ConnectResponse(getChannel(), clientException, context), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
     
     public synchronized NetworkChannel getChannel() {

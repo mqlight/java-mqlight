@@ -24,14 +24,23 @@ import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class EndpointPromiseImpl implements EndpointPromise {
 
+    private static final Logger logger = LoggerFactory.getLogger(EndpointPromiseImpl.class);
+  
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final Component component;
     
     public EndpointPromiseImpl(Component component) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, component);
+      
         this.component = component;
+        
+        logger.exit(this, methodName);
     }
     
     @Override
@@ -41,26 +50,45 @@ public class EndpointPromiseImpl implements EndpointPromise {
 
     @Override
     public void setSuccess(Endpoint endpoint) throws IllegalStateException {
+        final String methodName = "setSuccess";
+        logger.entry(this, methodName, endpoint);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException exception = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         } else {
             component.tell(new EndpointResponse(endpoint, null), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void setWait(long delay) throws IllegalStateException {
+        final String methodName = "setWait";
+        logger.entry(this, methodName, delay);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException exception = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, exception);
+            throw exception;
         } else {
             component.tell(new ExhaustedResponse(delay), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void setFailure(Exception exception) throws IllegalStateException {
+        final String methodName = "setFailure";
+        logger.entry(this, methodName, exception);
+      
         if (complete.getAndSet(true)) {
-            throw new IllegalStateException("Promise already completed");
+            final IllegalStateException ex = new IllegalStateException("Promise already completed");
+            logger.throwing(this, methodName, ex);
+            throw ex;
         } else {
             ClientException clientException;
             if (exception instanceof ClientException) {
@@ -69,9 +97,12 @@ public class EndpointPromiseImpl implements EndpointPromise {
                 clientException = new ClientException(
                         "A problem occurred when trying to locate an instance of the MQ Light server.  See linked exception for more details",
                         exception);
+                logger.data(this, methodName, clientException);
             }
             component.tell(new EndpointResponse(null, clientException), Component.NOBODY);
         }
+        
+        logger.exit(this, methodName);
     }
 
 }

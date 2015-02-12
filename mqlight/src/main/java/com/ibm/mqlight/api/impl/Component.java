@@ -20,13 +20,12 @@ package com.ibm.mqlight.api.impl;
 
 import java.util.LinkedList;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public abstract class Component {
     
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(Component.class);
     
     // TODO: should probably log something in NOBODY
     public static final Component NOBODY = new Component() {
@@ -39,7 +38,9 @@ public abstract class Component {
     protected final Object componentMonitor = new Object();
     
     public void tell(Message message, Component self) {
-        logger.debug("Telling {}: {}", this, message);
+        final String methodName = "tell";
+        logger.entry(this, methodName, message, self);
+
         message.setSender(self);
         boolean execute = false;
         synchronized(queue) {
@@ -48,9 +49,14 @@ public abstract class Component {
             if (execute) scheduled = true;
         }
         if (execute) deliverMessages();
+        
+        logger.exit(this, methodName);
     }
     
     private void deliverMessages() {
+        final String methodName = "deliverMessages";
+        logger.entry(this, methodName);
+      
         while(true) {
             Message message = null;
             synchronized(queue) {
@@ -64,6 +70,8 @@ public abstract class Component {
                 onReceive(message);
             }
         }
+        
+        logger.exit(this, methodName);
     }
     
     protected abstract void onReceive(Message message);

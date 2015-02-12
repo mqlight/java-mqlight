@@ -43,8 +43,6 @@ import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
@@ -62,25 +60,44 @@ import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
 public class Engine extends Component {
 
+    private static final Logger logger = LoggerFactory.getLogger(Engine.class);
+      
     private final NetworkService network;
     private final TimerService timer;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public Engine(NetworkService network, TimerService timer) {
-        if (network == null) throw new IllegalArgumentException("NetworkService argument cannot be null");
-        if (timer == null) throw new IllegalArgumentException("TimerService argument cannot be null");
+        final String methodName = "<init>";
+        logger.entry(this, methodName, network, timer);
+      
+        if (network == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("NetworkService argument cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if (timer == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("TimerService argument cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         this.network = network;
         this.timer = timer;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     protected void onReceive(Message message) {
+        final String methodName = "onReceive";
+        logger.entry(this, methodName, message);
+      
         if (message instanceof OpenRequest) {
             OpenRequest or = (OpenRequest)message;
             //ConnectRequest connectRequest = new ConnectRequest(or.endpoint.getHost(), or.endpoint.getPort());
@@ -322,19 +339,24 @@ public class Engine extends Component {
             EngineConnection engineConnection = (EngineConnection)pr.promise.getContext();
             long now = System.currentTimeMillis();
             long timeout = engineConnection.transport.tick(now);
-            logger.debug("Timeout: {}", timeout);
+            logger.data(this, methodName, "Timeout: {}", timeout);
             if (timeout > 0) {
                 TimerPromiseImpl promise = new TimerPromiseImpl(this, engineConnection);
                 engineConnection.timerPromise = promise;
-                logger.debug("Scheduling at: {}", timeout - now);
+                logger.data(this, methodName, "Scheduling at: {}", timeout - now);
                 timer.schedule(timeout - now, promise);
                 writeToNetwork(engineConnection);
             }
         }
+        
+        logger.exit(this, methodName);
     }
 
     // Drains any pending data from a Proton transport object onto the network
     private void writeToNetwork(EngineConnection engineConnection) {
+      final String methodName = "writeToNetwork";
+      logger.entry(this, methodName, engineConnection);
+      
         if (engineConnection.transport.pending() > 0) {
             ByteBuffer head = engineConnection.transport.head();
             int amount = head.remaining();
@@ -347,14 +369,18 @@ public class Engine extends Component {
             engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, amount, engineConnection));
             //nn.tell(new WriteRequest(connection, buf), this);
         }
+        
+        logger.exit(this, methodName);
     }
 
     // TODO: Proton 0.8 provides an Event.dispatch() method that could be used to replace this code...
     private void process(Collector collector) {
-
+        final String methodName = "process";
+        logger.entry(this, methodName, collector);
+      
         while (collector.peek() != null) {
             Event event = collector.peek();
-            logger.debug("Processing event: {}", event.getType());
+            logger.data(this, methodName, "Processing event: {}", event.getType());
             switch(event.getType()) {   // TODO: could some of these be common'ed up? E.g. have one processEventConnection - which deals with both local and remote state changes
             case CONNECTION_BOUND:
             case CONNECTION_FINAL:
@@ -407,18 +433,25 @@ public class Engine extends Component {
                 processEventTransport(event);
                 break;
             default:
-                throw new IllegalStateException("Unknown event type: " + event.getType());
+                final IllegalStateException exception = new IllegalStateException("Unknown event type: " + event.getType());
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
             collector.pop();
         }
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventConnectionLocalState(Event event) {
-        logger.debug("CONNECTION_LOCAL_STATE: {}", event.getConnection());
+        final String methodName = "processEventConnectionLocalState";
+        logger.entry(this, methodName, event);
+        logger.exit(this, methodName);
     }
 
     private void processEventConnectionRemoteState(Event event) {
-        logger.debug("CONNECTION_REMOTE_STATE: {}", event.getConnection());
+        final String methodName = "processEventConnectionRemoteState";
+        logger.entry(this, methodName, event);
 
         if (event.getConnection().getRemoteState() == EndpointState.CLOSED) {
             if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
@@ -485,9 +518,14 @@ public class Engine extends Component {
                 timer.schedule(timeout - now, engineConnection.timerPromise);
             }
         }
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventDelivery(Event event) {
+        final String methodName = "processEventDelivery";
+        logger.entry(this, methodName, event);
+      
         EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
         Delivery delivery = event.getDelivery();
         if (event.getLink() instanceof Sender) {
@@ -522,20 +560,33 @@ public class Engine extends Component {
             QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
             subData.subscriber.tell(new DeliveryRequest(data, qos, event.getLink().getName(), delivery, event.getConnection()), this);
         }
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventLinkFlow(Event event) {
-
+        final String methodName = "processEventLinkFlow";
+        logger.entry(this, methodName, event);
+        logger.exit(this, methodName);
     }
 
     private void processEventLinkLocalState(Event event) {
+        final String methodName = "processEventLinkFlow";
+        logger.entry(this, methodName, event);
+      
         Link link = event.getLink();
-        logger.debug("LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
+        logger.data(this, methodName, "LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventLinkRemoteState(Event event) {
+        final String methodName = "processEventLinkFlow";
+        logger.entry(this, methodName, event);
+      
         Link link = event.getLink();
-        logger.debug("LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
+        logger.data(this, methodName, "LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
+
         final Event.Type eventType = event.getType();
         
         if (link instanceof Receiver) {
@@ -588,17 +639,24 @@ public class Engine extends Component {
                 link.free();
             }
         }
+        
+        logger.exit(this, methodName);
 
     }
 
     private void processEventSessionLocalState(Event event) {
-        logger.debug("processEventSessionLocalState ", event.getSession());
-
+        final String methodName = "processEventSessionLocalState";
+        logger.entry(this, methodName, event);
+        
         // TODO: do we care about this event?
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventSessionRemoteState(Event event) {
-        logger.debug("processEventSessionRemoteState", event.getSession());
+        final String methodName = "processEventSessionLocalState";
+        logger.entry(this, methodName, event);
+
         if (event.getSession().getLocalState() == EndpointState.ACTIVE &&
             event.getSession().getRemoteState() == EndpointState.ACTIVE) {
             // First session has opened on the connection
@@ -609,9 +667,13 @@ public class Engine extends Component {
         }
 
         // TODO: should reject remote party trying to establish sessions with us
+        
+        logger.exit(this, methodName);
     }
 
     private void processEventTransport(Event event) {
-        logger.debug("processEventTransport", event.getTransport());
+        final String methodName = "processEventTransport";
+        logger.entry(this, methodName, event);
+        logger.exit(this, methodName);
     }
 }

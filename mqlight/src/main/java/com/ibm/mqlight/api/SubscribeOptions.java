@@ -18,6 +18,9 @@
  */
 package com.ibm.mqlight.api;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 /**
  * A set of options that can be used to configure the behaviour of the
  * {@link NonBlockingClient#subscribe(String, SubscribeOptions, DestinationListener, CompletionListener, Object)}
@@ -28,6 +31,8 @@ package com.ibm.mqlight.api;
  */
 public class SubscribeOptions {
 
+    private static final Logger logger = LoggerFactory.getLogger(SubscribeOptions.class);
+  
     private final boolean autoConfirm;
     private final int credit;
     private final QOS qos;
@@ -35,11 +40,16 @@ public class SubscribeOptions {
     private final long ttl;
 
     private SubscribeOptions(boolean autoConfirm, int credit, QOS qos, String shareName, long ttl) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, autoConfirm, credit, qos, shareName, ttl);
+      
         this.autoConfirm = autoConfirm;
         this.credit = credit;
         this.qos = qos;
         this.shareName = shareName;
         this.ttl = ttl;
+        
+        logger.exit(this, methodName);
     }
 
     public boolean getAutoConfirm() {
@@ -126,8 +136,18 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setCredit(int credit) {
-            if (credit < 0) throw new IllegalArgumentException("Credit value '" + credit + "' is invalid, must be >= 0");
+            final String methodName = "setCredit";
+            logger.entry(this, methodName, credit);
+          
+            if (credit < 0) {
+              final IllegalArgumentException exception = new IllegalArgumentException("Credit value '" + credit + "' is invalid, must be >= 0");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
+            }
             this.credit = credit;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 
@@ -138,8 +158,18 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setQos(QOS qos) {
-            if (qos == null) throw new IllegalArgumentException("QOS value cannot be null");
+            final String methodName = "setQos";
+            logger.entry(this, methodName, qos);
+          
+            if (qos == null) {
+              final IllegalArgumentException exception = new IllegalArgumentException("QOS value cannot be null");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
+            }
             this.qos = qos;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 
@@ -151,10 +181,18 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setShare(String shareName) {
+            final String methodName = "setShare";
+            logger.entry(this, methodName, shareName);
+          
             if (shareName != null && shareName.contains(":")) {
-                throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
+              final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
             }
             this.shareName = shareName;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 
@@ -170,10 +208,18 @@ public class SubscribeOptions {
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          */
         public SubscribeOptionsBuilder setTtl(long ttl) {
+            final String methodName = "setTtl";
+            logger.entry(this, methodName, ttl);
+          
             if (ttl < 0 || ttl > 4294967295L) {
-                throw new IllegalArgumentException("ttl value " + ttl + " is invalid, must be an unsigned 32-bit value");
+              final IllegalArgumentException exception = new IllegalArgumentException("ttl value " + ttl + " is invalid, must be an unsigned 32-bit value");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
             }
             this.ttl = ttl;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 

@@ -18,9 +18,20 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 class InternalStop<T> extends Message {
+  
+    private static final Logger logger = LoggerFactory.getLogger(InternalStop.class);
+  
     final CompletionFuture<T> future;
     InternalStop(NonBlockingClientImpl client) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client);
+      
         future = new CompletionFuture<>(client);
+        
+        logger.exit(this, methodName);
     }
 }

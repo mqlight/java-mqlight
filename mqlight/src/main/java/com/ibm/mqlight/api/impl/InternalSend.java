@@ -19,18 +19,28 @@
 package com.ibm.mqlight.api.impl;
 
 import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class InternalSend<T> extends Message implements QueueableWork {
+  
+    private static final Logger logger = LoggerFactory.getLogger(InternalSend.class);
+  
     final String topic;
     final QOS qos;
     final byte[] data;
     final int length;
     final CompletionFuture<T> future;
     InternalSend(NonBlockingClientImpl client, String topic, QOS qos, byte[] data, int length) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, topic, qos, data, length);
+      
         this.future = new CompletionFuture<T>(client);
         this.topic = topic;
         this.qos = qos;
         this.data = data;
         this.length = length;
+        
+        logger.exit(this, methodName);
     }
 }

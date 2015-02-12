@@ -25,21 +25,36 @@ import java.util.concurrent.TimeUnit;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.callback.CallbackService;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class ThreadPoolCallbackService implements CallbackService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ThreadPoolCallbackService.class);
+  
     private static class WorkList implements Runnable {
+      
+        private static final Logger logger = LoggerFactory.getLogger(WorkList.class);
+        
         private final ThreadPoolExecutor executor;
         private boolean running = false;
         private final LinkedList<Runnable> runnables = new LinkedList<>();
         private final LinkedList<Promise<Void>> promises = new LinkedList<>();
         
         private WorkList(ThreadPoolExecutor executor) {
+            final String methodName = "<init>";
+            logger.entry(this, methodName, executor);
+            
             this.executor = executor;
+            
+            logger.exit(this, methodName);
         }
         
         @Override
         public void run() {
+            final String methodName = "run";
+            logger.entry(this, methodName);
+          
             while(true) {
                 Runnable runnable;
                 Promise<Void> promise;
@@ -59,15 +74,22 @@ public class ThreadPoolCallbackService implements CallbackService {
                     promise.setFailure(e);
                 }
             }
+            
+            logger.exit(this, methodName);
         }
         
         public synchronized void put(Runnable runnable, Promise<Void> promise) {
+            final String methodName = "put";
+            logger.entry(this, methodName, runnable, promise);
+          
             runnables.addLast(runnable);
             promises.addLast(promise);
             if (!running) {
                 running = true;
                 executor.submit(this);
             }
+            
+            logger.exit(this, methodName);
         }
     }
     
@@ -76,17 +98,27 @@ public class ThreadPoolCallbackService implements CallbackService {
     private final WorkList workLists[];
     
     public ThreadPoolCallbackService(int poolSize) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, poolSize);
+      
         this.poolSize = poolSize;
         executor = new ThreadPoolExecutor(0, poolSize, 500, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         workLists = new WorkList[poolSize];
         for (int i = 0; i < poolSize; ++i) workLists[i] = new WorkList(executor);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void run(Runnable runnable, Object orderingCtx, Promise<Void> promise) {
+       final String methodName = "run";
+        logger.entry(this, methodName, runnable, orderingCtx, promise);
+      
         int hash = orderingCtx.hashCode();
         if (hash == Integer.MIN_VALUE) hash = Integer.MIN_VALUE + 1;    // Avoid possibility that Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
         workLists[Math.abs(hash) % poolSize].put(runnable, promise);
+        
+        logger.exit(this, methodName);
     }
 
 }

@@ -35,8 +35,6 @@ import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.oxo42.stateless4j.StateMachine;
 import com.google.gson.Gson;
@@ -86,6 +84,8 @@ import com.ibm.mqlight.api.impl.timer.CancelResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
 import com.ibm.mqlight.api.impl.timer.TimerServiceImpl;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
@@ -94,7 +94,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     static {
         LogbackLogging.setup();
     }
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(NonBlockingClientImpl.class);
 
     private final EndpointService endpointService;
     private final CallbackService callbackService;
@@ -180,9 +180,24 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             ClientOptions options,
             NonBlockingClientListener<T>listener,
             T context) {
-        if (endpointService == null) throw new IllegalArgumentException("EndpointService cannot be null");
-        if (callbackService == null) throw new IllegalArgumentException("CallbackService cannot be null");
-        if (timerService == null) throw new IllegalArgumentException("TimerService cannot be null");
+        final String methodName = "<init>";
+        logger.entry(this, methodName, callbackService, engine, timerService, gsonBuilder, options, listener, context);
+        
+        if (endpointService == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("EndpointService cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if (callbackService == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("CallbackService cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if (timerService == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("TimerService cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         this.endpointService = endpointService;
         this.callbackService = callbackService;
         this.engine = engine;
@@ -191,9 +206,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         this.gson = this.gsonBuilder.create();
         if (options == null) options = defaultClientOptions;
         clientId = options.getId() != null ? options.getId() : generateClientId();
+        logger.setClientId(clientId);
         clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
         stateMachine = NonBlockingFSMFactory.newStateMachine(this);
         endpointService.lookup(new EndpointPromiseImpl(this));
+        logger.exit(this, methodName);
     }
 
     public <T> NonBlockingClientImpl(EndpointService endpointService,
@@ -239,46 +256,83 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> boolean send(String topic, String data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException {
-        if (data == null) throw new IllegalArgumentException("data cannot be null");
+        final String methodName = "send";
+        logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
+        
+        if (data == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("data cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(new AmqpValue(data));
-        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        
+        final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     @Override
     public <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException {
-        if (data == null) throw new IllegalArgumentException("data cannot be null");
+        final String methodName = "send";
+       logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
+        
+        if (data == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("data cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         int pos = data.position();
         byte[] dataBytes = new byte[data.remaining()];
         data.get(dataBytes);
         data.position(pos);
         protonMsg.setBody(new AmqpValue(new Binary(dataBytes)));
-        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     @Override
     public <T> boolean send(String topic, Object json,
             Map<String, Object> properties, SendOptions sendOptions,
             CompletionListener<T> listener, T context) throws StateException {
+        final String methodName = "send";
+        logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
+      
         String jsonString;
         synchronized(gson) {
             jsonString = gson.toJson(json);
         }
-        return sendJson(topic, jsonString, properties, sendOptions, listener, context);
+        final boolean result = sendJson(topic, jsonString, properties, sendOptions, listener, context);
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     @Override
     public <T> boolean send(String topic, Object json, Type type,
             Map<String, Object> properties, SendOptions sendOptions,
             CompletionListener<T> listener, T context) throws StateException {
+        final String methodName = "send";
+        logger.entry(this, methodName, topic, json, type, properties, sendOptions, listener, context);
+      
         String jsonString;
         synchronized(gson) {
             jsonString = gson.toJson(json, type);
         }
-        return sendJson(topic, jsonString, properties, sendOptions, listener, context);
+        final boolean result = sendJson(topic, jsonString, properties, sendOptions, listener, context);
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     @Override
@@ -286,10 +340,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             Map<String, Object> properties, SendOptions sendOptions,
             CompletionListener<T> listener, T context)
     throws StateException {
+        final String methodName = "sendJson";
+        logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
+      
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(new AmqpValue(json));
         protonMsg.setContentType("application/json");
-        return send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     private static final Map<String, String> immutable = new HashMap<String, String>() {
@@ -320,6 +381,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
      * @throws IllegalArgumentException
      */
     protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
+        final String methodName = "encodeTopic";
+        logger.entry(methodName, (Object)unencodedTopic);
+      
         StringBuilder amqpAddress = new StringBuilder("amqp:///");
         try {
             // use URLEncoder to do a first pass at encoding the topic URI
@@ -345,27 +409,45 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 }
             }
         } catch(UnsupportedEncodingException e) {
-            throw new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
+          final IllegalArgumentException exception = new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
+          logger.throwing(methodName, exception);
+          throw exception;
         }
-        return amqpAddress.toString();
+        final String result = amqpAddress.toString();
+        
+        logger.exit(methodName, (Object)result);
+        
+        return result;
     }
 
     protected static boolean isValidPropertyValue(Object value) {
+        final String methodName = "isValidPropertyValue";
+        logger.entry(methodName, value);
         if (value == null) {
-            return true;
+          logger.exit(methodName, true);
+          return true;
         }
         for (int i = 0; i < validPropertyValueTypes.length; ++i) {
             if (validPropertyValueTypes[i].isAssignableFrom(value.getClass())) {
+                logger.exit(methodName, true);
                 return true;
             }
         }
+        logger.exit(methodName, false);
         return false;
     }
 
     private <T> boolean send(String topic, org.apache.qpid.proton.message.Message protonMsg,
                                        Map<String, Object> properties,
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
-        if (topic == null) throw new IllegalArgumentException("topic cannot be null");
+        final String methodName = "send";
+        logger.entry(this, methodName, topic, protonMsg, properties, sendOptions, listener, context);
+      
+        if (topic == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("topic cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
 
         protonMsg.setAddress(encodeTopic(topic));
         protonMsg.setTtl(sendOptions.getTtl());
@@ -373,7 +455,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         if ((properties != null) && !properties.isEmpty()) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
                 if (!isValidPropertyValue(entry.getValue())) {
-                    throw new IllegalArgumentException("Property key '" + entry.getKey() + " specifies a value which is not of a supported type");
+                  final IllegalArgumentException exception = new IllegalArgumentException("Property key '" + entry.getKey() + " specifies a value which is not of a supported type");
+                  logger.throwing(this, methodName, exception);
+                  throw exception;
                 }
                 if (entry.getValue() instanceof byte[]) {
                     byte[] copy = new byte[((byte[])entry.getValue()).length];
@@ -403,32 +487,56 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         is.future.setListener(callbackService, listener, context);
         boolean result = undrainedSends < 2;
         pendingDrain |= !result;
+        
+        logger.exit(this, methodName, result);
+        
         return result;
     }
 
     @Override
     public <T> NonBlockingClient start(CompletionListener<T> listener, T context) {
+        final String methodName = "start";
+        logger.entry(this, methodName, listener, context);
+        
         InternalStart<T> is = new InternalStart<T>(this);
         is.future.setListener(callbackService, listener, context);
         tell(is, this);
+        
+        logger.entry(this, methodName, this);
+        
         return this;
     }
 
     @Override
     public <T> void stop(CompletionListener<T> listener, T context) {
+        final String methodName = "stop";
+        logger.entry(this, methodName, listener, context);
+      
         InternalStop<T> is = new InternalStop<T>(this);
         is.future.setListener(callbackService, listener, context);
         tell(is, this);
+        
+        logger.exit(this, methodName);
     }
 
     private final String buildAmqpTopicName(String topicPattern, String shareName) {
+        final String methodName = "buildAmqpTopicName";
+        logger.entry(this, methodName, topicPattern, shareName);
+      
         String subTopic;
         if (shareName == null || "".equals(shareName)) {
             subTopic = "private:" + topicPattern;
         } else {
-            if (shareName.contains(":")) throw new IllegalArgumentException();
+            if (shareName.contains(":")) {
+              final IllegalArgumentException exception = new IllegalArgumentException();
+              logger.throwing(this, methodName, exception);
+              throw exception;
+            }
             subTopic = "share:" + shareName + ":" + topicPattern;
         }
+        
+        logger.exit(this, methodName, subTopic);
+        
         return subTopic;
     }
 
@@ -437,8 +545,19 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             SubscribeOptions subOptions, DestinationListener<T> destListener,
             CompletionListener<T> compListener, T context)
             throws StateException, IllegalArgumentException {
-        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
-        if (destListener == null) throw new IllegalArgumentException("DestinationListener cannot be null");
+        final String methodName = "subscribe";
+        logger.entry(this, methodName, topicPattern, subOptions, destListener, compListener, context);
+      
+        if (topicPattern == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if (destListener == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("DestinationListener cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         if (subOptions == null) subOptions = defaultSubscribeOptions;
         String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
@@ -447,36 +566,74 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         tell(is, this);
 
         is.future.setListener(callbackService, compListener, context);
+        
+        logger.exit(this, methodName, this);
+        
         return this;
     }
 
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
     throws StateException, IllegalArgumentException {
-        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
-        if ((share != null) && share.contains(":")) throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
-        if (ttl != 0) throw new IllegalArgumentException("TTL cannot be non-zero");
+        final String methodName = "unsubscribe";
+        logger.entry(this, methodName, topicPattern, share, ttl, listener, context);
+      
+        if (topicPattern == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if ((share != null) && share.contains(":")) {
+          final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if (ttl != 0) {
+          final IllegalArgumentException exception = new IllegalArgumentException("TTL cannot be non-zero");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
 
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, ttl == 0);
         tell(us, this);
 
         us.future.setListener(callbackService, listener, context);
+        
+        logger.exit(this, methodName, this);
+        
         return this;
     }
 
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
     throws StateException {
-        if (topicPattern == null) throw new IllegalArgumentException("Topic pattern cannot be null");
-        if ((share != null) && share.contains(":")) throw new IllegalArgumentException("Share name cannot contain a colon (:) character");
+        final String methodName = "unsubscribe";
+        logger.entry(this, methodName, topicPattern, share, listener, context);
+      
+        if (topicPattern == null) {
+          final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
+        if ((share != null) && share.contains(":")) {
+          final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, false);
         tell(us, this);
 
         us.future.setListener(callbackService, listener, context);
+        
+        logger.exit(this, methodName, this);
+        
         return this;
     }
 
     protected static String[] crackLinkName(String linkName) {
+        final String methodName = "crackLinkName";
+        logger.entry(methodName, linkName);
+      
         String topicPattern;
         String share;
         if (linkName.startsWith("share:")) {
@@ -487,11 +644,19 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             topicPattern = linkName.substring("private:".length());
             share = null;
         }
-        return new String[] {topicPattern, share};
+        
+        final String [] result = new String[] {topicPattern, share};
+        
+        logger.exit(methodName, result);
+        
+        return result;
     }
 
     @Override
     protected void onReceive(Message message) {
+        final String methodName = "onReceive";
+        logger.entry(this, methodName, message);
+      
         if (message instanceof EndpointResponse) {
             EndpointResponse er = (EndpointResponse)message;
             if (er.exception != null) {
@@ -720,6 +885,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         } else if (message instanceof CallbackExceptionNotification) {
             Exception exception = ((CallbackExceptionNotification)message).exception;
+            logger.data(this, methodName, "Exception thrown from inside callback", exception);
             logger.error("Exception thrown from inside callback", exception);
             stateMachine.fire(NonBlockingClientTrigger.STOP);
             if (lastException == null) {
@@ -730,43 +896,73 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 }
             }
         } else {
-            logger.debug("Unexpected message received {} from {} ", message, message.getSender());
+            logger.data("Unexpected message received {} from {} ", message, message.getSender());
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void startTimer() {
+        final String methodName = "startTimer";
+        logger.entry(this, methodName);
+      
         timerPromise = new TimerPromiseImpl(this, null);
         timer.schedule(retryDelay, timerPromise);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void openConnection() {
+        final String methodName = "openConnection";
+        logger.entry(this, methodName);
+      
         engine.tell(new OpenRequest(currentEndpoint, clientId), this);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void closeConnection() {
+        final String methodName = "closeConnection";
+        logger.entry(this, methodName);
+      
         pendingDeliveries.clear();
         engine.tell(new CloseRequest(currentConnection), this);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void cancelTimer() {
+        final String methodName = "cancelTimer";
+        logger.entry(this, methodName);
+      
         if (timerPromise != null) {
             TimerPromiseImpl tmp = timerPromise;
             timerPromise = null;
             timer.cancel(tmp);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void requestEndpoint() {
+        final String methodName = "requestEndpoint";
+        logger.entry(this, methodName);
+      
         endpointService.lookup(new EndpointPromiseImpl(this));
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void remakeInboundLinks() {
+        final String methodName = "remakeInboundLinks";
+        logger.entry(this, methodName);
+      
         if (subscribedDestinations.isEmpty()) {
             stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
         } else {
@@ -778,19 +974,29 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 engine.tell(sr, this);
             }
         }
+        
+        logger.exit(this, methodName);
     }
 
 
     @Override
     public void blessEndpoint() {
+        final String methodName = "blessEndpoint";
+        logger.entry(this, methodName);
+      
         serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp://") +
                      currentEndpoint.getHost() + ":" + currentEndpoint.getPort();
         retryDelay = 0;
         endpointService.onSuccess(currentEndpoint);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void cleanup() {
+        final String methodName = "cleanup";
+        logger.entry(this, methodName);
+      
         pendingDeliveries.clear();
 
         // Fire a drain notification if required.
@@ -858,97 +1064,160 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             public void run() {}
         }, this, new CallbackPromiseImpl(this, false));
 
+        logger.exit(this, methodName);
     }
 
     @Override
     public void failPendingStops() {
+        final String methodName = "failPendingStops";
+        logger.entry(this, methodName);
+      
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
             stop.future.postFailure(callbackService, new StateException("Cannot stop client because of a subsequent start request"));
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void succeedPendingStops() {
+        final String methodName = "succeedPendingStops";
+        logger.entry(this, methodName);
+      
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
             stop.future.postSuccess(callbackService);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void failPendingStarts() {
+        final String methodName = "failPendingStarts";
+        logger.entry(this, methodName);
+      
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
             start.future.postFailure(callbackService, new StateException("Cannot start client because of a subsequent stop request"));
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void succeedPendingStarts() {
+        final String methodName = "succeedPendingStarts";
+        logger.entry(this, methodName);
+      
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
             start.future.postSuccess(callbackService);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void processQueuedActions() {
+        final String methodName = "processQueuedActions";
+        logger.entry(this, methodName);
+      
         while (!pendingWork.isEmpty()) {
             tell((Message)pendingWork.removeFirst(), this);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventStarting() {
+        final String methodName = "eventStarting";
+        logger.entry(this, methodName);
+      
         stoppedByUser = false;
         lastException = null;
         externalState = ClientState.STARTING;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventUserStopping() {
+        final String methodName = "eventUserStopping";
+        logger.entry(this, methodName);
+      
         externalState = ClientState.STOPPING;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventSystemStopping() {
+        final String methodName = "eventSystemStopping";
+        logger.entry(this, methodName);
+      
         // Need to be careful because sometimes the client can be stopped by the user and then
         // a system problem be detected (in which case we get a user stopping followed by a
         // system stopping event - and should discard any error associated with the
         // system stopping event)...
         externalState = ClientState.STOPPING;
         if (lastException == null) stoppedByUser = true;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventStopped() {
+        final String methodName = "eventStopped";
+        logger.entry(this, methodName);
+      
         externalState = ClientState.STOPPED;
         clientListener.onStopped(callbackService, stoppedByUser ? null : lastException);
         stoppedByUser = false;
         lastException = null;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventStarted() {
+        final String methodName = "eventStarted";
+        logger.entry(this, methodName);
+      
         externalState = ClientState.STARTED;
         clientListener.onStarted(callbackService);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventRetrying() {
+        final String methodName = "eventRetrying";
+        logger.entry(this, methodName);
+      
         externalState = ClientState.RETRYING;
         clientListener.onRetrying(callbackService, stoppedByUser ? null : lastException);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void eventRestarted() {
+        final String methodName = "eventRestarted";
+        logger.entry(this, methodName);
+      
         externalState = ClientState.STARTED;
         clientListener.onRestarted(callbackService);
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void breakInboundLinks() {
+        final String methodName = "breakInboundLinks";
+        logger.entry(this, methodName);
 
         pendingDeliveries.clear();
 
@@ -975,14 +1244,22 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
             subData.state = SubData.State.BROKEN;
         }
+        
+        logger.exit(this, methodName);
     }
 
     // Result: true == it might have worked, false == it really didn't work!
     protected boolean doDelivery(DeliveryRequest request) {
+        final String methodName = "doDelivery";
+        logger.entry(this, methodName, request);
+      
         boolean result = pendingDeliveries.remove(request);
         if (result) {
             engine.tell(new DeliveryResponse(request), this);
         }
+        
+        logger.exit(this, methodName, result);
+        
         return result;
     }
 }

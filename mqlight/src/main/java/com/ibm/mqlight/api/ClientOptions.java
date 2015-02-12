@@ -20,6 +20,9 @@ package com.ibm.mqlight.api;
 
 import java.io.File;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 /**
  * A set of options that can be used to configure the behaviour of the <code>NonBlockingClient</code>
  * class when it is created using the {code {@link NonBlockingClient#create(String, ClientOptions, NonBlockingClientListener, Object)})
@@ -31,6 +34,8 @@ import java.io.File;
  */
 public class ClientOptions {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClientOptions.class);
+  
     private final String id;
     private final String user;
     private final String password;
@@ -38,11 +43,16 @@ public class ClientOptions {
     private final boolean verifyName;
 
     private ClientOptions(String id, String user, String password, File certFile, boolean verifyName) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, id, user, "******", certFile, verifyName);
+      
         this.id = id;
         this.user = user;
         this.password = password;
         this.certFile = certFile;
         this.verifyName = verifyName;
+        
+        logger.exit(this, methodName);
     }
 
     public String getId() {
@@ -116,19 +126,31 @@ public class ClientOptions {
          * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
          */
         public ClientOptionsBuilder setId(String id) {
+            final String methodName = "setId";
+            logger.entry(this, methodName, id);
+          
             if (id != null) {
                 if (id.length() > 48) {
-                    throw new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
+                  final IllegalArgumentException exception = new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
+                  logger.throwing(this,  methodName, exception);
+                  throw exception;
                 } else if (id.length() < 1) {
-                    throw new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
+                  final IllegalArgumentException exception = new IllegalArgumentException("Client identifier must be a minimum ID length of 1.");
+                  logger.throwing(this,  methodName, exception);
+                  throw exception;
                 }
                 for (int i = 0; i < id.length(); ++i) {
                     if (!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%/._".contains(id.substring(i, i+1))) {
-                        throw new IllegalArgumentException("Client identifier '" + id + "' contains invalid character: '" + id.substring(i, i+1) + "'");
+                      final IllegalArgumentException exception = new IllegalArgumentException("Client identifier '" + id + "' contains invalid character: '" + id.substring(i, i+1) + "'");
+                      logger.throwing(this,  methodName, exception);
+                      throw exception;
                     }
                 }
             }
             this.id = id;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 

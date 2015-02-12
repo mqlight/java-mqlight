@@ -24,9 +24,13 @@ import java.util.Map;
 import com.ibm.mqlight.api.MalformedDelivery;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class MalformedDeliveryImpl extends BytesDeliveryImpl implements MalformedDelivery {
 
+    private static final Logger logger = LoggerFactory.getLogger(MalformedDeliveryImpl.class);
+  
     private final MalformedReason reason;
     private final String description;
     private final String format;
@@ -36,10 +40,16 @@ public class MalformedDeliveryImpl extends BytesDeliveryImpl implements Malforme
                                     ByteBuffer data, Map<String, Object> properties, DeliveryRequest req, MalformedReason reason,
                                     String malformedDescription, String malformedMQMDFormat, int malformedMQMDCCSID) {
         super(client, qos, shareName, topic, topicPattern, ttl, data, properties, req);
+        
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, qos, shareName, topic, topicPattern, ttl, data, properties, req, reason, malformedDescription, malformedMQMDFormat, malformedMQMDCCSID);
+        
         this.reason = reason;
         this.description = malformedDescription;
         this.format = malformedMQMDFormat;
         this.ccsid = malformedMQMDCCSID;
+        
+        logger.exit(this, methodName);
     }
 
     @Override

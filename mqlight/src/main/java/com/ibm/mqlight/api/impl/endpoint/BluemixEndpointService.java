@@ -39,6 +39,8 @@ import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 /*
  * TODO
@@ -56,6 +58,8 @@ import com.ibm.mqlight.api.impl.LogbackLogging;
  */
 public class BluemixEndpointService extends EndpointServiceImpl {
 
+    private static final Logger logger = LoggerFactory.getLogger(BluemixEndpointService.class);
+      
     static {
         LogbackLogging.setup();
     }
@@ -91,6 +95,9 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     }
 
     protected String hitUri(String httpUri) throws IOException {
+        final String methodName = "hitUri";
+        logger.entry(this, methodName, httpUri);
+      
         URL url = new URL(httpUri);
         InputStream in = url.openStream();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -100,11 +107,18 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             if (amount < 0) break;
             out.write(buffer, 0, amount);
         }
-        return out.toString("UTF-8");
+        
+        final String result = out.toString("UTF-8");
+        
+        logger.exit(this, methodName, result);
+        
+        return result;
     }
 
     protected void doHttpLookup(final String httpUri, final EndpointPromise future) {
-
+        final String methodName = "doHttpLookup";
+        logger.entry(this, methodName, httpUri, future);
+      
         synchronized(this) {
             if (executor == null) {
                 // TODO: 5 threads == number pulled from thin air.
@@ -114,6 +128,9 @@ public class BluemixEndpointService extends EndpointServiceImpl {
 
         executor.execute(new Runnable() {
             public void run() {
+                final String methodName = "run";
+                logger.entry(this, methodName);
+              
                 try {
                     String serviceJson = hitUri(httpUri);
 
@@ -146,27 +163,41 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     // Retry later...
                     doRetry(future);
                 } catch(JsonParseException parseException) {
-                    future.setFailure(new ClientException(
-                            "Could not parse the JSON returned by the IBM MQ Light Bluemix lookup service.  See linked exception for more information", parseException));
+                    final ClientException exception = new ClientException("Could not parse the JSON returned by the IBM MQ Light Bluemix lookup service.  See linked exception for more information", parseException);
+                    logger.data(this, methodName, exception);
+                    future.setFailure(exception);
                 } catch(IllegalArgumentException iae) {
-                    future.setFailure(new ClientException(
-                            "Endpoint information returned by IBM MQ Light Bluemix lookup service was not valid.  See linked exception for more information", iae));
+                    final ClientException exception = new ClientException("Endpoint information returned by IBM MQ Light Bluemix lookup service was not valid.  See linked exception for more information", iae);
+                    logger.data(this, methodName, exception);
+                    future.setFailure(exception);
                 }
+                
+                logger.exit(this, methodName);
             }
         });
+        
+        logger.exit(this, methodName);
     }
 
     protected void doRetry(EndpointPromise future) {
+        final String methodName = "doRetry";
+        logger.entry(this, methodName, future);
+      
         int retry;
         synchronized(state) {
             retry = state.retryCount;
             ++state.retryCount;
         }
         future.setWait(calculateDelay(retry));
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void lookup(EndpointPromise future) {
+        final String methodName = "lookup";
+        logger.entry(this, methodName, future);
+      
         try {
             String lookupUri = null;
             Endpoint endpoint = null;
@@ -206,8 +237,10 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             }
 
             if (lookupUri == null) {
-                future.setFailure(new ClientException("Could not locate a valid IBM Bluemix VCAP_SERVICES environment variable. " +
-                                                      "Check 'service' parameter to NonBlockingClient.create(...) method."));
+                final ClientException exception =
+                  new ClientException("Could not locate a valid IBM Bluemix VCAP_SERVICES environment variable. Check 'service' parameter to NonBlockingClient.create(...) method.");
+                logger.data(this, methodName, exception);
+                future.setFailure(exception);
             } else if (retry) {
                 doRetry(future);
             } else if (endpoint != null) {
@@ -215,13 +248,20 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             }
         } catch(JsonParseException e) {
             // Can't parse VCAP_SERVICES values
-            future.setFailure(new ClientException(
-                    "Could not parse the JSON present in the IBM Bluemix VCAP_SERVICES environment variable.  See linked exception for more information", e));
+            final ClientException exception =
+              new ClientException("Could not parse the JSON present in the IBM Bluemix VCAP_SERVICES environment variable.  See linked exception for more information", e);
+            logger.data(this, methodName, exception);
+            future.setFailure(exception);
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
     public void onSuccess(Endpoint endpoint) {
+        final String methodName = "onSuccess";
+        logger.entry(this, methodName, endpoint);
+      
         synchronized(state) {
             int index = -1;
             if (state.endpoints != null) {
@@ -237,6 +277,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                 state.nextEndpointIndex = 0;
             }
         }
+        
+        logger.exit(this, methodName);
     }
 
 }

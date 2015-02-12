@@ -18,6 +18,9 @@
  */
 package com.ibm.mqlight.api;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 /**
  * A set of options that can be used to configure the behaviour of the <code>NonBlockingClient</code>
  * {@link NonBlockingClient#send(String, java.nio.ByteBuffer, Map, SendOptions, CompletionListener, Object)} and
@@ -29,12 +32,19 @@ package com.ibm.mqlight.api;
  */
 public class SendOptions {
 
+    private static final Logger logger = LoggerFactory.getLogger(SendOptions.class);
+  
     private final QOS qos;
     private final long ttl;
 
     private SendOptions(QOS qos, long ttl) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, qos, ttl);
+      
         this.qos = qos;
         this.ttl = ttl;
+        
+        logger.exit(this, methodName);
     }
 
     public final QOS getQos() {
@@ -81,8 +91,18 @@ public class SendOptions {
          *         called on.
          */
         public SendOptionsBuilder setQos(QOS qos) {
-            if (qos == null) throw new IllegalArgumentException("qos argument cannot be null");
+            final String methodName = "setQos";
+            logger.entry(this, methodName, qos);
+          
+            if (qos == null) {
+              final IllegalArgumentException exception = new IllegalArgumentException("qos argument cannot be null");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
+            }
             this.qos = qos;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 
@@ -95,10 +115,18 @@ public class SendOptions {
          *         Valid <code>ttl</code> values must be an unsigned non-zero integer number.
          */
         public SendOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
+            final String methodName = "setTtl";
+            logger.entry(this, methodName, ttl);
+          
             if (ttl < 1 || ttl > 4294967295L) {
-                throw new IllegalArgumentException("ttl value '" + ttl + "' is invalid, must be an unsigned non-zero integer number");
+              final IllegalArgumentException exception = new IllegalArgumentException("ttl value '" + ttl + "' is invalid, must be an unsigned non-zero integer number");
+              logger.throwing(this,  methodName, exception);
+              throw exception;
             }
             this.ttl = ttl;
+            
+            logger.exit(this, methodName, this);
+            
             return this;
         }
 

@@ -19,6 +19,8 @@
 package com.ibm.mqlight.api.impl;
 
 import com.ibm.mqlight.api.impl.logging.logback.LogbackLoggingImpl;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 /**
  * Sets up logging using logback, when it is available.
@@ -28,6 +30,8 @@ import com.ibm.mqlight.api.impl.logging.logback.LogbackLoggingImpl;
  */
 public class LogbackLogging {
     
+    private static final Logger logger = LoggerFactory.getLogger(LogbackLogging.class);
+  
     /** Indicates whether or not logback is available. If it is not, methods in this class do nothing. */
     private static final boolean logbackAvailable;
     static {
@@ -39,6 +43,8 @@ public class LogbackLogging {
         // Ignore: this indicates that we don't have logback on the classpath
       }
       logbackAvailable = available;
+      
+      logger.data("<clinit>", "logbackAvailable: "+logbackAvailable);
     }
 
     /**
