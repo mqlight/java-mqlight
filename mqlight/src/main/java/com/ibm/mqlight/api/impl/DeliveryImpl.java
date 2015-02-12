@@ -24,9 +24,13 @@ import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public abstract class DeliveryImpl implements Delivery {
 
+    private static final Logger logger = LoggerFactory.getLogger(DeliveryImpl.class);
+  
     private final NonBlockingClientImpl client;
     private final QOS qos;
     private final String share;
@@ -38,6 +42,9 @@ public abstract class DeliveryImpl implements Delivery {
     private boolean confirmed = false;
 
     protected DeliveryImpl(NonBlockingClientImpl client, QOS qos, String share, String topic, String topicPattern, long ttl, Map<String, Object> properties, DeliveryRequest deliveryRequest) {
+        final String methodName = "<init>";
+        logger.entry(this, methodName, client, qos, share, topic, topicPattern, ttl, properties, deliveryRequest);
+      
         this.client = client;
         this.qos = qos;
         this.share = share;
@@ -46,6 +53,8 @@ public abstract class DeliveryImpl implements Delivery {
         this.ttl = ttl;
         this.properties = properties;
         this.deliveryRequest = deliveryRequest;
+        
+        logger.exit(this, methodName);
     }
 
     @Override
@@ -53,6 +62,9 @@ public abstract class DeliveryImpl implements Delivery {
 
     @Override
     public void confirm() {
+        final String methodName = "confirm";
+        logger.entry(this, methodName);
+      
         if (deliveryRequest == null) {
             if (qos == QOS.AT_MOST_ONCE) {
                 throw new StateException("Confirming the receipt of delivery is applicable only when 'at least once' quality of service has been requested");
@@ -68,6 +80,8 @@ public abstract class DeliveryImpl implements Delivery {
                 confirmed = true;
             }
         }
+        
+        logger.exit(this, methodName);
     }
 
     @Override
