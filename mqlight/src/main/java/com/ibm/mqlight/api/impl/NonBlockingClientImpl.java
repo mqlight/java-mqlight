@@ -599,8 +599,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             SubscribeResponse sr = (SubscribeResponse)message;
             SubData sd = subscribedDestinations.get(sr.topic);
             if (sd != null) {
-                sd.inProgressSubscribe.future.postSuccess(callbackService);
-                sd.inProgressSubscribe = null;
+                if (sd.inProgressSubscribe != null) {
+                    sd.inProgressSubscribe.future.postSuccess(callbackService);
+                    sd.inProgressSubscribe = null;
+                }
                 sd.state = SubData.State.ESTABLISHED;
                 // Replay any pending operations on the subscription
                 while(!sd.pending.isEmpty()) {
