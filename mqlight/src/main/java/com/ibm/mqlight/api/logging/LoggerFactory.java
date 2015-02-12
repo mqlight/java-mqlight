@@ -62,7 +62,7 @@ public abstract class LoggerFactory {
   /**
    * Obtains a {@link Logger} implementation for the specified {@link org.slf4j.Logger}.
    *  
-   * @param clazz Class to be associated with the logger instance.
+   * @param logger The {@link org.slf4j.Logger} to be associated with the logger instance.
    * @return {@link Logger} instance for trace and information logging.
    */
   public static Logger getLogger(org.slf4j.Logger logger) {
