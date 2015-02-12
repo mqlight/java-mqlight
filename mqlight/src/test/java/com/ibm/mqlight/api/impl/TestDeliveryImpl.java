@@ -18,11 +18,12 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import junit.framework.AssertionFailedError;
-import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -116,6 +117,19 @@ public class TestDeliveryImpl {
             // Expected: delivery was auto-confirm...
         }
     }
+    
+    @Test
+    public void confirmWhenQos0() {
+        MockClient client = new MockClient(true);
+        MockDelivery delivery =
+                new MockDelivery(client, QOS.AT_MOST_ONCE, null, "topic", "topic", 0, null, null);
+        try {
+            delivery.confirm();
+            throw new AssertionFailedError("Expected StateException to be thrown");
+        } catch(StateException e) {
+            // Expected: delivery was auto-confirm...
+        }
+    }    
 
     @Test
     public void confirmSuccessful() {
