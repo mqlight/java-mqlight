@@ -47,6 +47,7 @@ import org.apache.qpid.proton.engine.Transport;
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
+import com.ibm.mqlight.api.ReplacedException;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.impl.network.ConnectResponse;
@@ -333,7 +334,8 @@ public class Engine extends Component {
                 engineConnection.notifyInflightQos0(true);
                 engineConnection.closed = true;
                 engineConnection.transport.close_tail();
-                engineConnection.requestor.tell(new DisconnectNotification(engineConnection, ce.cause.getClass().toString(), ce.cause.getMessage()), this);
+                engineConnection.requestor.tell(new DisconnectNotification(
+                        engineConnection, ce.cause), this);
             }
         } else if (message instanceof PopResponse) {
             PopResponse pr = (PopResponse)message;
@@ -494,7 +496,13 @@ public class Engine extends Component {
                         if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getDescription() != null)) {
                             description = event.getConnection().getRemoteCondition().getDescription();
                         }
-                        engineConnection.requestor.tell(new DisconnectNotification(engineConnection, condition, description), this);
+                        Throwable error = null;
+                        if ("ServerContext_Takeover".equals(condition)) {
+                            error = new ReplacedException(description);
+                        } else if (description.length() > 0) {
+                            error = new ClientException(description);
+                        }
+                        engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
                     }
                 }
             } else {

@@ -97,6 +97,7 @@ public class TestNonBlockingClientImpl {
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
         @Override public File getCertChainFile() { return null; }
+        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() {return null;}
     }
@@ -826,7 +827,7 @@ public class TestNonBlockingClientImpl {
         MockCompletionListener inflightQos1Listener = new MockCompletionListener();
         client.send("/inflight/qos1", "data", null, SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build(), inflightQos1Listener, null);
 
-        client.tell(new DisconnectNotification(engineConnection, "you got", "disconnected!"), engine);
+        client.tell(new DisconnectNotification(engineConnection, new ClientException("you got disconnected!")), engine);
         assertEquals(ClientState.RETRYING, client.getState());
 
         MockCompletionListener queuedQos0Listener = new MockCompletionListener();

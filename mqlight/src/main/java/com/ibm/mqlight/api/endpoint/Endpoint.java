@@ -49,6 +49,12 @@ public interface Endpoint {
     File getCertChainFile();
     
     /**
+     * @return a {@code boolean} indicating whether the client validates that
+     *         the CN name of the server's certificate matches its DNS name.
+     */
+    boolean getVerifyName();
+    
+    /**
      * @return the user name to use as part of a SASL PLAIN flow used to
      *         authenticate the client.  If this value is <code>null</code>
      *         then the SASL ANONYMOUS mechanism will be used instead.

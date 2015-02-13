@@ -18,6 +18,12 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -29,9 +35,6 @@ import org.apache.qpid.proton.engine.Event;
 import org.apache.qpid.proton.engine.Handler;
 import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sender;
-
-import static org.junit.Assert.*;
-
 import org.junit.Test;
 
 import com.ibm.mqlight.api.Promise;
@@ -155,6 +158,7 @@ public class TestEngine {
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
         @Override public File getCertChainFile() { return null; }
+        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
     }

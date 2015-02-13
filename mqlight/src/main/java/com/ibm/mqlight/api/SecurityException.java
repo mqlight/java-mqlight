@@ -16,17 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ibm.mqlight.api.impl.engine;
+package com.ibm.mqlight.api;
 
-import com.ibm.mqlight.api.impl.Message;
+/**
+ * Used to indicate that a client has failed due to a security related problem. In this case
+ * the client is disconnected from the MQ Light server and notified using an
+ * instance of this exception.
+ */
+public class SecurityException extends ClientException {
+    private static final long serialVersionUID = -2062256960236598587L;
 
-public class DisconnectNotification extends Message {
-
-    public final EngineConnection connection;
-    public final Throwable error;
+    public SecurityException(String message) {
+        super(message);
+    }
     
-    public DisconnectNotification(EngineConnection connection, Throwable error) {
-        this.connection = connection;
-        this.error = error;
+    public SecurityException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

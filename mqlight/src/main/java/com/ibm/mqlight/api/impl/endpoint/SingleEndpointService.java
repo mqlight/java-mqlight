@@ -65,11 +65,11 @@ public class SingleEndpointService extends EndpointServiceImpl {
         logger.exit(this, methodName);
     }
 
-    public SingleEndpointService(String uri, String user, String password, File certChainFile) {
+    public SingleEndpointService(String uri, String user, String password, File certChainFile, boolean verifyName) {
         final String methodName = "<init>";
-        logger.entry(this, methodName, uri, user, "******", certChainFile);
+        logger.entry(this, methodName, uri, user, "******", certChainFile, verifyName);
       
-        endpoint = new EndpointImpl(uri, user, password, certChainFile);
+        endpoint = new EndpointImpl(uri, user, password, certChainFile, verifyName);
         
         logger.exit(this, methodName);
     }

@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
@@ -111,9 +112,24 @@ public class NettyNetworkService implements NetworkService {
             } else {
                 exception = new Exception(cause);   // TODO: wrap in a better exception...
             }
-            while (exception.getCause() != null && exception.getCause() instanceof Exception) {
+            // if we have a nested chain of causes, walk it until we have at 
+            // most a single pair of Exception and cause
+            while (exception.getCause() != null && 
+                    exception.getCause() instanceof Exception) {
+                if (exception.getCause().getCause() == null) {
+                    break;
+                }
                 exception = (Exception) exception.getCause();
             }
+            
+            // rewrap security-related exceptions
+            final String condition = exception.getClass().getName();
+            if (condition.contains("javax.net.ssl") || 
+                    condition.contains("java.security")) {
+                exception = new com.ibm.mqlight.api.SecurityException(
+                        exception.getMessage(), exception.getCause());
+            }
+            
             if (listener != null) {
                 listener.onError(this, exception);
             }
@@ -299,8 +315,15 @@ public class NettyNetworkService implements NetworkService {
         SslContext sslCtx = null;
         try {
             sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
+            SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
+            sslEngine.setUseClientMode(true);
+            if (endpoint.getVerifyName()) {
+                SSLParameters sslParams = sslEngine.getSSLParameters();
+                sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+                sslEngine.setSSLParameters(sslParams);
+            }
             
-            final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslCtx);
+            final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine);
             final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
             f.addListener(new ConnectListener(f, promise, listener));
 
@@ -324,15 +347,15 @@ public class NettyNetworkService implements NetworkService {
      * @param secure
      *            a {@code boolean} indicating whether or not a secure channel
      *            will be required
-     * @param sslCtx
-     *            an {@link SslContext} if one should be used to secure the channel
+     * @param sslEngine
+     *            an {@link SSLEngine} if one should be used to secure the channel
      * @return a netty {@link Bootstrap} object suitable for obtaining a
      *         {@link Channel} from
      */
     private static synchronized Bootstrap getBootstrap(final boolean secure,
-            final SslContext sslCtx) {
+            final SSLEngine sslEngine) {
         final String methodName = "getBootstrap";
-        logger.entry(methodName, secure, sslCtx);
+        logger.entry(methodName, secure, sslEngine);
       
         ++useCount;
         if (useCount == 1) {
@@ -345,8 +368,6 @@ public class NettyNetworkService implements NetworkService {
             secureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    SSLEngine sslEngine = sslCtx.newEngine(ch.alloc());
-                    sslEngine.setUseClientMode(true);
                     ch.pipeline().addFirst(new SslHandler(sslEngine));
                     ch.pipeline().addLast(new NettyInboundHandler(ch));
                 }

@@ -150,6 +150,7 @@ public class TestNettyNetworkService {
         @Override public int getPort() { return port; }
         @Override public boolean useSsl() { return false; }
         @Override public File getCertChainFile() { return null; }
+        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
     }

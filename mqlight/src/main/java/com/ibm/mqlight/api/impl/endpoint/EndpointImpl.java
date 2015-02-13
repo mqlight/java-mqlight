@@ -34,17 +34,18 @@ class EndpointImpl implements Endpoint {
     private int port;
     private boolean useSsl;
     private File certChainFile;
+    private boolean verifyName;
     private String user;
     private String password;
     
     
     protected EndpointImpl(final String uri, final String user,
             final String password) throws IllegalArgumentException {
-        this(uri, user, password, null);
+        this(uri, user, password, null, false);
     }
     
     protected EndpointImpl(final String uri, final String user,
-            final String password, final File certChainFile)
+            final String password, final File certChainFile, final boolean verifyName)
             throws IllegalArgumentException {
         final String methodName = "<init>";
         logger.entry(this, methodName, uri, user, "******", certChainFile);
@@ -148,6 +149,7 @@ class EndpointImpl implements Endpoint {
             }
             this.certChainFile = certChainFile;
         }
+        this.verifyName = verifyName;
         
         logger.exit(this, methodName);
     }
@@ -170,6 +172,11 @@ class EndpointImpl implements Endpoint {
     @Override
     public File getCertChainFile() {
         return certChainFile;
+    }
+    
+    @Override
+    public boolean getVerifyName() {
+        return verifyName;
     }
 
     @Override

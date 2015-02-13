@@ -229,7 +229,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 : new SingleEndpointService(service,
                         options == null ? null : options.getUser(),
                                 options == null ? null : options.getPassword(),
-                                        options == null ? null : options.getCertificateFile()),
+                                        options == null ? null : options.getCertificateFile(),
+                                                options == null ? true : options.getVerifyName()),
                 new ThreadPoolCallbackService(5), new NettyNetworkService(),
                 new TimerServiceImpl(), null, options, listener, context);
     }
@@ -872,14 +873,19 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof DisconnectNotification) {
             remakingInboundLinks = false;
             DisconnectNotification dn = (DisconnectNotification)message;
-            if ("ServerContext_Takeover".equals(dn.condition)) {
-                if (lastException == null) lastException = new ReplacedException(dn.description);
+            
+            final Throwable error = dn.error;
+            if (error instanceof ReplacedException) {
+                if (lastException == null) lastException = (ReplacedException) error;
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
-            } else if (dn.condition.contains("javax.net.ssl") || dn.condition.contains("java.security")) {
-                if (lastException == null) lastException = new ClientException(dn.description);
+            } else if (error instanceof com.ibm.mqlight.api.SecurityException) {
+                if (lastException == null) lastException = (com.ibm.mqlight.api.SecurityException) error;
                 stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
+            } else if (error instanceof ClientException) {
+                if (lastException == null) lastException = (ClientException) error;
+                stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
             } else {
-                if (lastException == null) lastException = new ClientException(dn.description);
+                if (lastException == null) lastException = new ClientException(error.getMessage(), error.getCause());
                 stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
             }
         } else if (message instanceof FlushResponse) {
