@@ -194,6 +194,7 @@ class NonBlockingFSMFactory {
         config.configure(NonBlockingClientState.Retrying2B)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.Retrying2A)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2E)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Retrying2C)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_OK, openConnectionAction);
