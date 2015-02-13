@@ -74,8 +74,7 @@ class Javacore {
       javaDumpMethod = dumpClass.getMethod("JavaDump", new Class<?>[0]);
     } catch (final Exception exception) {
       // No FFDC required - we might not be running on a JVM which
-      // supports the IBM JavaDump classes (which includes the Sun and
-      // HPUX JVMS shipped with FTE).
+      // supports the IBM JavaDump classes.
       logger.data("<clinit>", "Can't load com.ibm.jvm.Dump");
     }
   }
