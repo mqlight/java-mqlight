@@ -672,9 +672,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             OpenResponse or = (OpenResponse)message;
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
-                if ((or.exception.getMessage() != null) &&
-                    (or.exception.getMessage().toLowerCase().contains("sasl") || or.exception.getMessage().toLowerCase().contains("authenticate"))) {
-
+                
+                // TODO: refactor and improve classification of "fatal" exceptions
+                final String exMessage = or.exception.getMessage();
+                final Throwable exCause = or.exception.getCause();
+                if ((exMessage != null)
+                        && (exMessage.toLowerCase().contains("sasl") ||
+                                exMessage.toLowerCase().contains("authenticate"))) {
+                    stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
+                } else if (((exCause != null)
+                        && (exCause.getClass().getName().toLowerCase().contains("java.security") || 
+                                exCause.getClass().getName().toLowerCase().contains("javax.net.ssl")))) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_RETRY);
@@ -867,7 +875,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if ("ServerContext_Takeover".equals(dn.condition)) {
                 if (lastException == null) lastException = new ReplacedException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
-            } else if (dn.description.contains("javax.net.ssl")) {
+            } else if (dn.condition.contains("javax.net.ssl") || dn.condition.contains("java.security")) {
                 if (lastException == null) lastException = new ClientException(dn.description);
                 stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
             } else {
