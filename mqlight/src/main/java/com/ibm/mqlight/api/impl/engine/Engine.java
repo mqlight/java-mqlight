@@ -60,6 +60,7 @@ import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -610,7 +611,8 @@ public class Engine extends Component {
                     EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.remove(link.getName());
 
                     if (sd == null) {
-                        // TODO: FFDC / IllegalStateException?
+                      logger.ffdc(this, methodName, FFDCProbeId.PROBE_001, null, this, event);
+                        // TODO: throw IllegalStateException?
                     } else {
                         // we assume that getRemoteConnection will be null if there is no error
                         ClientException clientException = null;

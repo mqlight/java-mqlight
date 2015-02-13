@@ -34,108 +34,108 @@ class MockLogger implements org.slf4j.Logger {
   }
   
   public MockEvent getEvent() {
-    return events.pop();
+    return events.removeFirst();
   }
   
   
   @Override
   public void debug(String msg) {
-    events.push(new MockEvent("debug", null, msg));
+    events.addLast(new MockEvent("debug", null, msg));
   }
 
   @Override
   public void debug(String format, Object arg) {
-    events.push(new MockEvent("debug", null, format, arg));
+    events.addLast(new MockEvent("debug", null, format, arg));
   }
 
   @Override
   public void debug(String format, Object... arguments) {
-    events.push(new MockEvent("debug", null, format, arguments));
+    events.addLast(new MockEvent("debug", null, format, arguments));
   }
 
   @Override
   public void debug(String msg, Throwable t) {
-    events.push(new MockEvent("debug", null, msg, t));
+    events.addLast(new MockEvent("debug", null, msg, t));
   }
 
   @Override
   public void debug(Marker marker, String msg) {
-    events.push(new MockEvent("debug", marker, msg));
+    events.addLast(new MockEvent("debug", marker, msg));
   }
 
   @Override
   public void debug(String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("debug", null, format, arg1, arg2));
+    events.addLast(new MockEvent("debug", null, format, arg1, arg2));
   }
 
   @Override
   public void debug(Marker marker, String format, Object arg) {
-    events.push(new MockEvent("debug", marker, format, arg));
+    events.addLast(new MockEvent("debug", marker, format, arg));
   }
 
   @Override
   public void debug(Marker marker, String format, Object... arguments) {
-    events.push(new MockEvent("debug", marker, format, arguments));
+    events.addLast(new MockEvent("debug", marker, format, arguments));
   }
 
   @Override
   public void debug(Marker marker, String msg, Throwable t) {
-    events.push(new MockEvent("debug", marker, msg, t));
+    events.addLast(new MockEvent("debug", marker, msg, t));
   }
 
   @Override
   public void debug(Marker marker, String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("debug", marker, format, arg1, arg2));
+    events.addLast(new MockEvent("debug", marker, format, arg1, arg2));
   }
 
   @Override
   public void error(String msg) {
-    events.push(new MockEvent("error", null, msg));
+    events.addLast(new MockEvent("error", null, msg));
   }
 
   @Override
   public void error(String format, Object arg) {
-    events.push(new MockEvent("error", null, format, arg));
+    events.addLast(new MockEvent("error", null, format, arg));
   }
 
   @Override
   public void error(String format, Object... arguments) {
-    events.push(new MockEvent("error", null, format, arguments));
+    events.addLast(new MockEvent("error", null, format, arguments));
   }
 
   @Override
   public void error(String msg, Throwable t) {
-    events.push(new MockEvent("error", null, msg, t));
+    events.addLast(new MockEvent("error", null, msg, t));
   }
 
   @Override
   public void error(Marker marker, String format) {
-    events.push(new MockEvent("error", marker, format));
+    events.addLast(new MockEvent("error", marker, format));
   }
 
   @Override
   public void error(String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("error", null, format, arg1, arg2));
+    events.addLast(new MockEvent("error", null, format, arg1, arg2));
   }
 
   @Override
   public void error(Marker marker, String format, Object arg) {
-    events.push(new MockEvent("error", marker, format, arg));
+    events.addLast(new MockEvent("error", marker, format, arg));
   }
 
   @Override
   public void error(Marker marker, String format, Object... arguments) {
-    events.push(new MockEvent("error", marker, format, arguments));
+    events.addLast(new MockEvent("error", marker, format, arguments));
   }
 
   @Override
   public void error(Marker marker, String format, Throwable t) {
-    events.push(new MockEvent("error", marker, format, t));
+    events.addLast(new MockEvent("error", marker, format, t));
   }
 
   @Override
   public void error(Marker marker, String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("error", marker, format, arg1, arg2));
+    events.addLast(new MockEvent("error", marker, format, arg1, arg2));
   }
 
   @Override
@@ -145,52 +145,52 @@ class MockLogger implements org.slf4j.Logger {
 
   @Override
   public void info(String msg) {
-    events.push(new MockEvent("info", null, msg));
+    events.addLast(new MockEvent("info", null, msg));
   }
 
   @Override
   public void info(String format, Object arg) {
-    events.push(new MockEvent("info", null, format, arg));
+    events.addLast(new MockEvent("info", null, format, arg));
   }
 
   @Override
   public void info(String format, Object... arguments) {
-    events.push(new MockEvent("info", null, format, arguments));
+    events.addLast(new MockEvent("info", null, format, arguments));
   }
 
   @Override
   public void info(String msg, Throwable t) {
-    events.push(new MockEvent("info", null, msg, t));
+    events.addLast(new MockEvent("info", null, msg, t));
   }
 
   @Override
   public void info(Marker marker, String msg) {
-    events.push(new MockEvent("info", marker, msg));
+    events.addLast(new MockEvent("info", marker, msg));
   }
 
   @Override
   public void info(String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("info", null, format, arg1, arg2));
+    events.addLast(new MockEvent("info", null, format, arg1, arg2));
   }
 
   @Override
   public void info(Marker marker, String format, Object arg) {
-    events.push(new MockEvent("info", marker, format, arg));
+    events.addLast(new MockEvent("info", marker, format, arg));
   }
 
   @Override
   public void info(Marker marker, String format, Object... arguments) {
-    events.push(new MockEvent("info", marker, format, arguments));
+    events.addLast(new MockEvent("info", marker, format, arguments));
   }
 
   @Override
   public void info(Marker marker, String msg, Throwable t) {
-    events.push(new MockEvent("info", marker, msg, t));
+    events.addLast(new MockEvent("info", marker, msg, t));
   }
 
   @Override
   public void info(Marker marker, String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("info", marker, format, arg1, arg2));
+    events.addLast(new MockEvent("info", marker, format, arg1, arg2));
   }
 
   @Override
@@ -245,102 +245,102 @@ class MockLogger implements org.slf4j.Logger {
 
   @Override
   public void trace(String msg) {
-    events.push(new MockEvent("trace", null, msg));
+    events.addLast(new MockEvent("trace", null, msg));
   }
 
   @Override
   public void trace(String format, Object arg) {
-    events.push(new MockEvent("trace", null, format, arg));
+    events.addLast(new MockEvent("trace", null, format, arg));
   }
 
   @Override
   public void trace(String format, Object... arguments) {
-    events.push(new MockEvent("trace", null, format, arguments));
+    events.addLast(new MockEvent("trace", null, format, arguments));
   }
 
   @Override
   public void trace(String msg, Throwable t) {
-    events.push(new MockEvent("trace", null, msg, t));
+    events.addLast(new MockEvent("trace", null, msg, t));
   }
 
   @Override
   public void trace(Marker marker, String msg) {
-    events.push(new MockEvent("trace", marker, msg));
+    events.addLast(new MockEvent("trace", marker, msg));
   }
 
   @Override
   public void trace(String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("trace", null, format, arg1, arg2));
+    events.addLast(new MockEvent("trace", null, format, arg1, arg2));
   }
 
   @Override
   public void trace(Marker marker, String format, Object arg) {
-    events.push(new MockEvent("trace", marker, format, arg));
+    events.addLast(new MockEvent("trace", marker, format, arg));
   }
 
   @Override
   public void trace(Marker marker, String format, Object... arguments) {
-    events.push(new MockEvent("trace", marker, format, arguments));
+    events.addLast(new MockEvent("trace", marker, format, arguments));
   }
 
   @Override
   public void trace(Marker marker, String msg, Throwable t) {
-    events.push(new MockEvent("trace", marker, msg, t));
+    events.addLast(new MockEvent("trace", marker, msg, t));
   }
 
   @Override
   public void trace(Marker marker, String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("trace", marker, format, arg1, arg2));
+    events.addLast(new MockEvent("trace", marker, format, arg1, arg2));
   }
 
   @Override
   public void warn(String msg) {
-    events.push(new MockEvent("warn", null, msg));
+    events.addLast(new MockEvent("warn", null, msg));
   }
 
   @Override
   public void warn(String format, Object arg) {
-    events.push(new MockEvent("warn", null, format, arg));
+    events.addLast(new MockEvent("warn", null, format, arg));
   }
 
   @Override
   public void warn(String format, Object... arguments) {
-    events.push(new MockEvent("warn", null, format, arguments));
+    events.addLast(new MockEvent("warn", null, format, arguments));
   }
 
   @Override
   public void warn(String msg, Throwable t) {
-    events.push(new MockEvent("warn", null, msg, t));
+    events.addLast(new MockEvent("warn", null, msg, t));
   }
 
   @Override
   public void warn(Marker marker, String msg) {
-    events.push(new MockEvent("warn", marker, msg));
+    events.addLast(new MockEvent("warn", marker, msg));
   }
 
   @Override
   public void warn(String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("warn", null, format, arg1, arg2));
+    events.addLast(new MockEvent("warn", null, format, arg1, arg2));
   }
 
   @Override
   public void warn(Marker marker, String format, Object arg) {
-    events.push(new MockEvent("warn", marker, format, arg));
+    events.addLast(new MockEvent("warn", marker, format, arg));
   }
 
   @Override
   public void warn(Marker marker, String format, Object... arguments) {
-    events.push(new MockEvent("warn", marker, format, arguments));
+    events.addLast(new MockEvent("warn", marker, format, arguments));
   }
 
   @Override
   public void warn(Marker marker, String msg, Throwable t) {
-    events.push(new MockEvent("warn", marker, msg, t));
+    events.addLast(new MockEvent("warn", marker, msg, t));
   }
 
   @Override
   public void warn(Marker marker, String format, Object arg1, Object arg2) {
-    events.push(new MockEvent("warn", marker, format, arg1, arg2));
+    events.addLast(new MockEvent("warn", marker, format, arg1, arg2));
   }
 
 }

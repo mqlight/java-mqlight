@@ -21,6 +21,7 @@ package com.ibm.mqlight.api.impl.logging;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.NoSuchElementException;
 import org.junit.Test;
 import org.slf4j.MDC;
 
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -366,6 +368,38 @@ public class TestLoggerImpl {
     assertEquals("Unexpected throwable", testException, event.throwable);
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
+    
+    try {
+      event = logger.getEvent();
+      fail("Unexpected event: "+event);
+    } catch(NoSuchElementException e) {
+    }
+  }
+  
+  @Test
+  public void testFFDC() {
+
+    final MockLogger logger = new MockLogger(this.getClass().getName());
+    final Logger testLogger = LoggerFactory.getLogger(logger);
+    final String methodName = "testFFDCMethod";
+    final Exception exception = new Exception("TestExceptionForFFDC");
+    testLogger.ffdc(this, methodName, FFDCProbeId.PROBE_007, exception, "data1", "data2");
+    
+    MockEvent event = logger.getEvent();
+    System.out.println(event.message);
+    assertEquals("Unexpected type", "error", event.type);
+    assertEquals("Unexpected marker", LogMarker.FFDC.getValue(), event.marker);
+    assertTrue("Unexpected message", event.message.contains(FFDCProbeId.PROBE_007.toString()));
+    assertTrue("Unexpected message", event.message.contains("testFFDCMethod"));
+    assertTrue("Unexpected message", event.message.contains(this.getClass().getName()));
+    assertTrue("Unexpected message", event.message.contains("java.lang.Exception: TestExceptionForFFDC"));
+    assertTrue("Unexpected message", event.message.contains("data1"));
+    assertTrue("Unexpected message", event.message.contains("data2"));
+
+    event = logger.getEvent();
+    System.out.println(event.message);
+    assertEquals("Unexpected type", "info", event.type);
+    assertTrue("Unexpected message", event.message.startsWith("Javacore diagnostic information"));
     
     try {
       event = logger.getEvent();

@@ -189,5 +189,28 @@ public interface Logger {
    * @param throwable Causing the event.
    */
   public abstract void throwing(Object source, String methodName, Throwable throwable);
+
+  /**
+   * Captures FFDC information.
+   * 
+   * @param methodName Name of the calling method.
+   * @param probeId A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
+   *          class.
+   * @param throwable The throwable that triggered capturing of FFDC information. This can be null if there is no obvious throwable cause.
+   * @param data Arbitrary data that is captured into the FFDC record.
+   */
+  public abstract void ffdc(String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
+
+  /**
+   * Captures FFDC information.
+   * 
+   * @param source Object requesting the FFDC.
+   * @param methodName Name of the calling method.
+   * @param probeId A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
+   *          class.
+   * @param throwable The throwable that triggered capturing of FFDC information. This can be null if there is no obvious throwable cause.
+   * @param data Arbitrary data that is captured into the FFDC record.
+   */
+  public abstract void ffdc(Object source, String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
 }
 

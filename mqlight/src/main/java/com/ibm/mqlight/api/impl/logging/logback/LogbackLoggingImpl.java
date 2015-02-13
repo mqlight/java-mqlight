@@ -21,28 +21,25 @@ package com.ibm.mqlight.api.impl.logging.logback;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import com.ibm.mqlight.api.logging.Logger;
-import com.ibm.mqlight.api.logging.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
+
+import com.ibm.mqlight.api.impl.logging.Version;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
 
 /**
  * Sets up logging using logback, when it is available.
@@ -213,33 +210,10 @@ public class LogbackLoggingImpl {
       }
     }
 
-    logger.info(headerMarker, "\nVersion: "+getVersion());
+    logger.info(headerMarker, "\nVersion: "+Version.getVersion());
     
     logger.info(headerMarker, "\nTimeStamp    TID  ClientId     ObjectId  Class                                                                                      Data");
     logger.info(headerMarker, "======================================================================================================================================================================");
-  }
-
-  /**
-   * Helper method to obtain the MQ Light version information from the manifest.
-   * 
-   * @return The MQ Light version.
-   */
-  private static String getVersion() {
-    String version = "unknown";
-    final URLClassLoader cl = (URLClassLoader)cclass.getClassLoader();
-    try {
-      final URL url = cl.findResource("META-INF/MANIFEST.MF");
-      final Manifest manifest = new Manifest(url.openStream());
-      for (Entry<Object,Object> entry : manifest.getMainAttributes().entrySet()) {
-        final Attributes.Name key = (Attributes.Name)entry.getKey();
-        if(Attributes.Name.IMPLEMENTATION_VERSION.equals(key)) {
-          version = (String)entry.getValue();
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return version;
   }
 
   /**

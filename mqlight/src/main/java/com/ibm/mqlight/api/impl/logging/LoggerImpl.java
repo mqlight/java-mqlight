@@ -22,6 +22,7 @@ package com.ibm.mqlight.api.impl.logging;
 import org.slf4j.MDC;
 import org.slf4j.Marker;
 
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 
 /**
@@ -179,5 +180,15 @@ class LoggerImpl implements Logger {
     // TODO this is invoking the Logger.trace(Marker, String, Object, Object) method so not sure if this will work as intended for all Logger implementations (i.e. the fact that an
     // exception has been thrown may be lost)
     logger.trace(LogMarker.THROWING.getValue(), methodName, source, throwable);
+  }
+
+  @Override
+  public void ffdc(String methodName, FFDCProbeId probeId, Throwable throwable, Object... data) {
+    FFDC.capture(logger, methodName, probeId, throwable, data);
+  }
+
+  @Override
+  public void ffdc(Object source, String methodName, FFDCProbeId probeId, Throwable throwable, Object... data) {
+    FFDC.capture(logger, source, methodName, probeId, throwable, data);
   }
 }
