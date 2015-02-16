@@ -54,13 +54,11 @@ public class Receive {
                     "                        amqp://user:password@host:5672 or\n" +
                     "                        amqps://host:5671 to use SSL/TLS\n" +
                     "                        (default: amqp://localhost)");
-        /* TODO: not implemented yet...
         out.println("  -c FILE, --trust-certificate=FILE\n" +
                     "                        use the certificate contained in FILE (in PEM format) to\n" +
                     "                        validate the identity of the server. The connection must\n" +
                     "                        be secured with SSL/TLS (e.g. the service URL must start\n" +
                     "                        with 'amqps://')");
-        */
         out.println("  -t TOPICPATTERN, --topic-pattern=TOPICPATTERN\n" +
                     "                        subscribe to receive messages matching TOPICPATTERN");
         out.println("                        (default: public)");
@@ -173,7 +171,7 @@ public class Receive {
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-h", "--help", Boolean.class, null)
               .expect("-s", "--service", String.class, "amqp://localhost")
-            /*.expect("-c", "--trust-certificate", String.class, null) // TODO: not implemented yet... */
+              .expect("-c", "--trust-certificate", String.class, null)
               .expect("-t", "--topic-pattern", String.class, "public")
               .expect("-i", "--id", String.class, null)
               .expect(null, "--destination-ttl", Double.class, 0.0)
@@ -258,6 +256,9 @@ public class Receive {
                 if (throwable != null) {
                     System.err.println("*** error ***");
                     System.err.println(throwable.getMessage());
+                    if (throwable.getCause() != null) {
+                        System.err.println(throwable.getCause().toString());
+                    }
                 }
                 scheduledExecutor.shutdownNow();
                 System.out.println("Exiting");

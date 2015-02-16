@@ -48,13 +48,11 @@ public class Send {
                     "                        amqp://user:password@host:5672 or\n" +
                     "                        amqps://host:5671 to use SSL/TLS\n" +
                     "                        (default: amqp://localhost)");
-        /* TODO: not supported yet...
         out.println("  -c FILE, --trust-certificate=FILE\n" +
                     "                        use the certificate contained in FILE (in PEM format) to\n" +
                     "                        validate the identity of the server. The connection must\n" +
                     "                        be secured with SSL/TLS (e.g. the service URL must start\n" +
                     "                        with 'amqps://')");
-        */
         out.println("  -t TOPIC, --topic=TOPIC");
         out.println("                        send messages to topic TOPIC\n" +
                     "                        (default: public)");
@@ -136,7 +134,7 @@ public class Send {
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-h", "--help", Boolean.class, null)
               .expect("-s", "--service", String.class, "amqp://localhost")
-        /*      .expect("-c", "--trust-certificate", String.class, null)  TODO: not implemented yet... */
+              .expect("-c", "--trust-certificate", String.class, null)
               .expect("-t", "--topic", String.class, "public")
               .expect("-i", "--id", String.class, null)
               .expect(null, "--message-ttl", Integer.class, null)
@@ -234,6 +232,9 @@ public class Send {
                 if (throwable != null) {
                     System.err.println("*** error ***");
                     System.err.println(throwable.getMessage());
+                    if (throwable.getCause() != null) {
+                        System.err.println(throwable.getCause().toString());
+                    }
                 }
                 scheduledExecutor.shutdownNow();
                 System.out.println("Exiting");
