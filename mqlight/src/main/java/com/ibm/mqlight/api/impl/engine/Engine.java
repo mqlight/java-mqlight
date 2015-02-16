@@ -250,15 +250,22 @@ public class Engine extends Component {
             UnsubscribeRequest ur = (UnsubscribeRequest) message;
             EngineConnection engineConnection = ur.connection;
             EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(ur.topic);
+            Target t = (Target)sd.receiver.getTarget();
+            Source s = (Source)sd.receiver.getSource();
             if (ur.zeroTtl) {
-                Target t = (Target)sd.receiver.getTarget();
                 t.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
                 t.setTimeout(new UnsignedInteger(0));
-                Source s = (Source)sd.receiver.getSource();
                 s.setTimeout(new UnsignedInteger(0));
                 s.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
             }
-            sd.receiver.close();
+
+            // detach link if expiry is still in effect, else close
+            if (t.getExpiryPolicy() == TerminusExpiryPolicy.NEVER ||
+                    t.getTimeout().longValue() > 0) {
+                sd.receiver.detach();
+            } else {
+                sd.receiver.close();
+            }
             writeToNetwork(engineConnection);
 
         } else if (message instanceof DeliveryResponse) {
