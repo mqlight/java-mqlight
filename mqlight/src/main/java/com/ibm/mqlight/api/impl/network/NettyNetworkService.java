@@ -134,7 +134,6 @@ public class NettyNetworkService implements NetworkService {
             if (listener != null) {
                 listener.onError(this, exception);
             }
-            decrementUseCount();
             
             logger.exit(this, methodName);
         }
@@ -408,6 +407,7 @@ public class NettyNetworkService implements NetworkService {
             }
             secureBootstrap = null;
             insecureBootstrap = null;
+            useCount = 0;
         }
         
         logger.exit(methodName);
