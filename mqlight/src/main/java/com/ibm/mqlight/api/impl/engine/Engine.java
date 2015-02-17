@@ -629,9 +629,9 @@ public class Engine extends Component {
                       logger.ffdc(this, methodName, FFDCProbeId.PROBE_001, null, this, event);
                         // TODO: throw IllegalStateException?
                     } else {
-                        // we assume that getRemoteConnection will be null if there is no error
+                        // we assume that getRemoteConnection will be null or empty if there is no error
                         ClientException clientException = null;
-                        if (link.getRemoteCondition() != null) {
+                        if (link.getRemoteCondition() != null && link.getRemoteCondition().getCondition() != null) {
                             String errorDescription = link.getRemoteCondition().getDescription();
                             String errMsg = null;
                             if (errorDescription == null) {
