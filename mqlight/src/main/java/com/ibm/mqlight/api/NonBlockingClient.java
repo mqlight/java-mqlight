@@ -174,8 +174,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
      * @throws StateException if the client is in stopped or stopping state when this method is invoked.
-     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
-     *         invocations of the send method to be chained.
+     * @return a <code>boolean</code> <code>true</code> if the message was sent
+     *         immediately, or <code>false</code> if the message was buffered in
+     *         memory due to a backlog of messages to send over the network)
      */
     public abstract <T> boolean send(String topic, String data, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
     throws StateException;
@@ -196,8 +197,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
      * @throws StateException if the client is in stopped or stopping state when this method is invoked.
-     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
-     *         invocations of the send method to be chained.
+     * @return a <code>boolean</code> <code>true</code> if the message was sent
+     *         immediately, or <code>false</code> if the message was buffered in
+     *         memory due to a backlog of messages to send over the network)
      */
     public abstract <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
     throws StateException;
@@ -220,8 +222,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
      * @throws StateException if the client is in stopped or stopping state when this method is invoked.
-     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
-     *         invocations of the send method to be chained.
+     * @return a <code>boolean</code> <code>true</code> if the message was sent
+     *         immediately, or <code>false</code> if the message was buffered in
+     *         memory due to a backlog of messages to send over the network)
      */
     public abstract <T> boolean send(String topic, Object json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException;
@@ -246,8 +249,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
      * @throws StateException if the client is in stopped or stopping state when this method is invoked.
-     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
-     *         invocations of the send method to be chained.
+     * @return a <code>boolean</code> <code>true</code> if the message was sent
+     *         immediately, or <code>false</code> if the message was buffered in
+     *         memory due to a backlog of messages to send over the network)
      */
     public abstract <T> boolean send(String topic, Object json, Type type, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException;
@@ -270,8 +274,9 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
      * @throws StateException if the client is in stopped or stopping state when this method is invoked.
-     * @return the instance of <code>NonBlockingClient</code> that the send method was invoked upon.  This is to allow
-     *         invocations of the send method to be chained.
+     * @return a <code>boolean</code> <code>true</code> if the message was sent
+     *         immediately, or <code>false</code> if the message was buffered in
+     *         memory due to a backlog of messages to send over the network)
      */
     public abstract <T> boolean sendJson(String topic, String json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
             throws StateException;
