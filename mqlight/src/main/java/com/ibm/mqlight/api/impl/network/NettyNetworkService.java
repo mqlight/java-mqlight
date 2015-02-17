@@ -30,11 +30,19 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.JdkSslContext;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,6 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.Promise;
@@ -314,7 +323,28 @@ public class NettyNetworkService implements NetworkService {
         
         SslContext sslCtx = null;
         try {
-            sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
+            if (endpoint.getCertChainFile() != null && endpoint.getCertChainFile().exists()) {
+                try (FileInputStream fileInputStream = 
+                        new FileInputStream(endpoint.getCertChainFile())) {
+                    KeyStore jks = KeyStore.getInstance("JKS");
+                    jks.load(fileInputStream, null);
+                    TrustManagerFactory trustManagerFactory = TrustManagerFactory
+                            .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    trustManagerFactory.init(jks);
+                    sslCtx = SslContext.newClientContext();
+                    if (sslCtx instanceof JdkSslContext) {
+                        ((JdkSslContext) sslCtx).context().init(null,
+                                trustManagerFactory.getTrustManagers(), null);
+                    }
+                } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException | KeyManagementException e) {
+                    logger.data(methodName, e.toString());
+                }
+            }
+            // fallback to passing as .PEM file (or null, which loads default cacerts)
+            if (sslCtx == null) { 
+                sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
+            }
+            
             SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
             sslEngine.setUseClientMode(true);
             if (endpoint.getVerifyName()) {

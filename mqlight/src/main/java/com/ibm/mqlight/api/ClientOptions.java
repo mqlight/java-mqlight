@@ -170,12 +170,17 @@ public class ClientOptions {
         }
 
         /**
-         * Specifies a trust store for SSL/TLS certificates that the client will trust.
-         * @param certificateFile a trust store that contains SSL/TLS certificates that
-         *                        the client is to trust.  If this is not set (or is set to null)
-         *                        then the client will use the set of trusted certificates
-         *                        supplied with the JVM.
-         * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
+         * Specifies a X.509 certificate chain file for SSL/TLS certificates
+         * that the client will trust. This can either be a file in PEM format
+         * or a Java KeyStore (JKS) file.
+         * 
+         * @param certificateFile
+         *            a trust store that contains SSL/TLS certificates that the
+         *            client is to trust. If this is not set (or is set to null)
+         *            then the client will use the set of trusted certificates
+         *            supplied with the JVM.
+         * @return the same instance of <code>ClientOptionsBuilder</code> that
+         *         this method was invoked on.
          */
         public ClientOptionsBuilder setSslTrustCertificate(File certificateFile) {
             this.certFile = certificateFile;
