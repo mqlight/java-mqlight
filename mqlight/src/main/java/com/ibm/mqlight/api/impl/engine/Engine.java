@@ -478,16 +478,25 @@ public class Engine extends Component {
                         engineConnection.notifyInflightQos0(true);
                         engineConnection.closed = true;
                         engineConnection.channel.close(null);
-                        String errorDescription = event.getConnection().getRemoteCondition().getDescription();
-                        String errMsg = null;
-                        if (errorDescription == null) {
+                        final String errMsg;
+                        if (event.getConnection().getRemoteCondition() == null
+                                || event.getConnection().getRemoteCondition().getDescription() == null) {
                             errMsg = "The server closed the connection without providing any error information.";
-                        } else if (errorDescription.startsWith("javax.security.auth.login.FailedLoginException")) {
-                            errMsg = "Failed to authenticate with server - invalid username or password";
                         } else {
-                            errMsg = errorDescription;
+                            errMsg = event.getConnection().getRemoteCondition().getDescription();
                         }
-                        ClientException clientException = new ClientException(errMsg);
+
+                        final ClientException clientException;
+                        // check for SASL failures
+                        final Sasl sasl = engineConnection.transport.sasl();
+                        if (sasl.getOutcome() == Sasl.SaslOutcome.PN_SASL_AUTH) {
+                            clientException = new com.ibm.mqlight.api.SecurityException(
+                                    "Failed to authenticate with server - invalid username or password",
+                                    (event.getConnection().getRemoteCondition() == null) ? null : new ClientException(errMsg));
+                        } else {
+                            // else just report error condition on event
+                            clientException = new ClientException(errMsg);
+                        }
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
                 } else {    // TODO: should we also special case closeRequest in progress??
