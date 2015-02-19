@@ -614,7 +614,8 @@ public class Engine extends Component {
                     EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
                     sd.subscriber.tell(new SubscribeResponse(engineConnection, link.getName()), this);
                 }
-            } else if (eventType == Event.Type.LINK_REMOTE_CLOSE) {
+            } else if (eventType == Event.Type.LINK_REMOTE_CLOSE
+                    || eventType == Event.Type.LINK_REMOTE_DETACH) {
                 // Receiver link has been closed by the server.
                 if (link.getRemoteState() == EndpointState.CLOSED) {
                     if (link.getLocalState() != EndpointState.CLOSED) {
