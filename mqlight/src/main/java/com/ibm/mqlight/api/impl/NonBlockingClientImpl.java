@@ -106,7 +106,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final StateMachine<NonBlockingClientState, NonBlockingClientTrigger> stateMachine;
 
     static final Class<?>[] validPropertyValueTypes = new Class[] {
-        Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, byte[].class, String.class
+        Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, byte[].class, Byte[].class, String.class
     };
 
     private final LinkedList<InternalStart<?>> pendingStarts = new LinkedList<>();
@@ -462,10 +462,19 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                                     + ((entry.getValue() == null) ? "null"
                                             : entry.getValue().toString())
                                     + "' which is not of a supported type");
+
                   logger.throwing(this, methodName, exception);
                   throw exception;
                 }
-                if (entry.getValue() instanceof byte[]) {
+                if (entry.getValue() instanceof Byte[]) {
+                    final Byte[] src = (Byte[]) entry.getValue();
+                    byte[] copy = new byte[src.length];
+                    for (int i = 0; i < src.length; i++) {
+                        final Byte b = src[i];
+                        copy[i] = (b == null) ? 0 : (b.byteValue());
+                    }
+                    amqpProperties.put(entry.getKey(), new Binary(copy));
+                } else if (entry.getValue() instanceof byte[]) {
                     byte[] copy = new byte[((byte[])entry.getValue()).length];
                     System.arraycopy(entry.getValue(), 0, copy, 0, copy.length);
                     amqpProperties.put(entry.getKey(), new Binary(copy));

@@ -482,6 +482,7 @@ public class TestNonBlockingClientImpl {
         assertTrue("float", NonBlockingClientImpl.isValidPropertyValue((float)3.0));
         assertTrue("double", NonBlockingClientImpl.isValidPropertyValue((double)3.0));
         assertTrue("byte[]", NonBlockingClientImpl.isValidPropertyValue(new byte[0]));
+        assertTrue("Byte[]", NonBlockingClientImpl.isValidPropertyValue(new Byte[0]));
         assertTrue("string", NonBlockingClientImpl.isValidPropertyValue("hello"));
 
         assertFalse("Object", NonBlockingClientImpl.isValidPropertyValue(new Object()));
