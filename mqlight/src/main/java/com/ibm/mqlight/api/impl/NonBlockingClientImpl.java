@@ -455,7 +455,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         if ((properties != null) && !properties.isEmpty()) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
                 if (!isValidPropertyValue(entry.getValue())) {
-                  final IllegalArgumentException exception = new IllegalArgumentException("Property key '" + entry.getKey() + " specifies a value which is not of a supported type");
+                    final IllegalArgumentException exception = new IllegalArgumentException(
+                            "Property key '"
+                                    + entry.getKey()
+                                    + "' specifies a value '"
+                                    + ((entry.getValue() == null) ? "null"
+                                            : entry.getValue().toString())
+                                    + "' which is not of a supported type");
                   logger.throwing(this, methodName, exception);
                   throw exception;
                 }
