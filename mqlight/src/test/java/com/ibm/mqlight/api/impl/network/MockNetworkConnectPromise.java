@@ -25,11 +25,11 @@ import com.ibm.mqlight.api.impl.network.Event.Type;
 import com.ibm.mqlight.api.network.NetworkChannel;
 
 class MockNetworkConnectPromise implements Promise<NetworkChannel> {
-    
+
     private boolean done = false;
     private final LinkedList<Event> events;
     private NetworkChannel channel = null;
-    
+
     protected MockNetworkConnectPromise(LinkedList<Event> events) {
         this.events = events;
     }
@@ -57,7 +57,7 @@ class MockNetworkConnectPromise implements Promise<NetworkChannel> {
             done = true;
         }
     }
-    
+
     protected NetworkChannel getChannel() {
         synchronized(events) {
             return channel;

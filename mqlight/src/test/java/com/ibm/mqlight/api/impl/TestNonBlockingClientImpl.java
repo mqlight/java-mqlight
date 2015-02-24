@@ -402,7 +402,7 @@ public class TestNonBlockingClientImpl {
         MockComponent component = new MockComponent();
         StubTimerService timerService = new StubTimerService();
         class MockClient extends NonBlockingClientImpl {
-            private LinkedList<Message> messages = new LinkedList<>();
+            private final LinkedList<Message> messages = new LinkedList<>();
             protected <T> MockClient(EndpointService endpointService,
                     CallbackService callbackService, Component engine,
                     TimerService timerService, GsonBuilder builder, ClientOptions options,
@@ -438,11 +438,12 @@ public class TestNonBlockingClientImpl {
         props.put("boolean", true);
         props.put("byte", (byte)0x01);
         props.put("short", (short)123);
-        props.put("int", (int)4567);
+        props.put("int", 4567);
         props.put("long", (long)121723);
         props.put("float", (float)0.1234);
-        props.put("double", (double)543.1234);
+        props.put("double", 543.1234);
         props.put("byte[]", new byte[]{1,2,3,4});
+        props.put("Byte[]", new Byte[]{1,2,3,4});
         props.put("string", "this is a string");
 
         client.send("/kittens", "data", props);
@@ -462,7 +463,14 @@ public class TestNonBlockingClientImpl {
         Map<String, Object> actualProperties = destinationListener.properties;
         for (Map.Entry<String, Object> expectedProperty : props.entrySet()) {
             assertTrue("Round-tripped properties should have contained key: "+expectedProperty.getKey(), actualProperties.containsKey(expectedProperty.getKey()));
-            if (expectedProperty.getValue() instanceof byte[]) {
+            if (expectedProperty.getValue() instanceof Byte[]) {
+                final Byte[] expected = (Byte[]) expectedProperty.getValue();
+                final byte[] actual = (byte[]) actualProperties.get(expectedProperty.getKey());
+                for (int i = 0; i < expected.length; i++) {
+                    assertTrue("Round-tripped Byte array should match for key: "+expectedProperty.getKey(),
+                            expected[i].byteValue() == actual[i]);
+                }
+            } else if (expectedProperty.getValue() instanceof byte[]) {
                 assertTrue("Round-tripped byte array should match for key: "+expectedProperty.getKey(),
                         Arrays.equals((byte[])expectedProperty.getValue(), (byte[])actualProperties.get(expectedProperty.getKey())));
             } else {
@@ -477,10 +485,10 @@ public class TestNonBlockingClientImpl {
         assertTrue("boolean", NonBlockingClientImpl.isValidPropertyValue(false));
         assertTrue("byte", NonBlockingClientImpl.isValidPropertyValue((byte)3));
         assertTrue("short", NonBlockingClientImpl.isValidPropertyValue((short)3));
-        assertTrue("int", NonBlockingClientImpl.isValidPropertyValue((int)3));
-        assertTrue("long", NonBlockingClientImpl.isValidPropertyValue((long)3L));
+        assertTrue("int", NonBlockingClientImpl.isValidPropertyValue(3));
+        assertTrue("long", NonBlockingClientImpl.isValidPropertyValue(3L));
         assertTrue("float", NonBlockingClientImpl.isValidPropertyValue((float)3.0));
-        assertTrue("double", NonBlockingClientImpl.isValidPropertyValue((double)3.0));
+        assertTrue("double", NonBlockingClientImpl.isValidPropertyValue(3.0));
         assertTrue("byte[]", NonBlockingClientImpl.isValidPropertyValue(new byte[0]));
         assertTrue("Byte[]", NonBlockingClientImpl.isValidPropertyValue(new Byte[0]));
         assertTrue("string", NonBlockingClientImpl.isValidPropertyValue("hello"));
@@ -488,6 +496,57 @@ public class TestNonBlockingClientImpl {
         assertFalse("Object", NonBlockingClientImpl.isValidPropertyValue(new Object()));
         assertFalse("char", NonBlockingClientImpl.isValidPropertyValue('c'));
         assertFalse("BigDecimal", NonBlockingClientImpl.isValidPropertyValue(new BigDecimal(3)));
+    }
+
+    private Map<String, Object> getPropertiesMap(final String key, final Object value) {
+        return new HashMap<String, Object>() {
+            private static final long serialVersionUID = 1L;
+            {
+                put(key, value);
+            }
+        };
+    }
+
+    @Test
+    public void validPropertyValuesInSend() {
+        StubEndpointService endpointService = new StubEndpointService();
+        StubCallbackService callbackService = new StubCallbackService();
+        MockComponent component = new MockComponent();
+        StubTimerService timerService = new StubTimerService();
+        NonBlockingClientImpl client = new NonBlockingClientImpl(endpointService, callbackService, component, timerService, null, null, null, null);
+
+        // valid
+        client.send("topic", "data", getPropertiesMap("null", null));
+        client.send("topic", "data", getPropertiesMap("boolean", false));
+        client.send("topic", "data", getPropertiesMap("byte", (byte)3));
+        client.send("topic", "data", getPropertiesMap("short", (short)3));
+        client.send("topic", "data", getPropertiesMap("int", 3));
+        client.send("topic", "data", getPropertiesMap("long", 3L));
+        client.send("topic", "data", getPropertiesMap("float", (float)3.0));
+        client.send("topic", "data", getPropertiesMap("double", 3.0));
+        client.send("topic", "data", getPropertiesMap("byte[]", new byte[0]));
+        client.send("topic", "data", getPropertiesMap("Byte[]", new Byte[0]));
+        client.send("topic", "data", getPropertiesMap("string", "hello"));
+
+        // invalid
+        try {
+            client.send("topic", "data", getPropertiesMap("Object", new Object()));
+            throw new AssertionFailedError("Object property value should have thrown an Exception");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        try {
+            client.send("topic", "data", getPropertiesMap("char", 'c'));
+            throw new AssertionFailedError("char property value should have thrown an Exception");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        try {
+            client.send("topic", "data", getPropertiesMap("BigDecimal", new BigDecimal(3)));
+            throw new AssertionFailedError("BigDecimal property value should have thrown an Exception");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
     }
 
     @Test
@@ -867,7 +926,7 @@ public class TestNonBlockingClientImpl {
 
         class MockClient extends NonBlockingClientImpl {
 
-            private LinkedList<InternalSend<?>> sends = new LinkedList<>();
+            private final LinkedList<InternalSend<?>> sends = new LinkedList<>();
 
             protected <T> MockClient(EndpointService endpointService,
                     CallbackService callbackService, Component engine,
@@ -915,24 +974,24 @@ public class TestNonBlockingClientImpl {
         msg = decodeProtonMessage(client.sends.get(1));
         assertEquals("Message 2: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertEquals("Message 2: content type set incorrectly", "application/json", msg.getContentType());
-        assertEquals("Message 2: body doesn't match", "[1,2,3]", (String)((AmqpValue)msg.getBody()).getValue());
+        assertEquals("Message 2: body doesn't match", "[1,2,3]", ((AmqpValue)msg.getBody()).getValue());
 
         client.send(expectedTopic, expectedStringData, (Map<String, Object>)null, null, null, null);
         msg = decodeProtonMessage(client.sends.get(2));
         assertEquals("Message 3: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertNull("Message 3: content type should not have been set", msg.getContentType());
-        assertEquals("Message 3: body doesn't match", expectedStringData, (String)((AmqpValue)msg.getBody()).getValue());
+        assertEquals("Message 3: body doesn't match", expectedStringData, ((AmqpValue)msg.getBody()).getValue());
 
         client.send(expectedTopic, expectedJsonObject, expectedJsonObject.getClass().getGenericSuperclass(), null, null, null, null);
         msg = decodeProtonMessage(client.sends.get(3));
         assertEquals("Message 4: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertEquals("Message 4: content type set incorrectly", "application/json", msg.getContentType());
-        assertEquals("Message 4: body doesn't match", "[1,2,3]", (String)((AmqpValue)msg.getBody()).getValue());
+        assertEquals("Message 4: body doesn't match", "[1,2,3]", ((AmqpValue)msg.getBody()).getValue());
 
         client.sendJson(expectedTopic, expectedRawJson, null, null, null, null);
         msg = decodeProtonMessage(client.sends.get(4));
         assertEquals("Message 5: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertEquals("Message 5: content type set incorrectly", "application/json", msg.getContentType());
-        assertEquals("Message 5: body doesn't match", expectedRawJson, (String)((AmqpValue)msg.getBody()).getValue());
+        assertEquals("Message 5: body doesn't match", expectedRawJson, ((AmqpValue)msg.getBody()).getValue());
     }
 }
