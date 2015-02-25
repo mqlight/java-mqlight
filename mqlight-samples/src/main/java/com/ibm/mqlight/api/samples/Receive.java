@@ -220,7 +220,7 @@ public class Receive {
                     subOptBuilder.setTtl(ttl);
                 }
                 if (args.parsed.containsKey("-n")) {
-                    subOptBuilder.setShare((String)args.parsed.get("-s"));
+                    subOptBuilder.setShare((String)args.parsed.get("-n"));
                 }
 
                 Listener listener = new Listener((String)args.parsed.get("-f"), (Boolean)args.parsed.get("--verbose"), delayMillis);
