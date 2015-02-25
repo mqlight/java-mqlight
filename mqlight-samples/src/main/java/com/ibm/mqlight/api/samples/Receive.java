@@ -18,6 +18,7 @@
  */
 package com.ibm.mqlight.api.samples;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import com.ibm.mqlight.api.BytesDelivery;
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.ClientOptions.ClientOptionsBuilder;
 import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.Delivery;
 import com.ibm.mqlight.api.DestinationListener;
@@ -195,14 +197,18 @@ public class Receive {
             System.exit(1);
         }
 
-        ClientOptions opts;
+        ClientOptionsBuilder builder = ClientOptions.builder();
         if (args.parsed.containsKey("-i")) {
-            opts = ClientOptions.builder().setId((String)args.parsed.get("-i")).build();
-        } else {
-            opts = ClientOptions.builder().build();
+            builder.setId((String)args.parsed.get("-i"));
         }
+        if (args.parsed.containsKey("-c")
+                && args.parsed.get("-c") instanceof String) {
+            builder.setSslTrustCertificate(
+                    new File((String) args.parsed.get("-c")));
+        }
+        ClientOptions clientOpts = builder.build();
 
-        NonBlockingClient.create((String)args.parsed.get("-s"), opts, new NonBlockingClientAdapter<Void>() {
+        NonBlockingClient.create((String)args.parsed.get("-s"), clientOpts, new NonBlockingClientAdapter<Void>() {
             @Override
             public void onStarted(NonBlockingClient client, Void context) {
                 System.out.printf("Connected to %s using client-id %s\n", client.getService(), client.getId());

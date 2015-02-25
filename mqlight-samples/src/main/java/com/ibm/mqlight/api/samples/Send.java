@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.samples;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -29,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.ClientOptions.ClientOptionsBuilder;
 import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientAdapter;
@@ -158,10 +160,16 @@ public class Send {
             System.exit(0);
         }
 
-        ClientOptions clientOpts = null;
+        ClientOptionsBuilder builder = ClientOptions.builder();
         if (args.parsed.containsKey("-i")) {
-            clientOpts = ClientOptions.builder().setId((String)args.parsed.get("-i")).build();
+            builder.setId((String)args.parsed.get("-i"));
         }
+        if (args.parsed.containsKey("-c")
+                && args.parsed.get("-c") instanceof String) {
+            builder.setSslTrustCertificate(
+                    new File((String) args.parsed.get("-c")));
+        }
+        ClientOptions clientOpts = builder.build();
 
         NonBlockingClient.create((String)args.parsed.get("-s"), clientOpts, new NonBlockingClientAdapter<Void>() {
             @Override
