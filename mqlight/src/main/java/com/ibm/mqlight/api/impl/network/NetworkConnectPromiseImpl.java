@@ -21,6 +21,7 @@ package com.ibm.mqlight.api.impl.network;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.logging.Logger;
@@ -85,7 +86,7 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
             if (exception instanceof ClientException) {
                 clientException = (ClientException)exception;
             } else {
-                clientException = new ClientException("The network operation failed.  See linked exception for more information", exception);
+                clientException = new NetworkException("The network operation failed.  See linked exception for more information", exception);
             }
             component.tell(new ConnectResponse(getChannel(), clientException, context), Component.NOBODY);
         }

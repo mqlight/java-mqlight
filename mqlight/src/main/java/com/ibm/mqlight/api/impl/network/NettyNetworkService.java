@@ -53,6 +53,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 
 import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.LogbackLogging;
@@ -312,7 +313,7 @@ public class NettyNetworkService implements NetworkService {
                 handler.setListener(listener);
                 promise.setSuccess(handler);
             } else {
-                ClientException cause = new ClientException("Could not connect to server: " + cFuture.cause().getMessage(), cFuture.cause());
+                ClientException cause = new NetworkException("Could not connect to server: " + cFuture.cause().getMessage(), cFuture.cause());
                 promise.setFailure(cause);
                 decrementUseCount();
             }
@@ -365,9 +366,9 @@ public class NettyNetworkService implements NetworkService {
 
         } catch (SSLException e) {
             if (e.getCause() == null) {
-                promise.setFailure(new ClientException(e.getMessage(), e));
+                promise.setFailure(new SecurityException(e.getMessage(), e));
             } else {
-                promise.setFailure(new ClientException(e.getCause().getMessage(), e.getCause()));
+                promise.setFailure(new SecurityException(e.getCause().getMessage(), e.getCause()));
             }
         }
 

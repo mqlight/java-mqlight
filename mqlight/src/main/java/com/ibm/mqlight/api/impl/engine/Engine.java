@@ -45,6 +45,7 @@ import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
 
 import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
@@ -492,10 +493,10 @@ public class Engine extends Component {
                         if (sasl.getOutcome() == Sasl.SaslOutcome.PN_SASL_AUTH) {
                             clientException = new com.ibm.mqlight.api.SecurityException(
                                     "Failed to authenticate with server - invalid username or password",
-                                    (event.getConnection().getRemoteCondition() == null) ? null : new ClientException(errMsg));
+                                    (event.getConnection().getRemoteCondition() == null) ? null : getClientException(errMsg));
                         } else {
                             // else just report error condition on event
-                            clientException = new ClientException(errMsg);
+                            clientException = getClientException(errMsg);
                         }
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
@@ -516,7 +517,7 @@ public class Engine extends Component {
                         if ("ServerContext_Takeover".equals(condition)) {
                             error = new ReplacedException(description);
                         } else if (description.length() > 0) {
-                            error = new ClientException(description);
+                            error = getClientException(description);
                         }
                         engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
                     }
@@ -545,6 +546,18 @@ public class Engine extends Component {
         }
         
         logger.exit(this, methodName);
+    }
+
+    private ClientException getClientException(String errMsg) {
+      if (errMsg.contains("sasl") || errMsg.contains("SSL")) {
+        return new com.ibm.mqlight.api.SecurityException(errMsg);
+      } else {
+        if (errMsg.contains("_Takeover")) {
+          return new ReplacedException(errMsg);
+        } else {
+          return new NetworkException(errMsg);
+        }
+      }
     }
 
     private void processEventDelivery(Event event) {
@@ -650,7 +663,7 @@ public class Engine extends Component {
                             } else {
                                 errMsg = errorDescription;
                             }
-                            clientException = new ClientException(errMsg);
+                            clientException = getClientException(errMsg);
                         }
                         sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
                     }
