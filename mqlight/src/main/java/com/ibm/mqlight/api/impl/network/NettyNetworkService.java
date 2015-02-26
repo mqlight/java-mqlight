@@ -65,7 +65,7 @@ import com.ibm.mqlight.api.network.NetworkService;
 public class NettyNetworkService implements NetworkService {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyNetworkService.class);
-  
+
     static {
         LogbackLogging.setup();
     }
@@ -74,19 +74,19 @@ public class NettyNetworkService implements NetworkService {
     private static Bootstrap secureBootstrap;
 
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
-      
+
         private static final Logger logger = LoggerFactory.getLogger(NettyInboundHandler.class);
 
         private final SocketChannel channel;
         private NetworkListener listener = null;
-        private AtomicBoolean closed = new AtomicBoolean(false);
+        private final AtomicBoolean closed = new AtomicBoolean(false);
 
         protected NettyInboundHandler(SocketChannel channel) {
             final String methodName = "<init>";
             logger.entry(this, methodName, channel);
-            
+
             this.channel = channel;
-            
+
             logger.exit(this, methodName);
         }
 
@@ -94,7 +94,7 @@ public class NettyNetworkService implements NetworkService {
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final String methodName = "channelRead";
             logger.entry(this, methodName, ctx, msg);
-            
+
             // Make a copy of the buffer
             // TODO: this is inefficient - support for pooling should be integrated into
             //       the interfaces that define a network service...
@@ -106,7 +106,7 @@ public class NettyNetworkService implements NetworkService {
                 listener.onRead(this, nioBuf);
                 buf.release();
             }
-            
+
             logger.exit(this, methodName);
         }
 
@@ -114,36 +114,41 @@ public class NettyNetworkService implements NetworkService {
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             final String methodName = "exceptionCaught";
             logger.entry(this, methodName, cause);
-            ctx.close();
-            Exception exception;
-            if (cause instanceof Exception) {
-                exception = (Exception)cause;
-            } else {
-                exception = new Exception(cause);   // TODO: wrap in a better exception...
-            }
-            // if we have a nested chain of causes, walk it until we have at 
-            // most a single pair of Exception and cause
-            while (exception.getCause() != null && 
-                    exception.getCause() instanceof Exception) {
-                if (exception.getCause().getCause() == null) {
-                    break;
+            try {
+                ctx.close();
+                Exception exception;
+                if (cause instanceof Exception) {
+                    exception = (Exception)cause;
+                } else {
+                    exception = new Exception(cause);   // TODO: wrap in a better exception...
                 }
-                exception = (Exception) exception.getCause();
+                // if we have a nested chain of causes, walk it until we have at
+                // most a single pair of Exception and cause
+                while (exception.getCause() != null &&
+                        exception.getCause() instanceof Exception) {
+                    if (exception.getCause().getCause() == null) {
+                        break;
+                    }
+                    exception = (Exception) exception.getCause();
+                }
+
+                // rewrap security-related exceptions
+                final String condition = exception.getClass().getName();
+                if (condition.contains("javax.net.ssl.") ||
+                        condition.contains("java.security.") ||
+                        condition.contains("com.ibm.jsse2.")) {
+                    exception = new com.ibm.mqlight.api.SecurityException(
+                            exception.getMessage(), exception.getCause());
+                }
+
+                if (listener != null) {
+                    listener.onError(this, exception);
+                }
+            } catch (Throwable t) {
+                logger.throwing(this, methodName, t);
+                throw t;
             }
-            
-            // rewrap security-related exceptions
-            final String condition = exception.getClass().getName();
-            if (condition.contains("javax.net.ssl.") || 
-                    condition.contains("java.security.") ||
-                    condition.contains("com.ibm.jsse2.")) {
-                exception = new com.ibm.mqlight.api.SecurityException(
-                        exception.getMessage(), exception.getCause());
-            }
-            
-            if (listener != null) {
-                listener.onError(this, exception);
-            }
-            
+
             logger.exit(this, methodName);
         }
 
@@ -152,9 +157,9 @@ public class NettyNetworkService implements NetworkService {
                 throws Exception {
             final String methodName = "channelWritabilityChanged";
             logger.entry(this, methodName, ctx);
-            
+
             doWrite(null);
-            
+
             logger.exit(this, methodName);
         }
 
@@ -162,7 +167,7 @@ public class NettyNetworkService implements NetworkService {
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             final String methodName = "channelInactive";
             logger.entry(this, methodName, ctx);
-          
+
             boolean alreadyClosed = closed.getAndSet(true);
             if (!alreadyClosed) {
                 if (listener != null) {
@@ -170,16 +175,16 @@ public class NettyNetworkService implements NetworkService {
                 }
                 decrementUseCount();
             }
-            
+
             logger.exit(this, methodName);
         }
 
         protected void setListener(NetworkListener listener) {
             final String methodName = "setListener";
             logger.entry(this, methodName, listener);
-            
+
             this.listener = listener;
-            
+
             logger.exit(this, methodName);
         }
 
@@ -203,7 +208,7 @@ public class NettyNetworkService implements NetworkService {
             } else if (nwfuture != null) {
                 nwfuture.setSuccess(null);
             }
-            
+
             logger.exit(this, methodName);
         }
 
@@ -220,10 +225,10 @@ public class NettyNetworkService implements NetworkService {
         public void write(ByteBuffer buffer, Promise<Boolean> promise) {
             final String methodName = "write";
             logger.entry(this, methodName, buffer, promise);
-          
+
             ByteBuf byteBuf = Unpooled.wrappedBuffer(buffer);
             doWrite(new WriteRequest(byteBuf, promise));
-            
+
             logger.exit(this, methodName);
         }
 
@@ -234,7 +239,7 @@ public class NettyNetworkService implements NetworkService {
         private void doWrite(final WriteRequest writeRequest) {
             final String methodName = "doWrite";
             logger.entry(this, methodName, writeRequest);
-            
+
             WriteRequest toProcess = null;
             synchronized(pendingWrites) {
                 if (writeRequest != null) {
@@ -264,7 +269,7 @@ public class NettyNetworkService implements NetworkService {
                     }
                 });
             }
-            
+
             logger.exit(this, methodName);
         }
 
@@ -282,25 +287,25 @@ public class NettyNetworkService implements NetworkService {
     }
 
     protected class ConnectListener implements GenericFutureListener<ChannelFuture> {
-      
+
         private final Logger logger = LoggerFactory.getLogger(ConnectListener.class);
-      
+
         private final Promise<NetworkChannel> promise;
         private final NetworkListener listener;
         protected ConnectListener(ChannelFuture cFuture, Promise<NetworkChannel> promise, NetworkListener listener) {
             final String methodName = "<init>";
             logger.entry(this, methodName, cFuture, promise, listener);
-          
+
             this.promise = promise;
             this.listener = listener;
-            
+
             logger.exit(this, methodName);
         }
         @Override
         public void operationComplete(ChannelFuture cFuture) throws Exception {
             final String methodName = "operationComplete";
             logger.entry(this, methodName, cFuture);
-          
+
             if (cFuture.isSuccess()) {
                 NettyInboundHandler handler = (NettyInboundHandler)cFuture.channel().pipeline().last();
                 handler.setListener(listener);
@@ -310,7 +315,7 @@ public class NettyNetworkService implements NetworkService {
                 promise.setFailure(cause);
                 decrementUseCount();
             }
-            
+
             logger.exit(this, methodName);
         }
 
@@ -320,11 +325,11 @@ public class NettyNetworkService implements NetworkService {
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
         final String methodName = "connect";
         logger.entry(this, methodName, endpoint, listener, promise);
-        
+
         SslContext sslCtx = null;
         try {
             if (endpoint.getCertChainFile() != null && endpoint.getCertChainFile().exists()) {
-                try (FileInputStream fileInputStream = 
+                try (FileInputStream fileInputStream =
                         new FileInputStream(endpoint.getCertChainFile())) {
                     KeyStore jks = KeyStore.getInstance("JKS");
                     jks.load(fileInputStream, null);
@@ -341,10 +346,10 @@ public class NettyNetworkService implements NetworkService {
                 }
             }
             // fallback to passing as .PEM file (or null, which loads default cacerts)
-            if (sslCtx == null) { 
+            if (sslCtx == null) {
                 sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
             }
-            
+
             SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
             sslEngine.setUseClientMode(true);
             if (endpoint.getVerifyName()) {
@@ -352,7 +357,7 @@ public class NettyNetworkService implements NetworkService {
                 sslParams.setEndpointIdentificationAlgorithm("HTTPS");
                 sslEngine.setSSLParameters(sslParams);
             }
-            
+
             final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine);
             final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
             f.addListener(new ConnectListener(f, promise, listener));
@@ -364,7 +369,7 @@ public class NettyNetworkService implements NetworkService {
                 promise.setFailure(new ClientException(e.getCause().getMessage(), e.getCause()));
             }
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -373,7 +378,7 @@ public class NettyNetworkService implements NetworkService {
     /**
      * Request a {@link Bootstrap} for obtaining a {@link Channel} and track
      * that the workerGroup is being used.
-     * 
+     *
      * @param secure
      *            a {@code boolean} indicating whether or not a secure channel
      *            will be required
@@ -386,7 +391,7 @@ public class NettyNetworkService implements NetworkService {
             final SSLEngine sslEngine) {
         final String methodName = "getBootstrap";
         logger.entry(methodName, secure, sslEngine);
-      
+
         ++useCount;
         if (useCount == 1) {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -410,11 +415,11 @@ public class NettyNetworkService implements NetworkService {
                 }
             });
         }
-        
-        final Bootstrap result = (secure) ? secureBootstrap : insecureBootstrap; 
-        
+
+        final Bootstrap result = (secure) ? secureBootstrap : insecureBootstrap;
+
         logger.exit(methodName, result);
-        
+
         return result;
     }
 
@@ -425,7 +430,7 @@ public class NettyNetworkService implements NetworkService {
     private static synchronized void decrementUseCount() {
         final String methodName = "decrementUseCount";
         logger.entry(methodName);
-      
+
         --useCount;
         if (useCount <= 0) {
             /*
@@ -439,7 +444,7 @@ public class NettyNetworkService implements NetworkService {
             insecureBootstrap = null;
             useCount = 0;
         }
-        
+
         logger.exit(methodName);
     }
 }
