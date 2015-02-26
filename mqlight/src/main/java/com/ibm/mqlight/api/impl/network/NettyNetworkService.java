@@ -136,7 +136,8 @@ public class NettyNetworkService implements NetworkService {
                 final String condition = exception.getClass().getName();
                 if (condition.contains("javax.net.ssl.") ||
                         condition.contains("java.security.") ||
-                        condition.contains("com.ibm.jsse2.")) {
+                        condition.contains("com.ibm.jsse2.") ||
+                        condition.contains("sun.security.")) {
                     exception = new com.ibm.mqlight.api.SecurityException(
                             exception.getMessage(), exception.getCause());
                 }
