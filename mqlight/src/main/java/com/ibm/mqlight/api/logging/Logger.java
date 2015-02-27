@@ -28,7 +28,7 @@ package com.ibm.mqlight.api.logging;
  * <p>
  * The {@code entry}, {@code exit}, {@code data}, {@code throwing}, methods are for tracing. Each has a number of variants allowing varying numbers of {@link Object} type arguments
  * to be provided. These {@link Object} type arguments will be converted to {@link String}s for logging. For efficiency objects should be passed in the arguments as is to save
- * unnecessary conversion when trace is off (note that with this approach there is no need to use a {@code if (Trace.enabled())) type test when invoking the trace methods).
+ * unnecessary conversion when trace is off (note that with this approach there is no need to use a {@code if (Trace.enabled()))} type test when invoking the trace methods).
  */
 public interface Logger {
   
@@ -85,7 +85,7 @@ public interface Logger {
    * Method entry tracing for static classes. Note that this may not be that efficient.
    * 
    * @param methodName Name of the calling method.
-   * @param object Objects on which toString() is called.
+   * @param objects Objects on which toString() is called.
    */
   public abstract void entry(String methodName, Object... objects);
 
@@ -102,7 +102,7 @@ public interface Logger {
    * 
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
-   * @param object Objects on which toString() is called.
+   * @param objects Objects on which toString() is called.
    */
   public abstract void entry(Object source, String methodName, Object... objects);
   
@@ -118,7 +118,7 @@ public interface Logger {
    * Method exit tracing for static classes.
    * 
    * @param methodName Name of the calling method.
-   * @param object Object on which toString() is called, containing the return value.
+   * @param result Object on which toString() is called, containing the return value.
    */
   public abstract void exit(String methodName, Object result);
 
@@ -135,7 +135,7 @@ public interface Logger {
    * 
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
-   * @param object Object on which toString() is called, containing the return value.
+   * @param result Object on which toString() is called, containing the return value.
    */
   public abstract void exit(Object source, String methodName, Object result);
   
@@ -151,7 +151,7 @@ public interface Logger {
    * Method data tracing for static classes. Note that this may not be that efficient.
    * 
    * @param methodName Name of the calling method.
-   * @param object Objects on which toString() is called.
+   * @param objects Objects on which toString() is called.
    */
   public abstract void data(String methodName, Object... objects);
 
@@ -168,7 +168,7 @@ public interface Logger {
    * 
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
-   * @param object Objects on which toString() is called.
+   * @param objects Objects on which toString() is called.
    */
   public abstract void data(Object source, String methodName, Object... objects);
   
