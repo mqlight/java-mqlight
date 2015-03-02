@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 
 import junit.framework.AssertionFailedError;
 
@@ -56,6 +57,7 @@ import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.SendOptions;
 import com.ibm.mqlight.api.StateException;
+import com.ibm.mqlight.api.SubscribeOptions;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
@@ -271,6 +273,58 @@ public class TestNonBlockingClientImpl {
             throw new AssertionFailedError("-1 TTL should have thrown an exception");
         } catch(IllegalArgumentException e) {
             // Expected
+        }
+    }
+
+    @Test
+    public void messageTtlValuesIntoSubscribe() {
+        class MockClient extends NonBlockingClientImpl {
+            private final Queue<Message> messages = new LinkedList<>();
+
+            protected <T> MockClient(EndpointService endpointService,
+                    CallbackService callbackService, Component engine,
+                    TimerService timerService, GsonBuilder builder,
+                    ClientOptions options,
+                    NonBlockingClientListener<T> listener, T context) {
+                super(endpointService, callbackService, engine, timerService,
+                        builder, options, listener, context);
+            }
+
+            @Override
+            public void tell(Message message, Component self) {
+                messages.add(message);
+            }
+
+            protected java.util.Queue<Message> getMessages() {
+                return messages;
+            }
+        }
+        MockClient client = new MockClient(new StubEndpointService(),
+                new StubCallbackService(),
+                new MockComponent(),
+                new StubTimerService(),
+                null, null, null, null);
+
+        // expect TTL to be rounded to the nearest second
+        final int[] testInputs = {
+                1, 500, 999, 1001
+        };
+        for (final int inputTtl : testInputs) {
+            final SubscribeOptions subOptions = SubscribeOptions.builder()
+                    .setTtl(inputTtl).build();
+            client.subscribe("topicPattern", subOptions,
+                    new DestinationAdapter<Object>() {
+                    }, null, null);
+            assertEquals(
+                    "Expected a single message to have been sent to the mock engine component",
+                    1, client.getMessages().size());
+            final InternalSubscribe<?> subscribe = (InternalSubscribe<?>) client
+                    .getMessages().remove();
+            assertEquals(
+                    "Expected input "
+                            + inputTtl
+                            + " milliseconds ttl to have been rounded to the nearest second for subscribe - ",
+                    Math.round(inputTtl / 1000L), subscribe.ttl);
         }
     }
 

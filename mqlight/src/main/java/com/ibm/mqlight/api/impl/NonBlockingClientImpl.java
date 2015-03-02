@@ -124,7 +124,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     private Endpoint currentEndpoint = null;
     private EngineConnection currentConnection = null;
-    private HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
+    private final HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
 
     private final NonBlockingClientListenerWrapper<?> clientListener;
 
@@ -138,7 +138,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     long retryDelay = 0;
 
-    private Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
+    private final Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
 
     // topic pattern -> information about subscribed destination
     private final HashMap<String, SubData> subscribedDestinations = new HashMap<>();
@@ -151,7 +151,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             DETATCHING     // A link detatch request has been sent - we're waiting to hear back.
         }
         State state = State.ATTACHING;
-        private LinkedList<QueueableWork> pending = new LinkedList<>();
+        private final LinkedList<QueueableWork> pending = new LinkedList<>();
         final DestinationListenerWrapper<?> listener;
         private final QOS qos;
         private final int credit;
@@ -187,7 +187,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, callbackService, engine, timerService, gsonBuilder, options, listener, context);
-        
+
         if (endpointService == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("EndpointService cannot be null");
           logger.throwing(this, methodName, exception);
@@ -263,7 +263,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             throws StateException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
-        
+
         if (data == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("data cannot be null");
           logger.throwing(this, methodName, exception);
@@ -271,11 +271,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(new AmqpValue(data));
-        
+
         final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -285,7 +285,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             throws StateException {
         final String methodName = "send";
        logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
-        
+
         if (data == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("data cannot be null");
           logger.throwing(this, methodName, exception);
@@ -298,9 +298,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         data.position(pos);
         protonMsg.setBody(new AmqpValue(new Binary(dataBytes)));
         final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -310,15 +310,15 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             CompletionListener<T> listener, T context) throws StateException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
-      
+
         String jsonString;
         synchronized(gson) {
             jsonString = gson.toJson(json);
         }
         final boolean result = sendJson(topic, jsonString, properties, sendOptions, listener, context);
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -328,15 +328,15 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             CompletionListener<T> listener, T context) throws StateException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, json, type, properties, sendOptions, listener, context);
-      
+
         String jsonString;
         synchronized(gson) {
             jsonString = gson.toJson(json, type);
         }
         final boolean result = sendJson(topic, jsonString, properties, sendOptions, listener, context);
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -347,14 +347,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     throws StateException {
         final String methodName = "sendJson";
         logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
-      
+
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(new AmqpValue(json));
         protonMsg.setContentType("application/json");
         final boolean result = send(topic, protonMsg, properties, sendOptions == null ? defaultSendOptions : sendOptions, listener, context);
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -376,11 +376,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             put("%29", ")");
         }
     };
-    
-    
+
+
     /**
      * URI encode the given topic address to a fully qualified AMQP URI.
-     * 
+     *
      * @param unencodedTopic a {@link String} containing the unencoded topic address
      * @return a {@link String} containing the correctly encoded AMQP URI
      * @throws IllegalArgumentException
@@ -388,7 +388,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
         final String methodName = "encodeTopic";
         logger.entry(methodName, (Object)unencodedTopic);
-      
+
         StringBuilder amqpAddress = new StringBuilder("amqp:///");
         try {
             // use URLEncoder to do a first pass at encoding the topic URI
@@ -419,9 +419,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           throw exception;
         }
         final String result = amqpAddress.toString();
-        
+
         logger.exit(methodName, (Object)result);
-        
+
         return result;
     }
 
@@ -447,7 +447,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                                        SendOptions sendOptions, CompletionListener<T> listener, T context) {
         final String methodName = "send";
         logger.entry(this, methodName, topic, protonMsg, properties, sendOptions, listener, context);
-      
+
         if (topic == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("topic cannot be null");
           logger.throwing(this, methodName, exception);
@@ -507,9 +507,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         is.future.setListener(callbackService, listener, context);
         boolean result = undrainedSends < 2;
         pendingDrain |= !result;
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
@@ -517,13 +517,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> NonBlockingClient start(CompletionListener<T> listener, T context) {
         final String methodName = "start";
         logger.entry(this, methodName, listener, context);
-        
+
         InternalStart<T> is = new InternalStart<T>(this);
         is.future.setListener(callbackService, listener, context);
         tell(is, this);
-        
+
         logger.entry(this, methodName, this);
-        
+
         return this;
     }
 
@@ -531,18 +531,18 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> void stop(CompletionListener<T> listener, T context) {
         final String methodName = "stop";
         logger.entry(this, methodName, listener, context);
-      
+
         InternalStop<T> is = new InternalStop<T>(this);
         is.future.setListener(callbackService, listener, context);
         tell(is, this);
-        
+
         logger.exit(this, methodName);
     }
 
     private final String buildAmqpTopicName(String topicPattern, String shareName) {
         final String methodName = "buildAmqpTopicName";
         logger.entry(this, methodName, topicPattern, shareName);
-      
+
         String subTopic;
         if (shareName == null || "".equals(shareName)) {
             subTopic = "private:" + topicPattern;
@@ -554,9 +554,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
             subTopic = "share:" + shareName + ":" + topicPattern;
         }
-        
+
         logger.exit(this, methodName, subTopic);
-        
+
         return subTopic;
     }
 
@@ -567,7 +567,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             throws StateException, IllegalArgumentException {
         final String methodName = "subscribe";
         logger.entry(this, methodName, topicPattern, subOptions, destListener, compListener, context);
-      
+
         if (topicPattern == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
           logger.throwing(this, methodName, exception);
@@ -582,13 +582,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is =
-                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int)(subOptions.getTtl() / 1000L), gsonBuilder, destListener, context);
+                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, Math.round(subOptions.getTtl() / 1000L), gsonBuilder, destListener, context);
         tell(is, this);
 
         is.future.setListener(callbackService, compListener, context);
-        
+
         logger.exit(this, methodName, this);
-        
+
         return this;
     }
 
@@ -597,7 +597,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     throws StateException, IllegalArgumentException {
         final String methodName = "unsubscribe";
         logger.entry(this, methodName, topicPattern, share, ttl, listener, context);
-      
+
         if (topicPattern == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
           logger.throwing(this, methodName, exception);
@@ -618,9 +618,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         tell(us, this);
 
         us.future.setListener(callbackService, listener, context);
-        
+
         logger.exit(this, methodName, this);
-        
+
         return this;
     }
 
@@ -629,7 +629,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     throws StateException {
         final String methodName = "unsubscribe";
         logger.entry(this, methodName, topicPattern, share, listener, context);
-      
+
         if (topicPattern == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("Topic pattern cannot be null");
           logger.throwing(this, methodName, exception);
@@ -644,16 +644,16 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         tell(us, this);
 
         us.future.setListener(callbackService, listener, context);
-        
+
         logger.exit(this, methodName, this);
-        
+
         return this;
     }
 
     protected static String[] crackLinkName(String linkName) {
         final String methodName = "crackLinkName";
         logger.entry(methodName, linkName);
-      
+
         String topicPattern;
         String share;
         if (linkName.startsWith("share:")) {
@@ -664,11 +664,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             topicPattern = linkName.substring("private:".length());
             share = null;
         }
-        
+
         final String [] result = new String[] {topicPattern, share};
-        
+
         logger.exit(methodName, result);
-        
+
         return result;
     }
 
@@ -676,7 +676,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     protected void onReceive(Message message) {
         final String methodName = "onReceive";
         logger.entry(this, methodName, message);
-      
+
         if (message instanceof EndpointResponse) {
             EndpointResponse er = (EndpointResponse)message;
             if (er.exception != null) {
@@ -693,7 +693,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             OpenResponse or = (OpenResponse)message;
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
-                
+
                 // TODO: refactor and improve classification of "fatal" exceptions
                 final String exMessage = or.exception.getMessage();
                 final Throwable exCause = or.exception.getCause();
@@ -702,7 +702,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                                 exMessage.toLowerCase().contains("authenticate"))) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else if (((exCause != null)
-                        && (exCause.getClass().getName().toLowerCase().contains("java.security") || 
+                        && (exCause.getClass().getName().toLowerCase().contains("java.security") ||
                                 exCause.getClass().getName().toLowerCase().contains("javax.net.ssl")))) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
@@ -893,7 +893,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof DisconnectNotification) {
             remakingInboundLinks = false;
             DisconnectNotification dn = (DisconnectNotification)message;
-            
+
             final Throwable error = dn.error;
             if (error instanceof ReplacedException) {
                 if (lastException == null) lastException = (ReplacedException) error;
@@ -931,7 +931,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else {
             logger.data("Unexpected message received {} from {} ", message, message.getSender());
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -939,10 +939,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void startTimer() {
         final String methodName = "startTimer";
         logger.entry(this, methodName);
-      
+
         timerPromise = new TimerPromiseImpl(this, null);
         timer.schedule(retryDelay, timerPromise);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -950,9 +950,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void openConnection() {
         final String methodName = "openConnection";
         logger.entry(this, methodName);
-      
+
         engine.tell(new OpenRequest(currentEndpoint, clientId), this);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -960,10 +960,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void closeConnection() {
         final String methodName = "closeConnection";
         logger.entry(this, methodName);
-      
+
         pendingDeliveries.clear();
         engine.tell(new CloseRequest(currentConnection), this);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -971,13 +971,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void cancelTimer() {
         final String methodName = "cancelTimer";
         logger.entry(this, methodName);
-      
+
         if (timerPromise != null) {
             TimerPromiseImpl tmp = timerPromise;
             timerPromise = null;
             timer.cancel(tmp);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -985,9 +985,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void requestEndpoint() {
         final String methodName = "requestEndpoint";
         logger.entry(this, methodName);
-      
+
         endpointService.lookup(new EndpointPromiseImpl(this));
-        
+
         logger.exit(this, methodName);
     }
 
@@ -995,7 +995,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void remakeInboundLinks() {
         final String methodName = "remakeInboundLinks";
         logger.entry(this, methodName);
-      
+
         if (subscribedDestinations.isEmpty()) {
             stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
         } else {
@@ -1007,7 +1007,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 engine.tell(sr, this);
             }
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1016,12 +1016,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void blessEndpoint() {
         final String methodName = "blessEndpoint";
         logger.entry(this, methodName);
-      
+
         serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp://") +
                      currentEndpoint.getHost() + ":" + currentEndpoint.getPort();
         retryDelay = 0;
         endpointService.onSuccess(currentEndpoint);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1029,7 +1029,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void cleanup() {
         final String methodName = "cleanup";
         logger.entry(this, methodName);
-      
+
         pendingDeliveries.clear();
 
         // Fire a drain notification if required.
@@ -1094,6 +1094,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         // Ask the callback service to notify us when it has completed any previously
         // requested callback invocations (via a FlushResponse message to the onReceive() method)
         callbackService.run(new Runnable() {
+            @Override
             public void run() {}
         }, this, new CallbackPromiseImpl(this, false));
 
@@ -1104,12 +1105,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void failPendingStops() {
         final String methodName = "failPendingStops";
         logger.entry(this, methodName);
-      
+
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
             stop.future.postFailure(callbackService, new StartingException("Cannot stop client because of a subsequent start request"));
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1117,12 +1118,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void succeedPendingStops() {
         final String methodName = "succeedPendingStops";
         logger.entry(this, methodName);
-      
+
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
             stop.future.postSuccess(callbackService);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1130,12 +1131,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void failPendingStarts() {
         final String methodName = "failPendingStarts";
         logger.entry(this, methodName);
-      
+
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
             start.future.postFailure(callbackService, new StoppedException("Cannot start client because of a subsequent stop request"));
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1143,12 +1144,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void succeedPendingStarts() {
         final String methodName = "succeedPendingStarts";
         logger.entry(this, methodName);
-      
+
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
             start.future.postSuccess(callbackService);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1156,11 +1157,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void processQueuedActions() {
         final String methodName = "processQueuedActions";
         logger.entry(this, methodName);
-      
+
         while (!pendingWork.isEmpty()) {
             tell((Message)pendingWork.removeFirst(), this);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1168,11 +1169,11 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventStarting() {
         final String methodName = "eventStarting";
         logger.entry(this, methodName);
-      
+
         stoppedByUser = false;
         lastException = null;
         externalState = ClientState.STARTING;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1180,9 +1181,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventUserStopping() {
         final String methodName = "eventUserStopping";
         logger.entry(this, methodName);
-      
+
         externalState = ClientState.STOPPING;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1190,14 +1191,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventSystemStopping() {
         final String methodName = "eventSystemStopping";
         logger.entry(this, methodName);
-      
+
         // Need to be careful because sometimes the client can be stopped by the user and then
         // a system problem be detected (in which case we get a user stopping followed by a
         // system stopping event - and should discard any error associated with the
         // system stopping event)...
         externalState = ClientState.STOPPING;
         if (lastException == null) stoppedByUser = true;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1205,12 +1206,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventStopped() {
         final String methodName = "eventStopped";
         logger.entry(this, methodName);
-      
+
         externalState = ClientState.STOPPED;
         clientListener.onStopped(callbackService, stoppedByUser ? null : lastException);
         stoppedByUser = false;
         lastException = null;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1218,10 +1219,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventStarted() {
         final String methodName = "eventStarted";
         logger.entry(this, methodName);
-      
+
         externalState = ClientState.STARTED;
         clientListener.onStarted(callbackService);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1229,10 +1230,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventRetrying() {
         final String methodName = "eventRetrying";
         logger.entry(this, methodName);
-      
+
         externalState = ClientState.RETRYING;
         clientListener.onRetrying(callbackService, stoppedByUser ? null : lastException);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1240,10 +1241,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void eventRestarted() {
         final String methodName = "eventRestarted";
         logger.entry(this, methodName);
-      
+
         externalState = ClientState.STARTED;
         clientListener.onRestarted(callbackService);
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1277,7 +1278,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
             subData.state = SubData.State.BROKEN;
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -1285,14 +1286,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     protected boolean doDelivery(DeliveryRequest request) {
         final String methodName = "doDelivery";
         logger.entry(this, methodName, request);
-      
+
         boolean result = pendingDeliveries.remove(request);
         if (result) {
             engine.tell(new DeliveryResponse(request), this);
         }
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 }
