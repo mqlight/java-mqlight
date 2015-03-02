@@ -582,7 +582,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is =
-                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, Math.round(subOptions.getTtl() / 1000L), gsonBuilder, destListener, context);
+                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int) Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
         tell(is, this);
 
         is.future.setListener(callbackService, compListener, context);

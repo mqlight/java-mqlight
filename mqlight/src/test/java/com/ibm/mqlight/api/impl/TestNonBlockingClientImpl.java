@@ -324,7 +324,8 @@ public class TestNonBlockingClientImpl {
                     "Expected input "
                             + inputTtl
                             + " milliseconds ttl to have been rounded to the nearest second for subscribe - ",
-                    Math.round(inputTtl / 1000L), subscribe.ttl);
+                    (int) Math.round(subOptions.getTtl() / 1000.0),
+                    subscribe.ttl);
         }
     }
 
