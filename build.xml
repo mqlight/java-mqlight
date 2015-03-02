@@ -59,7 +59,7 @@
 	<target name="broot.missing" unless="env.BROOT">
 		<echo message="Running outside MQ Build environment"/>
 		<property name="output.root" location="output"/>
-		<property name="protonSource" value="../../ApacheQpid/qpid-proton-0.8/proton-j/src" />
+		<property name="protonSource" value="../qpid-proton/qpid-proton-0.8/proton-j/src" />
 		<property name="version" value="1.0-SNAPSHOT"/>	<!-- TODO: is this right?  Should we store this somewher else? -->
 		<!-- Calculate the date part of the build level -->
 		<tstamp>
