@@ -26,6 +26,10 @@
 	<property name="nonship" location="nonship"/>
 	<property name="product.unittest.src" location="mqlight/src/test/java"/>
 	<property name="samples.unittest.src" location="mqlight-samples/src/test/java"/>
+	<condition property="source.root" value="${env.SROOT}" else="../../../../../..">
+		<isset property="env.SROOT"/>
+	</condition>
+	<property name="qpid-version" value="0.8"/>
 
 	<!-- Define commonly used paths -->
 	<path id="lib.jars">
@@ -40,13 +44,13 @@
 	</taskdef>
 	
 	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
-		<classpath path="../../MakeSystem/tools/findbugs/lib/findbugs-ant.jar"/>
+		<classpath path="${source.root}/MakeSystem/tools/findbugs/lib/findbugs-ant.jar"/>
 	</taskdef>
 	
 	<!-- If the 'BROOT' environment variable is set - generate output relative to BROOT -->
 	<target name="broot.present" if="env.BROOT">
 		<echo message="Running inside MQ Build environment"/>
-		<property name="output.root" location="${env.BROOT}/appmsging/java"/>
+		<property name="output.root" location="${env.BROOT}/appmsging/qpid-proton/qpid-proton-${qpid-version}/contrib/mqlight/java"/>
 		<property name="protonSource" value="${env.BROOT}/appmsging/qpid-proton/qpid-proton-0.8/proton-j/src"/>
 		<exec executable="mqvrmf" outputproperty="version">
 			<arg value="-J"/>
@@ -59,7 +63,7 @@
 	<target name="broot.missing" unless="env.BROOT">
 		<echo message="Running outside MQ Build environment"/>
 		<property name="output.root" location="output"/>
-		<property name="protonSource" value="../qpid-proton/qpid-proton-0.8/proton-j/src" />
+		<property name="protonSource" value="../../../proton-j/src" />
 		<property name="version" value="1.0-SNAPSHOT"/>	<!-- TODO: is this right?  Should we store this somewher else? -->
 		<!-- Calculate the date part of the build level -->
 		<tstamp>
@@ -324,7 +328,7 @@
 
 	<!-- Run findbugs -->
 	<target name="findbugs" depends="package">
-		<findbugs home="../../MakeSystem/tools/findbugs"
+		<findbugs home="${source.root}/MakeSystem/tools/findbugs"
 				  output="html"
 				  outputFile="${results}/javafindbugs.html"
 				  excludeFilter="findbugs.excludes.xml"
