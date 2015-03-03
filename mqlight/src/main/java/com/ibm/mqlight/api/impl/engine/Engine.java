@@ -46,6 +46,7 @@ import org.apache.qpid.proton.engine.Transport;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.NetworkException;
+import com.ibm.mqlight.api.NotPermittedException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
@@ -72,14 +73,14 @@ import com.ibm.mqlight.api.timer.TimerService;
 public class Engine extends Component {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
-      
+
     private final NetworkService network;
     private final TimerService timer;
 
     public Engine(NetworkService network, TimerService timer) {
         final String methodName = "<init>";
         logger.entry(this, methodName, network, timer);
-      
+
         if (network == null) {
           final IllegalArgumentException exception = new IllegalArgumentException("NetworkService argument cannot be null");
           logger.throwing(this, methodName, exception);
@@ -92,7 +93,7 @@ public class Engine extends Component {
         }
         this.network = network;
         this.timer = timer;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -100,7 +101,7 @@ public class Engine extends Component {
     protected void onReceive(Message message) {
         final String methodName = "onReceive";
         logger.entry(this, methodName, message);
-      
+
         if (message instanceof OpenRequest) {
             OpenRequest or = (OpenRequest)message;
             //ConnectRequest connectRequest = new ConnectRequest(or.endpoint.getHost(), or.endpoint.getPort());
@@ -359,7 +360,7 @@ public class Engine extends Component {
                 writeToNetwork(engineConnection);
             }
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -367,7 +368,7 @@ public class Engine extends Component {
     private void writeToNetwork(EngineConnection engineConnection) {
       final String methodName = "writeToNetwork";
       logger.entry(this, methodName, engineConnection);
-      
+
         if (engineConnection.transport.pending() > 0) {
             ByteBuffer head = engineConnection.transport.head();
             int amount = head.remaining();
@@ -380,7 +381,7 @@ public class Engine extends Component {
             engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, amount, engineConnection));
             //nn.tell(new WriteRequest(connection, buf), this);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -388,7 +389,7 @@ public class Engine extends Component {
     private void process(Collector collector) {
         final String methodName = "process";
         logger.entry(this, methodName, collector);
-      
+
         while (collector.peek() != null) {
             Event event = collector.peek();
             logger.data(this, methodName, "Processing event: {}", event.getType());
@@ -450,7 +451,7 @@ public class Engine extends Component {
             }
             collector.pop();
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -544,26 +545,30 @@ public class Engine extends Component {
                 timer.schedule(timeout - now, engineConnection.timerPromise);
             }
         }
-        
+
         logger.exit(this, methodName);
     }
 
     private ClientException getClientException(String errMsg) {
-      if (errMsg.contains("sasl") || errMsg.contains("SSL")) {
+      if (errMsg.contains("sasl ") || errMsg.contains("SSL ")) {
         return new com.ibm.mqlight.api.SecurityException(errMsg);
-      } else {
-        if (errMsg.contains("_Takeover")) {
-          return new ReplacedException(errMsg);
-        } else {
-          return new NetworkException(errMsg);
-        }
       }
+
+      if (errMsg.contains("_Takeover")) {
+          return new ReplacedException(errMsg);
+      }
+
+      if (errMsg.contains("_InvalidSourceTimeout")) {
+          return new NotPermittedException(errMsg);
+      }
+
+      return new NetworkException(errMsg);
     }
 
     private void processEventDelivery(Event event) {
         final String methodName = "processEventDelivery";
         logger.entry(this, methodName, event);
-      
+
         EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
         Delivery delivery = event.getDelivery();
         if (event.getLink() instanceof Sender) {
@@ -598,7 +603,7 @@ public class Engine extends Component {
             QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
             subData.subscriber.tell(new DeliveryRequest(data, qos, event.getLink().getName(), delivery, event.getConnection()), this);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -611,22 +616,22 @@ public class Engine extends Component {
     private void processEventLinkLocalState(Event event) {
         final String methodName = "processEventLinkFlow";
         logger.entry(this, methodName, event);
-      
+
         Link link = event.getLink();
         logger.data(this, methodName, "LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
-        
+
         logger.exit(this, methodName);
     }
 
     private void processEventLinkRemoteState(Event event) {
         final String methodName = "processEventLinkFlow";
         logger.entry(this, methodName, event);
-      
+
         Link link = event.getLink();
         logger.data(this, methodName, "LINK_REMOTE {} {} {}", link, link.getLocalState(), link.getRemoteState());
 
         final Event.Type eventType = event.getType();
-        
+
         if (link instanceof Receiver) {
             if (eventType == Event.Type.LINK_REMOTE_OPEN) {
                 // Receiver link open has been ack'ed by server.
@@ -679,7 +684,7 @@ public class Engine extends Component {
                 link.free();
             }
         }
-        
+
         logger.exit(this, methodName);
 
     }
@@ -687,9 +692,9 @@ public class Engine extends Component {
     private void processEventSessionLocalState(Event event) {
         final String methodName = "processEventSessionLocalState";
         logger.entry(this, methodName, event);
-        
+
         // TODO: do we care about this event?
-        
+
         logger.exit(this, methodName);
     }
 
@@ -707,7 +712,7 @@ public class Engine extends Component {
         }
 
         // TODO: should reject remote party trying to establish sessions with us
-        
+
         logger.exit(this, methodName);
     }
 
