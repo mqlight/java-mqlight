@@ -31,54 +31,14 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.mqlight</groupId>
-  <artifactId>mqlight-api</artifactId>
+  <artifactId>mqlight-api-samples</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.qpid</groupId>
-      <artifactId>proton-j</artifactId>
-      <!-- We use a snapshot version here so that we can build against the local 
-        version (in ../../../../proton-j) -->
-      <version>1.0-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.2.4</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.1.2</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <version>1.1.2</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>4.0.21.Final</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.5</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.oxo42</groupId>
-      <artifactId>stateless4j</artifactId>
-      <version>2.5.0</version>
-      <exclusions>
-        <!-- exclude stateless4j's dependency on slf4j - as this is already a dependency 
-          of the mqlight-api artifact. -->
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>com.ibm.mqlight.api</groupId>
+      <artifactId>mqlight-api</artifactId>
+      <version>${project.parent.version}</version>
     </dependency>
   </dependencies>
 
@@ -152,54 +112,6 @@
         </dependencies>
       </plugin>
 
-      <!-- Specify that we want unit test coverage analysis for the test phase -->
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.7.4.201502262128</version>
-        <configuration>
-          <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
-          <destFile>${project.build.directory}/jacoco/jacoco-unit.exec</destFile>
-          <dataFile>${project.build.directory}/jacoco/jacoco-unit.exec</dataFile>
-        </configuration>
-        <executions>
-          <execution>
-            <id>jacoco-initialize</id>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>jacoco-test-report</id>
-            <phase>test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>jacoco-test-check</id>
-            <phase>test</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <rule>
-                  <element>BUNDLE</element>
-                  <limits>
-                    <limit>
-                      <counter>INSTRUCTION</counter>
-                      <value>COVEREDRATIO</value>
-                      <minimum>0.80</minimum>
-                    </limit>
-                  </limits>
-                </rule>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- Generate a source jar -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -234,16 +146,6 @@
         <version>3.4</version>
       </plugin>
     </plugins>
-
-    <resources>
-      <resource>
-        <directory>src/main/java/com/ibm/mqlight/api/resources</directory>
-        <includes>
-          <include>mqlight-logback.xml</include>
-        </includes>
-        <targetPath>com/ibm/mqlight/api/resources</targetPath>
-      </resource>
-    </resources>
   </build>
 
   <licenses>
