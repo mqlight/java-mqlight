@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
@@ -501,7 +503,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         }
 
-        InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), data, length);
+        final ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
+        InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length);
         ++undrainedSends;
         tell(is, this);
         is.future.setListener(callbackService, listener, context);
@@ -716,7 +719,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             InternalSend<?> is = (InternalSend<?>)message;
             NonBlockingClientState state = stateMachine.getState();
             if (NonBlockingClientState.acceptingWorkStates.contains(state)) {
-                SendRequest sr = new SendRequest(currentConnection, is.topic, is.data, is.length, is.qos);
+                SendRequest sr = new SendRequest(currentConnection, is.topic, is.buf, is.length, is.qos);
                 outstandingSends.put(sr, is);
                 engine.tell(sr, this);
             } else if (NonBlockingClientState.queueingWorkStates.contains(state)) {
@@ -888,7 +891,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof DeliveryRequest) {
             DeliveryRequest dr = (DeliveryRequest)message;
             final SubData subData = subscribedDestinations.get(dr.topicPattern);
-            pendingDeliveries.add(dr);
+            if (dr.qos == QOS.AT_LEAST_ONCE) {
+                pendingDeliveries.add(dr);
+            }
             subData.listener.onDelivery(callbackService, dr, subData.qos, subData.autoConfirm);
         } else if (message instanceof DisconnectNotification) {
             remakingInboundLinks = false;

@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import io.netty.buffer.ByteBuf;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
@@ -189,7 +191,9 @@ public class Engine extends Component {
             }
             Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
 
-            linkSender.send(sr.data, 0, sr.length);
+            linkSender.send(sr.buf.array(), 0, sr.length);
+            sr.buf.release();
+
             if (sr.qos == QOS.AT_MOST_ONCE) {
                 d.settle();
             } else {
@@ -597,11 +601,12 @@ public class Engine extends Component {
             byte[] data = new byte[amount];
             receiver.recv(data, 0, amount);
             receiver.advance();
+            ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
 
             EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(event.getLink().getName());
             subData.unsettled++;
             QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
-            subData.subscriber.tell(new DeliveryRequest(data, qos, event.getLink().getName(), delivery, event.getConnection()), this);
+            subData.subscriber.tell(new DeliveryRequest(buf, qos, event.getLink().getName(), delivery, event.getConnection()), this);
         }
 
         logger.exit(this, methodName);

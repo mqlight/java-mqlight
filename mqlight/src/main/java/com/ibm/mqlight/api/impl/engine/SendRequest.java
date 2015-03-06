@@ -18,21 +18,23 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import io.netty.buffer.ByteBuf;
+
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.Message;
 
 public class SendRequest extends Message {
     protected final EngineConnection connection;
     protected final String topic;
-    protected final byte[] data;
+    protected final ByteBuf buf;
     protected final int length;
     protected final QOS qos;
-    public SendRequest(EngineConnection connection, String topic, byte[] data, int length, QOS qos) {
+    public SendRequest(EngineConnection connection, String topic, ByteBuf buf, int length, QOS qos) {
         this.connection = connection;
         this.topic = topic;
-        this.data = data;
+        this.buf = buf;
         this.length = length;
         this.qos = qos;
     }
-    
+
 }

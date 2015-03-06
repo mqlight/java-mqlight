@@ -18,6 +18,7 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -53,7 +54,7 @@ public class TestEngine {
     private class MockHandler extends BaseHandler {
         private Delivery delivery = null;
         private boolean closeConnection = false;
-        
+
         @Override
         public void onConnectionRemoteOpen(Event e) {
             System.out.println("onConnectionRemoteOpen");
@@ -117,7 +118,7 @@ public class TestEngine {
         public void onUnhandled(Event e) {
             System.out.println("onUnhandled: " + e);
         }
-        
+
     }
 
     private class MockNetworkService implements NetworkService {
@@ -136,23 +137,23 @@ public class TestEngine {
             }
         }
     }
-    
+
     private class MockTimerService implements TimerService {
 
         @Override
         public void schedule(long delay, Promise<Void> promise) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
         public void cancel(Promise<Void> promise) {
             // TODO Auto-generated method stub
-            
+
         }
-        
+
     }
-    
+
     protected class StubEndpoint implements Endpoint {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
@@ -162,18 +163,18 @@ public class TestEngine {
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
     }
-    
+
     @Test
     public void openClose() {
         NetworkService network = new MockNetworkService(new MockHandler());
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
-        
+
         assertEquals("Expected one message to have been sent to component", 1, component.getMessages().size());
         assertTrue("Expected message to be of type OpenResponse", component.getMessages().get(0) instanceof OpenResponse);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
@@ -188,62 +189,62 @@ public class TestEngine {
         CloseResponse closeReponse = (CloseResponse)component.getMessages().get(1);
         assertSame("Expected request to be linked in closeResponse", expectedCloseRequest, closeReponse.request);
     }
-    
+
     @Test
     public void openFails() {
         NetworkService network = new MockNetworkService(null);
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
-        
+
         assertEquals("Expected one message to have been sent to component", 1, component.getMessages().size());
         assertTrue("Expected message to be of type OpenResponse", component.getMessages().get(0) instanceof OpenResponse);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
         assertNotNull("Expected open response to contain an exception", openResponse.exception);
         assertNull("Expected open response not to contain an engine connection", openResponse.connection);
     }
-    
-    
+
+
     @Test
     public void send() {
         NetworkService network = new MockNetworkService(new MockHandler());
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        
-        engine.tell(new SendRequest(openResponse.connection, "topic1", new byte[]{1, 2, 3}, 3, QOS.AT_MOST_ONCE), component);
+
+        engine.tell(new SendRequest(openResponse.connection, "topic1", wrappedBuffer(new byte[]{1, 2, 3}), 3, QOS.AT_MOST_ONCE), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type DrainNotification", component.getMessages().get(1) instanceof DrainNotification);
         assertTrue("Expected message 3 to be of type SendResponse", component.getMessages().get(2) instanceof SendResponse);
     }
-    
+
     @Test
     public void receiveQos0() {
         NetworkService network = new MockNetworkService(new MockHandler());
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        
+
         engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type SubscribeResponse", component.getMessages().get(1) instanceof SubscribeResponse);
         assertTrue("Expected message 3 to be of type DeliveryRequest", component.getMessages().get(2) instanceof DeliveryRequest);
     }
-    
+
     @Test
     public void receiveQos1() {
         MockHandler handler = new MockHandler();
@@ -251,21 +252,21 @@ public class TestEngine {
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        
+
         engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_LEAST_ONCE, 10, 0), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type SubscribeResponse", component.getMessages().get(1) instanceof SubscribeResponse);
         assertTrue("Expected message 3 to be of type DeliveryRequest", component.getMessages().get(2) instanceof DeliveryRequest);
-        
+
         engine.tell(new DeliveryResponse((DeliveryRequest)component.getMessages().get(2)), component);
         assertTrue("Delivery should have been marked as settled", handler.delivery.remotelySettled());
     }
-    
+
     @Test
     public void unsubscribe() {
         MockHandler handler = new MockHandler();
@@ -273,19 +274,19 @@ public class TestEngine {
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        
+
         engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
-       
+
         engine.tell(new UnsubscribeRequest(openResponse.connection, "topic1", true), component);
         assertEquals("Expected to have received 4 messages to the component", 4, component.getMessages().size());
         assertTrue("Expected 4th message to be of type unsubscribe response", component.getMessages().get(3) instanceof UnsubscribeResponse);
     }
-    
+
     @Test
     public void connectionError() {
         MockHandler handler = new MockHandler();
@@ -293,15 +294,15 @@ public class TestEngine {
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         engine.tell(new ConnectionError(network.channel, new IOException()), Component.NOBODY);
-        
+
         assertEquals("Expected to have received 1 more message to the component", 2, component.getMessages().size());
     }
-    
+
     @Test
     public void remoteClose() {
         MockHandler handler = new MockHandler();
@@ -310,12 +311,12 @@ public class TestEngine {
         TimerService timer = new MockTimerService();
         Endpoint endpoint = new StubEndpoint();
         MockComponent component = new MockComponent();
-        
+
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        
+
         engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
         System.out.println(component.getMessages());
     }

@@ -46,7 +46,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 class DestinationListenerWrapper<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(DestinationListenerWrapper.class);
-  
+
     private final NonBlockingClientImpl client;
     private final GsonBuilder gsonBuilder;
     private final DestinationListener<T> listener;
@@ -60,40 +60,44 @@ class DestinationListenerWrapper<T> {
     protected DestinationListenerWrapper(NonBlockingClientImpl client, GsonBuilder gsonBuilder, DestinationListener<T> listener, T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, gsonBuilder, listener, context);
-        
+
         this.client = client;
         this.gsonBuilder = gsonBuilder;
         this.listener = listener;
         this.context = context;
-        
+
         logger.exit(this, methodName);
     }
 
     protected void onUnsubscribed(final CallbackService callbackService, final String topicPattern, final String share, final Exception error) {
         final String methodName = "onUnsubscribed";
         logger.entry(this, methodName, callbackService, topicPattern, share, error);
-      
+
         if (listener != null) {
             callbackService.run(new Runnable() {
+                @Override
                 public void run() {
                     listener.onUnsubscribed(client, context, topicPattern, share, error);
                 }
             }, client, new CallbackPromiseImpl(client, true));
         }
-        
+
         logger.exit(this, methodName);
     }
 
     protected void onDelivery(final CallbackService callbackService, final DeliveryRequest deliveryRequest, final QOS qos, final boolean autoConfirm) {
-      
+
         final String methodName = "onDelivery";
         logger.entry(this, methodName, callbackService, deliveryRequest, qos, autoConfirm);
-      
+
         callbackService.run(new Runnable() {
+            @Override
             public void run() {
                 final String methodName = "run";
                 logger.entry(this, methodName);
-                byte[] data = deliveryRequest.data;
+                byte[] data = new byte[deliveryRequest.buf.array().length];
+                System.arraycopy(deliveryRequest.buf.array(), 0, data, 0, deliveryRequest.buf.array().length);
+                deliveryRequest.buf.release();
 
                 MalformedDelivery.MalformedReason malformedReason = null;
                 String malformedDescription = null;
@@ -231,11 +235,11 @@ class DestinationListenerWrapper<T> {
                 if (autoConfirm) {
                     client.doDelivery(deliveryRequest);
                 }
-                
+
                 logger.exit(this, methodName);
             }
         }, client, new CallbackPromiseImpl(client, true));
-        
+
         logger.exit(this, methodName);
     }
 }

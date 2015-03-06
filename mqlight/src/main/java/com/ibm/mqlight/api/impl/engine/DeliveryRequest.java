@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import io.netty.buffer.ByteBuf;
+
 import org.apache.qpid.proton.engine.Connection;
 import org.apache.qpid.proton.engine.Delivery;
 
@@ -28,15 +30,15 @@ import com.ibm.mqlight.api.impl.Message;
 //       component that issued the subscribe (rather than most messages in
 //       this package which are sent from some Component to the Engine component)
 public class DeliveryRequest extends Message {
-    
-    public final byte[] data;
+
+    public final ByteBuf buf;
     public final QOS qos;
     public final String topicPattern;
     protected final Delivery delivery;
     protected final Connection protonConnection;
-    
-    public DeliveryRequest(byte[] data, QOS qos, String topicPattern, Delivery delivery, Connection protonConnection) {
-        this.data = data;
+
+    public DeliveryRequest(ByteBuf buf, QOS qos, String topicPattern, Delivery delivery, Connection protonConnection) {
+        this.buf = buf;
         this.qos = qos;
         this.topicPattern = topicPattern;
         this.delivery = delivery;

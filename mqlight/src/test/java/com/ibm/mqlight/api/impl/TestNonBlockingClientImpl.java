@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import io.netty.buffer.ByteBuf;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -506,9 +507,10 @@ public class TestNonBlockingClientImpl {
         assertEquals("Expected a single message to have been sent to the mock engine component", 1, client.getMessages().size());
         InternalSend<?> send = (InternalSend<?>)client.getMessages().get(0);
         byte[] data = new byte[send.length];
-        System.arraycopy(send.data, 0, data, 0, send.length);
+        System.arraycopy(send.buf.array(), 0, data, 0, send.length);
+        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(data);
 
-        DeliveryRequest dr = new DeliveryRequest(data, QOS.AT_MOST_ONCE, "/kittens", null, null);
+        DeliveryRequest dr = new DeliveryRequest(msgData, QOS.AT_MOST_ONCE, "/kittens", null, null);
         TestDestinationListener destinationListener = new TestDestinationListener();
         DestinationListenerWrapper<Void> wrapper = new DestinationListenerWrapper<>(client, new GsonBuilder(), destinationListener, null);
         wrapper.onDelivery(new SameThreadCallbackService(), dr, QOS.AT_MOST_ONCE, false);
@@ -972,7 +974,7 @@ public class TestNonBlockingClientImpl {
 
     private org.apache.qpid.proton.message.Message decodeProtonMessage(InternalSend<?> send) {
         org.apache.qpid.proton.message.Message result = Proton.message();
-        result.decode(send.data, 0, send.length);
+        result.decode(send.buf.array(), 0, send.length);
         return result;
     }
 
