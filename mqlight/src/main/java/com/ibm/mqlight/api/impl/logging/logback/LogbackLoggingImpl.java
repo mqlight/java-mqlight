@@ -131,8 +131,6 @@ public class LogbackLoggingImpl {
               writeHeaderInfo(headerLogger);
               logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
             }
-          } else {
-            rootLogger.setLevel(Level.WARN);
           }
 
         }
