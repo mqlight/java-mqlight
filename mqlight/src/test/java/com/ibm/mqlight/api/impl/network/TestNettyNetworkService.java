@@ -37,6 +37,8 @@ import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLServerSocketFactory;
 
@@ -52,6 +54,25 @@ import com.ibm.mqlight.api.endpoint.Endpoint;
 public class TestNettyNetworkService {
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
+
+    private class LatchedLinkedList<T> extends LinkedList<T> {
+        private static final long serialVersionUID = 8844358537632962333L;
+        private final CountDownLatch latch;
+
+        public LatchedLinkedList(int count) {
+            latch = new CountDownLatch(count);
+        }
+
+        public void await(int timeout) throws InterruptedException {
+            latch.await(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public void addLast(T e) {
+            super.addLast(e);
+            latch.countDown();
+        }
+    }
 
     private class BaseListener implements Runnable {
         protected ServerSocket serverSocket;
@@ -231,17 +252,15 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseListener(34567);
 
-        LinkedList<Event> events = new LinkedList<>();
+        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(2);
         MockNetworkListener listener = new MockNetworkListener(events);
         MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
         nn.connect(new StubEndpoint("localhost", 34567), listener, promise);
 
-        while(!promise.isComplete()) {
-            Thread.sleep(50);
-        }
+        events.await(5000);
+
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
-        Thread.sleep(50);
         assertEquals("Expected two events!", 2, events.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
         assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, events.get(1).type);
@@ -256,7 +275,7 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseSslListener(34567);
 
-        LinkedList<Event> events = new LinkedList<>();
+        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(2);
         MockNetworkListener listener = new MockNetworkListener(events);
         MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
         final StubEndpoint endpoint = new StubEndpoint("localhost", 34567);
@@ -264,13 +283,11 @@ public class TestNettyNetworkService {
         endpoint.setVerifyName(false);
         nn.connect(endpoint, listener, promise);
 
-        while(!promise.isComplete()) {
-            Thread.sleep(50);
-        }
+        events.await(5000);
+
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
-        Thread.sleep(50);
-        assertEquals("Expected two events!", 2, events.size());
+        assertEquals("Expected two events", 2, events.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
         assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, events.get(1).type);
       }
@@ -279,7 +296,6 @@ public class TestNettyNetworkService {
     @Test
     public void sslCertFiles() throws Exception {
         NettyNetworkService nn = new NettyNetworkService();
-        LinkedList<Event> events = new LinkedList<>();
         MockNetworkListener listener = new MockNetworkListener(new LinkedList<Event>());
         final StubEndpoint endpoint = new StubEndpoint("localhost", 34567);
         endpoint.setUseSsl(true);
@@ -289,11 +305,10 @@ public class TestNettyNetworkService {
         {
             BaseListener testListener = new BaseSslListener(34567);
             endpoint.setCertChainFile(folder.newFile());
+            LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            while (!promise.isComplete()) {
-                Thread.sleep(50);
-            }
+            events.await(2000);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertEquals("Expected first event to be a connect failure", Event.Type.CONNECT_FAILURE, events.getLast().type);
             assertTrue("Expected event to throw ClientException", (events.getLast().context instanceof Exception));
@@ -314,11 +329,10 @@ public class TestNettyNetworkService {
                 jks.store(fos, new char[0]);
             }
             endpoint.setCertChainFile(jksFile);
+            LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            while (!promise.isComplete()) {
-                Thread.sleep(50);
-            }
+            events.await(2000);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
@@ -357,11 +371,10 @@ public class TestNettyNetworkService {
                 writer.close();
             }
             endpoint.setCertChainFile(pemFile);
+            LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            while (!promise.isComplete()) {
-                Thread.sleep(50);
-            }
+            events.await(2000);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);

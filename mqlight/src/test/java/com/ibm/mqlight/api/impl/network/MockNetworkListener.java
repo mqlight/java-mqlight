@@ -28,11 +28,11 @@ import com.ibm.mqlight.api.network.NetworkListener;
 class MockNetworkListener implements NetworkListener {
 
     private final LinkedList<Event> events;
-    
+
     protected MockNetworkListener(LinkedList<Event> events) {
         this.events = events;
     }
-    
+
     @Override
     public void onRead(NetworkChannel channel, ByteBuffer buffer) {
         synchronized(events) {
@@ -53,5 +53,5 @@ class MockNetworkListener implements NetworkListener {
             events.addLast(new Event(Type.CHANNEL_ERROR, exception));
         }
     }
-    
+
 }
