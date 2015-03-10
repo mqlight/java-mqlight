@@ -61,14 +61,6 @@
       </plugins>
     </pluginManagement>
   </build>
-  
-  <licenses>
-    <license>
-      <name>Proprietary IBM Software License Agreement</name>
-      <url>http://www14.software.ibm.com/cgi-bin/weblap/lap.pl?popup=Y&amp;li_formnum=L-APIG-9QTHSB</url>
-      <distribution>manual</distribution>
-    </license>
-  </licenses>
 
   <organization>
     <name>International Business Machines Corporation</name>
