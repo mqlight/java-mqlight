@@ -32,6 +32,7 @@ import org.apache.qpid.proton.amqp.messaging.Released;
 import org.apache.qpid.proton.amqp.messaging.Source;
 import org.apache.qpid.proton.amqp.messaging.Target;
 import org.apache.qpid.proton.amqp.messaging.TerminusExpiryPolicy;
+import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
 import org.apache.qpid.proton.engine.Collector;
@@ -477,6 +478,8 @@ public class Engine extends Component {
                     engineConnection.timerPromise = null;
                     timer.cancel(tmp);
                 }
+                final ErrorCondition remoteCondition = event.getConnection().getRemoteCondition();
+
                 if (engineConnection.openRequest != null) {
                     OpenRequest req = engineConnection.openRequest;
                     engineConnection.openRequest = null;
@@ -484,13 +487,6 @@ public class Engine extends Component {
                         engineConnection.notifyInflightQos0(true);
                         engineConnection.closed = true;
                         engineConnection.channel.close(null);
-                        final String errMsg;
-                        if (event.getConnection().getRemoteCondition() == null
-                                || event.getConnection().getRemoteCondition().getDescription() == null) {
-                            errMsg = "The server closed the connection without providing any error information.";
-                        } else {
-                            errMsg = event.getConnection().getRemoteCondition().getDescription();
-                        }
 
                         final ClientException clientException;
                         // check for SASL failures
@@ -498,10 +494,16 @@ public class Engine extends Component {
                         if (sasl.getOutcome() == Sasl.SaslOutcome.PN_SASL_AUTH) {
                             clientException = new com.ibm.mqlight.api.SecurityException(
                                     "Failed to authenticate with server - invalid username or password",
-                                    (event.getConnection().getRemoteCondition() == null) ? null : getClientException(errMsg));
+                                    getClientException(remoteCondition));
                         } else {
                             // else just report error condition on event
-                            clientException = getClientException(errMsg);
+                            if (remoteCondition == null
+                                    || remoteCondition.getDescription() == null) {
+                                clientException = new NetworkException(
+                                        "The server closed the connection without providing any error information.");
+                            } else {
+                                clientException = getClientException(remoteCondition);
+                            }
                         }
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
@@ -510,20 +512,7 @@ public class Engine extends Component {
                         engineConnection.notifyInflightQos0(true);
                         engineConnection.closed = true;
                         engineConnection.channel.close(null);
-                        String condition = "";
-                        if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getCondition() != null)) {
-                            condition = event.getConnection().getRemoteCondition().getCondition().toString();
-                        }
-                        String description = "";
-                        if ((event.getConnection().getRemoteCondition() != null) && (event.getConnection().getRemoteCondition().getDescription() != null)) {
-                            description = event.getConnection().getRemoteCondition().getDescription();
-                        }
-                        Throwable error = null;
-                        if ("ServerContext_Takeover".equals(condition)) {
-                            error = new ReplacedException(description);
-                        } else if (description.length() > 0) {
-                            error = getClientException(description);
-                        }
+                        Throwable error = getClientException(remoteCondition);
                         engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
                     }
                 }
@@ -553,20 +542,34 @@ public class Engine extends Component {
         logger.exit(this, methodName);
     }
 
-    private ClientException getClientException(String errMsg) {
-      if (errMsg.contains("sasl ") || errMsg.contains("SSL ")) {
-        return new com.ibm.mqlight.api.SecurityException(errMsg);
-      }
+    private ClientException getClientException(ErrorCondition condition) {
+        final String methodName = "getClientException";
+        logger.entry(this, methodName, condition);
 
-      if (errMsg.contains("_Takeover")) {
-          return new ReplacedException(errMsg);
-      }
+        ClientException result = null;
 
-      if (errMsg.contains("_InvalidSourceTimeout")) {
-          return new NotPermittedException(errMsg);
-      }
+        if (condition != null) {
+            if (condition.getCondition() != null) {
+                if (condition.getCondition().toString().contains("_Takeover")) {
+                    result = new ReplacedException(condition.getDescription());
+                } else if (condition.getCondition().toString().contains("_InvalidSourceTimeout")) {
+                    result = new NotPermittedException(condition.getDescription());
+                }
+            }
 
-      return new NetworkException(errMsg);
+            if (result == null && condition.getDescription() != null) {
+                if (condition.getDescription().contains("sasl ") || condition.getDescription().contains("SSL ")) {
+                    result = new com.ibm.mqlight.api.SecurityException(condition.getDescription());
+                }
+            }
+
+            if (result == null) {
+                result = new NetworkException(condition.getDescription());
+            }
+        }
+
+        logger.exit(this, methodName, result);
+        return result;
     }
 
     private void processEventDelivery(Event event) {
@@ -662,18 +665,12 @@ public class Engine extends Component {
                       logger.ffdc(this, methodName, FFDCProbeId.PROBE_001, null, this, event);
                         // TODO: throw IllegalStateException?
                     } else {
-                        // we assume that getRemoteConnection will be null or empty if there is no error
-                        ClientException clientException = null;
-                        if (link.getRemoteCondition() != null && link.getRemoteCondition().getCondition() != null) {
-                            String errorDescription = link.getRemoteCondition().getDescription();
-                            String errMsg = null;
-                            if (errorDescription == null) {
-                                errMsg = "The server indicated that the destination was unsubscribed due to an error condition, " +
-                                         "without providing any further error information.";
-                            } else {
-                                errMsg = errorDescription;
-                            }
-                            clientException = getClientException(errMsg);
+                        // we assume that getRemoteCondition will be null or empty if there is no error
+                        ClientException clientException = getClientException(link.getRemoteCondition());
+                        if (clientException == null) {
+                            clientException = new ClientException(
+                                "The server indicated that the destination was unsubscribed due to an error condition, " +
+                                "without providing any further error information.");
                         }
                         sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
                     }
