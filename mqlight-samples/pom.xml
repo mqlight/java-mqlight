@@ -32,14 +32,19 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.mqlight</groupId>
   <artifactId>mqlight-api-samples</artifactId>
-  <version>1.0-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
-      <groupId>com.ibm.mqlight.api</groupId>
+      <groupId>com.ibm.mqlight</groupId>
       <artifactId>mqlight-api</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit-dep</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>  
   </dependencies>
 
   <build>
@@ -95,9 +100,9 @@
               <outputDir>${project.build.directory}/findbugs</outputDir>
               <stylesheet>fancy.xsl</stylesheet>
               <fileMappers>
-                <fileMapper
-                  implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
-                  <targetExtension>.html</targetExtension>
+                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.RegExpFileMapper">
+                  <pattern>Xml\.xml$</pattern>
+                  <replacement>.html</replacement>
                 </fileMapper>
               </fileMappers>
             </transformationSet>

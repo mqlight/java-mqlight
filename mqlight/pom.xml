@@ -32,15 +32,12 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.mqlight</groupId>
   <artifactId>mqlight-api</artifactId>
-  <version>1.0-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.qpid</groupId>
       <artifactId>proton-j</artifactId>
-      <!-- We use a snapshot version here so that we can build against the local 
-        version (in ../../../../proton-j) -->
-      <version>1.0-SNAPSHOT</version>
+      <version>0.8-PATCHED</version>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -51,11 +48,15 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>1.1.2</version>
+      <scope>compile</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
       <version>1.1.2</version>
+      <scope>compile</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
@@ -80,8 +81,14 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit-dep</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+   </dependency>    
   </dependencies>
-
+    
   <build>
     <plugins>
       <plugin>
@@ -135,9 +142,9 @@
               <outputDir>${project.build.directory}/findbugs</outputDir>
               <stylesheet>fancy.xsl</stylesheet>
               <fileMappers>
-                <fileMapper
-                  implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
-                  <targetExtension>.html</targetExtension>
+                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.RegExpFileMapper">
+                  <pattern>Xml\.xml$</pattern>
+                  <replacement>.html</replacement>
                 </fileMapper>
               </fileMappers>
             </transformationSet>
@@ -234,7 +241,7 @@
         <version>3.4</version>
       </plugin>
     </plugins>
-
+  
     <resources>
       <resource>
         <directory>src/main/java/com/ibm/mqlight/api/resources</directory>
