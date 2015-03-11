@@ -27,12 +27,17 @@ public class Event {
         CHANNEL_CLOSE,
         CHANNEL_ERROR
     }
-    
+
     public final Type type;
     public final Object context;
-    
+
     public Event (Type type, Object context) {
         this.type = type;
         this.context = context;
+    }
+
+    @Override
+    public String toString() {
+        return "Event [type=" + type + ", context=" + context + "]";
     }
 }
