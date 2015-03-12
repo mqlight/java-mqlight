@@ -144,6 +144,14 @@ public class TestNettyNetworkService {
         }
 
         @Override
+        protected void processSocket(Socket socket) throws IOException {
+            // XXX: should we unittest with a proper SSL handshake before
+            // closing the socket?
+            InputStream in = socket.getInputStream();
+            while (in.read() != -1);
+        }
+
+        @Override
         public void run() {
             try {
                 serverSocket = (SSLServerSocketFactory.getDefault())
@@ -268,14 +276,10 @@ public class TestNettyNetworkService {
 
     @Test
     public void connectRemoteCloseSsl() throws Exception {
-      if (System.getProperty("os.name", "").toLowerCase().startsWith("windows")) {
-        System.out.println("Test being skipped as it does not seem to work on Windows\n"
-            + "(fails on reading socket with error: \"java.io.IOException: An established connection was aborted by the software in your host machine.\")");
-      } else {
         NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseSslListener(34567);
 
-        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(2);
+        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(3);
         MockNetworkListener listener = new MockNetworkListener(events);
         MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
         final StubEndpoint endpoint = new StubEndpoint("localhost", 34567);
@@ -287,10 +291,10 @@ public class TestNettyNetworkService {
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
-        assertEquals("Wrong number of events seen: " + events.toString(), 2, events.size());
+        assertEquals("Wrong number of events seen: " + events.toString(), 3, events.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
-        assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, events.get(1).type);
-      }
+        assertEquals("Expected second event to be a channel error", Event.Type.CHANNEL_ERROR, events.get(1).type);
+        assertEquals("Expected third event to be a close", Event.Type.CHANNEL_CLOSE, events.get(2).type);
     }
 
     @Test
