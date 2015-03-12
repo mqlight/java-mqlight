@@ -38,6 +38,7 @@ import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sender;
 import org.junit.Test;
 
+import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.endpoint.Endpoint;
@@ -204,7 +205,7 @@ public class TestEngine {
         assertEquals("Expected one message to have been sent to component", 1, component.getMessages().size());
         assertTrue("Expected message to be of type OpenResponse", component.getMessages().get(0) instanceof OpenResponse);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
-        assertNotNull("Expected open response to contain an exception", openResponse.exception);
+        assertTrue("Expected open response to contain a NetworkException, but instead contains: "+openResponse.exception, openResponse.exception instanceof NetworkException);
         assertNull("Expected open response not to contain an engine connection", openResponse.connection);
     }
 

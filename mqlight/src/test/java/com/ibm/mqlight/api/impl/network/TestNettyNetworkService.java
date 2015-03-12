@@ -48,6 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 
@@ -322,6 +323,7 @@ public class TestNettyNetworkService {
             events.await(2000);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertEquals("Expected first event to be a connect failure", Event.Type.CONNECT_FAILURE, events.getLast().type);
+            assertTrue("Expected a last event to have a SecurityException, but instead had: "+events.getLast().context, events.getLast().context instanceof SecurityException);
             assertTrue("Expected event to throw ClientException", (events.getLast().context instanceof Exception));
             assertTrue(((Exception) events.getLast().context).getCause().toString().startsWith("java.security.cert.CertificateException"));
             testListener.stop();
