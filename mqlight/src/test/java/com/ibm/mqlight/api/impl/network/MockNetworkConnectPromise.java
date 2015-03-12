@@ -63,4 +63,10 @@ class MockNetworkConnectPromise implements Promise<NetworkChannel> {
             return channel;
         }
     }
+
+    protected LinkedList<Event> getEvents() {
+      synchronized(events) {
+          return events;
+      }
+  }
 }

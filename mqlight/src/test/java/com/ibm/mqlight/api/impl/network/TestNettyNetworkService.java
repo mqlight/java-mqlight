@@ -153,16 +153,15 @@ public class TestNettyNetworkService {
 
         @Override
         public void run() {
+            Socket socket = null;
             try {
                 serverSocket = (SSLServerSocketFactory.getDefault())
                         .createServerSocket(port);
                 synchronized(this) {
                     this.notifyAll();
                 }
-                Socket socket = serverSocket.accept();
+                socket = serverSocket.accept();
                 processSocket(socket);
-                socket.close();
-                serverSocket.close();
             } catch (SocketException e) {
                 if (!stop) {
                     e.printStackTrace();
@@ -170,7 +169,15 @@ public class TestNettyNetworkService {
             } catch(IOException e) {
                 e.printStackTrace();
             } finally {
+              if (socket != null) try {
+                socket.close();
+              } catch (IOException e) {
+              }
                 synchronized(this) {
+                  if (serverSocket != null) try {
+                    serverSocket.close();
+                  } catch (IOException e) {
+                  }
                     this.notifyAll();
                 }
             }
@@ -402,7 +409,7 @@ public class TestNettyNetworkService {
             Thread.sleep(50);
         }
         assertTrue("Expected connect promise to be marked completed", promise.isComplete());
-        assertNotNull("Expected connect promise to contain a channel", promise.getChannel());
+        assertNotNull("Expected connect promise to contain a channel, events are: "+promise.getEvents(), promise.getChannel());
 
         byte[] data = new byte[(1 << 24)];
         Arrays.fill(data, (byte)123);
