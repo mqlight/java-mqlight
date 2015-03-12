@@ -389,7 +389,7 @@ public class TestNonBlockingClientImpl {
     }
 
     @Test
-    public void TestInvalidShareNameIntoUnsubscribe() {
+    public void testInvalidShareNameIntoUnsubscribe() {
         StubEndpointService endpointService = new StubEndpointService();
         StubCallbackService callbackService = new StubCallbackService();
         MockComponent component = new MockComponent();
