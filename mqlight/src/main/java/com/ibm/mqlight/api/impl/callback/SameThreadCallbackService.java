@@ -30,7 +30,7 @@ public class SameThreadCallbackService implements CallbackService {
             runnable.run();
             promise.setSuccess(null);
         } catch(Exception e) {
-            promise.setFailure(new ClientException("Application code throw an exception from within a callback.  See linked exception for more details.", e));
+            promise.setFailure(new ClientException("Application code threw an exception from within a callback.  See linked exception for more details.", e));
         }
     }
 

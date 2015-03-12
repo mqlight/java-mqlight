@@ -39,6 +39,16 @@ public interface NonBlockingClientListener<T> {
      * @param exception indicates why the client transitioned into stopped state.  This will be
      *                  <code>null</code> when the client transitions into stopped state because
      *                  the <code>stop()</code> method is called on the client.
+     *                  This exception can be one of the following client type exceptions:
+     *                  <ul>
+     *                  <li>{@link NetworkException} indicates a non-recoverable network type error.</li>
+     *                  <li>{@link SecurityException} indicates a security related error.</li>
+     *                  <li>{@link ReplacedException} indicates that the client has been replaced by another instance
+     *                      of itself.</li>
+     *                  <li>{@link ClientException} a general client type exception, usually caused by another
+     *                      exception.</li>
+     *                  </ul>
+     *                  
      */
     void onStopped(NonBlockingClient client, T context, ClientException exception);
 
@@ -58,6 +68,11 @@ public interface NonBlockingClientListener<T> {
      *               this notification pertains to.
      * @param context the context object that was specified when the listener was registered.
      * @param exception indicates why the client transitioned (or remains) in the retrying state.
+     *                  This exception can be one of the following client type exceptions:
+     *                  <ul>
+     *                  <li>{@link NetworkException} indicates a network type error.</li>
+     *                  <li>{@link ClientException} a general client type exception, usually caused by another exception.</li>
+     *                  </ul>
      */
     void onRetrying(NonBlockingClient client, T context, ClientException exception);
     

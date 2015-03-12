@@ -739,7 +739,7 @@ public class TestNonBlockingClientImpl {
         TestClientListener listener = new TestClientListener();
         NonBlockingClientImpl client = openCommon(engine, listener);
         OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
-        client.tell(new OpenResponse(openRequest, new ClientException("sasl")), engine);
+        client.tell(new OpenResponse(openRequest, new com.ibm.mqlight.api.SecurityException("sasl")), engine);
         assertEquals(ClientState.STOPPED, client.getState());
         return client;
     }

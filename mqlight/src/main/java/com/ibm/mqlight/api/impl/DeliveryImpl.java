@@ -61,7 +61,7 @@ public abstract class DeliveryImpl implements Delivery {
     public abstract Type getType();
 
     @Override
-    public void confirm() {
+    public void confirm() throws StateException {
         final String methodName = "confirm";
         logger.entry(this, methodName);
       

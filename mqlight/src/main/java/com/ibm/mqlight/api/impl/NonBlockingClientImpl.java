@@ -91,6 +91,7 @@ import com.ibm.mqlight.api.impl.timer.CancelResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
 import com.ibm.mqlight.api.impl.timer.TimerServiceImpl;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
@@ -262,7 +263,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> boolean send(String topic, String data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
-            throws StateException {
+            throws StoppedException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
 
@@ -284,7 +285,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties,
             SendOptions sendOptions, CompletionListener<T> listener, T context)
-            throws StateException {
+            throws StoppedException {
         final String methodName = "send";
        logger.entry(this, methodName, topic, data, properties, sendOptions, listener, context);
 
@@ -309,7 +310,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> boolean send(String topic, Object json,
             Map<String, Object> properties, SendOptions sendOptions,
-            CompletionListener<T> listener, T context) throws StateException {
+            CompletionListener<T> listener, T context) throws StoppedException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
 
@@ -327,7 +328,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public <T> boolean send(String topic, Object json, Type type,
             Map<String, Object> properties, SendOptions sendOptions,
-            CompletionListener<T> listener, T context) throws StateException {
+            CompletionListener<T> listener, T context) throws StoppedException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, json, type, properties, sendOptions, listener, context);
 
@@ -346,7 +347,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> boolean sendJson(String topic, String json,
             Map<String, Object> properties, SendOptions sendOptions,
             CompletionListener<T> listener, T context)
-    throws StateException {
+    throws StoppedException {
         final String methodName = "sendJson";
         logger.entry(this, methodName, topic, json, properties, sendOptions, listener, context);
 
@@ -446,7 +447,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     private <T> boolean send(String topic, org.apache.qpid.proton.message.Message protonMsg,
                                        Map<String, Object> properties,
-                                       SendOptions sendOptions, CompletionListener<T> listener, T context) {
+                                       SendOptions sendOptions, CompletionListener<T> listener, T context) throws StoppedException {
         final String methodName = "send";
         logger.entry(this, methodName, topic, protonMsg, properties, sendOptions, listener, context);
 
@@ -507,7 +508,19 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length);
         ++undrainedSends;
         tell(is, this);
-        is.future.setListener(callbackService, listener, context);
+        
+        try {
+          is.future.setListener(callbackService, listener, context);
+        } catch (StoppedException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_001, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
+        
         boolean result = undrainedSends < 2;
         pendingDrain |= !result;
 
@@ -517,12 +530,23 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     @Override
-    public <T> NonBlockingClient start(CompletionListener<T> listener, T context) {
+    public <T> NonBlockingClient start(CompletionListener<T> listener, T context) throws StoppedException {
         final String methodName = "start";
         logger.entry(this, methodName, listener, context);
 
-        InternalStart<T> is = new InternalStart<T>(this);
-        is.future.setListener(callbackService, listener, context);
+        InternalStart<T> is = new InternalStart<T>(this);       
+        try {
+          is.future.setListener(callbackService, listener, context);
+        } catch (StoppedException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_002, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
+        
         tell(is, this);
 
         logger.entry(this, methodName, this);
@@ -531,12 +555,23 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     @Override
-    public <T> void stop(CompletionListener<T> listener, T context) {
+    public <T> void stop(CompletionListener<T> listener, T context) throws StartingException {
         final String methodName = "stop";
         logger.entry(this, methodName, listener, context);
 
         InternalStop<T> is = new InternalStop<T>(this);
-        is.future.setListener(callbackService, listener, context);
+        try {
+          is.future.setListener(callbackService, listener, context);
+        } catch (StartingException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_003, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
+        
         tell(is, this);
 
         logger.exit(this, methodName);
@@ -567,7 +602,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public <T> NonBlockingClient subscribe(String topicPattern,
             SubscribeOptions subOptions, DestinationListener<T> destListener,
             CompletionListener<T> compListener, T context)
-            throws StateException, IllegalArgumentException {
+            throws SubscribedException, StoppedException, IllegalArgumentException {
         final String methodName = "subscribe";
         logger.entry(this, methodName, topicPattern, subOptions, destListener, compListener, context);
 
@@ -588,7 +623,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int) Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
         tell(is, this);
 
-        is.future.setListener(callbackService, compListener, context);
+        try {
+          is.future.setListener(callbackService, compListener, context);
+        } catch (SubscribedException|StoppedException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_004, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
 
         logger.exit(this, methodName, this);
 
@@ -597,7 +642,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
-    throws StateException, IllegalArgumentException {
+    throws UnsubscribedException, StoppedException, IllegalArgumentException {
         final String methodName = "unsubscribe";
         logger.entry(this, methodName, topicPattern, share, ttl, listener, context);
 
@@ -620,7 +665,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, ttl == 0);
         tell(us, this);
 
-        us.future.setListener(callbackService, listener, context);
+        try {
+          us.future.setListener(callbackService, listener, context);
+        } catch (UnsubscribedException|StoppedException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_005, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
 
         logger.exit(this, methodName, this);
 
@@ -629,7 +684,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     @Override
     public <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
-    throws StateException {
+    throws UnsubscribedException, StoppedException {
         final String methodName = "unsubscribe";
         logger.entry(this, methodName, topicPattern, share, listener, context);
 
@@ -646,7 +701,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, false);
         tell(us, this);
 
-        us.future.setListener(callbackService, listener, context);
+        try {
+          us.future.setListener(callbackService, listener, context);
+        } catch (UnsubscribedException|StoppedException e) {
+          logger.throwing(this, methodName, e);
+          throw e;
+        } catch (StateException e) {
+          IllegalStateException exception = new IllegalStateException("Unexpected state exception", e);
+          logger.ffdc(methodName, FFDCProbeId.PROBE_006, exception, this);
+          logger.throwing(this, methodName, e);
+          throw exception;
+        }
 
         logger.exit(this, methodName, this);
 
@@ -696,17 +761,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             OpenResponse or = (OpenResponse)message;
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
-
-                // TODO: refactor and improve classification of "fatal" exceptions
-                final String exMessage = or.exception.getMessage();
-                final Throwable exCause = or.exception.getCause();
-                if ((exMessage != null)
-                        && (exMessage.toLowerCase().contains("sasl") ||
-                                exMessage.toLowerCase().contains("authenticate"))) {
-                    stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
-                } else if (((exCause != null)
-                        && (exCause.getClass().getName().toLowerCase().contains("java.security") ||
-                                exCause.getClass().getName().toLowerCase().contains("javax.net.ssl")))) {
+                if (or.exception instanceof com.ibm.mqlight.api.SecurityException) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_RETRY);

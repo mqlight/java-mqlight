@@ -45,10 +45,17 @@ public interface Delivery {
 
     /**
      * Confirms receipt of this delivery.
-     * <p>
-     * TODO: this needs to throw an exception if the delivery is not QoS 1
+     * 
+     * @throws StateException if confirmation is not applicable or required. This is the case if any of the following
+     *                        conditions are true:
+     *                        <ul>
+     *                        <li>the quality of service is {@link QOS#AT_MOST_ONCE}.</li>
+     *                        <li>auto confirmation of delivery is enabled.</li>
+     *                        <li>delivery has already been confirmed.</li>
+     *                        <li>the network state is such that delivery cannot be confirmed.</li>
+     *                        </ul>
      */
-    void confirm();
+    void confirm() throws StateException;
 
     /**
      * @return the quality of service used to receive the messaging being delivered.
