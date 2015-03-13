@@ -134,8 +134,9 @@ public class SubscribeOptions {
          * deliveries in order to receive more messages.
          * @param credit the credit value which must be >= 0.  The default if this is not specified is 1024.
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
+         * @throws IllegalArgumentException if an invalid <code>credit</code> value is specified.
          */
-        public SubscribeOptionsBuilder setCredit(int credit) {
+        public SubscribeOptionsBuilder setCredit(int credit) throws IllegalArgumentException {
             final String methodName = "setCredit";
             logger.entry(this, methodName, credit);
           
@@ -154,10 +155,11 @@ public class SubscribeOptions {
         /**
          * The quality of service to use for delivering messages to the subscription.  The
          * default, if this option is not set, is: 'at most once'.
-         * @param qos
+         * @param qos The required quality of service. Cannot be null.
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
+         * @throws IllegalArgumentException if an invalid <code>qos</code> value is specified.
          */
-        public SubscribeOptionsBuilder setQos(QOS qos) {
+        public SubscribeOptionsBuilder setQos(QOS qos) throws IllegalArgumentException {
             final String methodName = "setQos";
             logger.entry(this, methodName, qos);
           
@@ -178,9 +180,11 @@ public class SubscribeOptions {
          * @param shareName the share argument used to subscribe to a destination.  The
          *                  default is <code>null</code> which is interpreted as "do not subscribe
          *                  to a shared destination - the destination is private to this client".
+         *                  When specified, the share name must not contain a colon (:) character. 
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
+         * @throws IllegalArgumentException if an invalid <code>shareName</code> value is specified.
          */
-        public SubscribeOptionsBuilder setShare(String shareName) {
+        public SubscribeOptionsBuilder setShare(String shareName) throws IllegalArgumentException {
             final String methodName = "setShare";
             logger.entry(this, methodName, shareName);
           
@@ -205,12 +209,13 @@ public class SubscribeOptions {
          * by discarding any messages held at the destination and not accruing any new messages.
          * @param ttl a time to live value in milliseconds, the default being 0 - meaning the destination
          *            will be deleted as soon as there are no clients subscribed to it.
+         *            This must be a positive value, and a maximum of 4294967295 (0xFFFFFFFF)
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
+         * @throws IllegalArgumentException if an invalid <code>ttl</code> value is specified.
          */
-        public SubscribeOptionsBuilder setTtl(long ttl) {
+        public SubscribeOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
             final String methodName = "setTtl";
             logger.entry(this, methodName, ttl);
-          
             if (ttl < 0 || ttl > 4294967295L) {
               final IllegalArgumentException exception = new IllegalArgumentException("ttl value " + ttl + " is invalid, must be an unsigned 32-bit value");
               logger.throwing(this,  methodName, exception);

@@ -86,11 +86,12 @@ public class SendOptions {
         /**
          * Sets the quality of service that will be used to send messages to the MQ Light
          * server.
-         * @param qos
+         * @param qos The required quality of service. Cannot be null.
          * @return the instance of <code>SendOptionsBuilder</code> that this method was
          *         called on.
+         * @throws IllegalArgumentException if an invalid <code>qos</code> value is specified.
          */
-        public SendOptionsBuilder setQos(QOS qos) {
+        public SendOptionsBuilder setQos(QOS qos) throws IllegalArgumentException {
             final String methodName = "setQos";
             logger.entry(this, methodName, qos);
           
@@ -108,11 +109,10 @@ public class SendOptions {
 
         /**
          * Sets the time to live that will be used for messages sent to the MQ Light server.
-         * @param ttl time to live in milliseconds.
+         * @param ttl time to live in milliseconds. This must be a positive value, and a maximum of 4294967295 (0xFFFFFFFF)
          * @return the instance of <code>SendOptionsBuilder</code> that this method was
          *         called on.
          * @throws IllegalArgumentException if an invalid <code>ttl</code> value is specified.
-         *         Valid <code>ttl</code> values must be an unsigned non-zero integer number.
          */
         public SendOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
             final String methodName = "setTtl";

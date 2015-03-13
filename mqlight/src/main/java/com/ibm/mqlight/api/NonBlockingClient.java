@@ -160,8 +160,8 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
 
     /**
      * Sends a string message to a topic.
-     * @param topic the topic to send the message to.
-     * @param data the string data to send to the topic.
+     * @param topic the topic to send the message to. Cannot be null.
+     * @param data the string data to send to the topic. Cannot be null.
      * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
@@ -173,18 +173,19 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 message has been confirmed by the service.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
-     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
      * @return a <code>boolean</code> <code>true</code> if the message was sent
      *         immediately, or <code>false</code> if the message was buffered in
      *         memory due to a backlog of messages to send over the network)
+     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> boolean send(String topic, String data, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
-    throws StoppedException;
+    throws StoppedException, IllegalArgumentException;
 
     /**
      * Sends a <code>ByteBuffer</code> to a topic.
-     * @param topic the topic to send the message to.
-     * @param data the byte buffer to send to the topic.
+     * @param topic the topic to send the message to. Cannot be null.
+     * @param data the byte buffer to send to the topic. Cannot be null.
      * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
@@ -196,17 +197,18 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 message has been confirmed by the service.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
-     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
      * @return a <code>boolean</code> <code>true</code> if the message was sent
      *         immediately, or <code>false</code> if the message was buffered in
      *         memory due to a backlog of messages to send over the network)
+     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
-    throws StoppedException;
+    throws StoppedException, IllegalArgumentException;
 
     /**
      * Sends a JSON object to a topic.
-     * @param topic the topic to send the message to.
+     * @param topic the topic to send the message to. Cannot be null.
      * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
      *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object)} to
      *             perform the conversion).
@@ -221,17 +223,18 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 message has been confirmed by the service.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
-     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
      * @return a <code>boolean</code> <code>true</code> if the message was sent
      *         immediately, or <code>false</code> if the message was buffered in
      *         memory due to a backlog of messages to send over the network)
+     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> boolean send(String topic, Object json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
-            throws StoppedException;
+            throws StoppedException, IllegalArgumentException;
 
     /**
      * Sends a JSON object to a topic.  This form of send can handle objects that use Java Generics.
-     * @param topic the topic to send the message to.
+     * @param topic the topic to send the message to. Cannot be null.
      * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
      *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object, Type)} to
      *             perform the conversion).
@@ -248,18 +251,19 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 message has been confirmed by the service.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
-     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
      * @return a <code>boolean</code> <code>true</code> if the message was sent
      *         immediately, or <code>false</code> if the message was buffered in
      *         memory due to a backlog of messages to send over the network)
+     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> boolean send(String topic, Object json, Type type, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
-            throws StoppedException;
+            throws StoppedException, IllegalArgumentException;
 
     /**
      * Sends a String containing JSON data to a topic.  This form of send can be used to integrate with other
      * JSON libraries.
-     * @param topic the topic to send the message to.
+     * @param topic the topic to send the message to. Cannot be null.
      * @param json a String which is assumed to contain JSON information.  No checking is performed on this string, it is
      *             simply transferred as the body of a message which the appropriate
      * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
@@ -273,20 +277,21 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 message has been confirmed by the service.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the send method relating to the listener invocation.
-     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
      * @return a <code>boolean</code> <code>true</code> if the message was sent
      *         immediately, or <code>false</code> if the message was buffered in
      *         memory due to a backlog of messages to send over the network)
+     * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> boolean sendJson(String topic, String json, Map<String, Object> properties, SendOptions sendOptions, CompletionListener<T> listener, T context)
-            throws StoppedException;
+            throws StoppedException, IllegalArgumentException;
     /**
      * Send a message to the MQ Light server.  This is equivalent to calling:
      * <code>send(topic, data, properties, SendOptions.builder().build(), listener, context)</code>
      * @see NonBlockingClient#send(String, String, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, String data, Map<String, Object> properties, CompletionListener<T> listener, T context)
-    throws StoppedException {
+    throws StoppedException, IllegalArgumentException {
         return send(topic, data, properties, defaultSendOptions, listener, context);
     }
 
@@ -296,7 +301,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#send(String, ByteBuffer, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, ByteBuffer data, Map<String, Object> properties, CompletionListener<T> listener, T context)
-    throws StoppedException {
+    throws StoppedException, IllegalArgumentException {
         return send(topic, data, properties, defaultSendOptions, listener, context);
     }
 
@@ -306,7 +311,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#send(String, Object, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, Object json, Map<String, Object> properties, CompletionListener<T> listener, T context)
-    throws StoppedException {
+    throws StoppedException, IllegalArgumentException {
         return send(topic, json, properties, defaultSendOptions, listener, context);
     }
 
@@ -316,7 +321,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#send(String, Object, Type, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean send(String topic, Object json, Type type, Map<String, Object> properties, CompletionListener<T> listener, T context)
-    throws StoppedException {
+    throws StoppedException, IllegalArgumentException {
         return send(topic, json, type, properties, defaultSendOptions, listener, context);
     }
 
@@ -326,7 +331,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#sendJson(String, String, Map, SendOptions, CompletionListener, Object)
      */
     public <T> boolean sendJson(String topic, String json, Map<String, Object> properties, CompletionListener<T> listener, T context)
-    throws StoppedException {
+    throws StoppedException, IllegalArgumentException {
         return sendJson(topic, json, properties, defaultSendOptions, listener, context);
     }
 
@@ -335,7 +340,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * <code>send(topic, data, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, String, Map, SendOptions, CompletionListener, Object)
      */
-    public boolean send(String topic, String data, Map<String, Object> properties) throws StoppedException {
+    public boolean send(String topic, String data, Map<String, Object> properties) throws StoppedException, IllegalArgumentException {
         return send(topic, data, properties, defaultSendOptions, null, null);
     }
 
@@ -344,7 +349,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * <code>send(topic, data, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, ByteBuffer, Map, SendOptions, CompletionListener, Object)
      */
-    public boolean send(String topic, ByteBuffer data, Map<String, Object> properties) throws StoppedException {
+    public boolean send(String topic, ByteBuffer data, Map<String, Object> properties) throws StoppedException, IllegalArgumentException {
         return send(topic, data, properties, defaultSendOptions, null, null);
     }
 
@@ -353,7 +358,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * <code>send(topic, json, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, Object, Map, SendOptions, CompletionListener, Object)
      */
-    public boolean send(String topic, Object json, Map<String, Object> properties) throws StoppedException {
+    public boolean send(String topic, Object json, Map<String, Object> properties) throws StoppedException, IllegalArgumentException {
         return send(topic, json, properties, defaultSendOptions, null, null);
     }
 
@@ -362,7 +367,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * <code>send(topic, json, type, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#send(String, Object, Type, Map, SendOptions, CompletionListener, Object)
      */
-    public boolean send(String topic, Object json, Type type, Map<String, Object> properties) throws StoppedException {
+    public boolean send(String topic, Object json, Type type, Map<String, Object> properties) throws StoppedException, IllegalArgumentException {
         return send(topic, json, type, properties, defaultSendOptions, null, null);
     }
 
@@ -371,7 +376,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * <code>send(topic, json, properties, SendOptions.builder().build(), null, null)</code>
      * @see NonBlockingClient#sendJson(String, String, Map, SendOptions, CompletionListener, Object)
      */
-    public boolean sendJson(String topic, String json, Map<String, Object> properties) throws StoppedException {
+    public boolean sendJson(String topic, String json, Map<String, Object> properties) throws StoppedException, IllegalArgumentException {
         return sendJson(topic, json, properties, defaultSendOptions, null, null);
     }
 
@@ -411,25 +416,24 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * topic that messages are sent to, allowing the messaging service to determine whether a
      * particular message will be delivered to a particular destination, and hence the subscribing client.
      * @param topicPattern the topic pattern to subscribe to.  This determines which messages will be
-     *                     held at the subscribed to destination pending delivery to this client.
+     *                     held at the subscribed to destination pending delivery to this client. Cannot be null.
      * @param subOptions a set of options that control the behaviour of the destination subscribed to
      *                   and influence how this client receives messages from the destination.
      * @param destListener a listener that is notified when messages arrive at the client and also
      *                      when the destination is unsubscribed from using the
      *                      {@link NonBlockingClient#unsubscribe(String, String, int, CompletionListener, Object)} method.
+     *                      Cannot be null.
      * @param compListener a listener that is notified when the subscribe operation completes.  If a
      *                     value of <code>null</code> is specified then no-one is notified.
      * @param context a context object that is passed into the listeners registered using this method.
      *                The object supplied can be used within the listener code to identify the specific
      *                instance of the subscribe method relating to the listener invocation.
+     * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
+     *         allow invocations of the unsubscribe method to be chained.
      * @throws SubscribedException if the client is already subscribed to the destination identified by a combination
      *                             of the topic pattern and share options.
      * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
-     * @throws IllegalArgumentException if one of the values supplied via the <code>subOptions</code> parameter
-     *                                  is not valid.  Also thrown if a <code>null</code> <code>destListener</code>
-     *                                  parameter is specified.
-     * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
-     *         allow invocations of the unsubscribe method to be chained.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> NonBlockingClient subscribe(String topicPattern, SubscribeOptions subOptions,
                                                     DestinationListener<T> destListener, CompletionListener<T> compListener, T context)
@@ -464,12 +468,12 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      *                 parameter then no notification will be generated.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the stop method relating to the listener invocation.
+     * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
+     *         allow invocations of the unsubscribe method to be chained.
      * @throws UnsubscribedException if an attempt is made to unsubscribe from a destination that the client is not
      *                               currently subscribed to.
      * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
-     * @throws IllegalArgumentException if a non-zero <code>ttl</code> parameter is specified.
-     * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
-     *         allow invocations of the unsubscribe method to be chained.
+     * @throws IllegalArgumentException if an invalid value is specified for one of the arguments.
      */
     public abstract <T> NonBlockingClient unsubscribe(String topicPattern, String share, int ttl, CompletionListener<T> listener, T context)
     throws UnsubscribedException, StoppedException, IllegalArgumentException;
