@@ -131,8 +131,14 @@ public class LogbackLoggingImpl {
               writeHeaderInfo(headerLogger);
               logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
             }
+          } else {
+            // If the default logback configuration is set then update the level to WARN (as the default is DEBUG)
+            if (ClassLoader.class.getResource("logback.groovy") == null &&
+                ClassLoader.class.getResource("logback-test.xml") == null &&
+                ClassLoader.class.getResource("logback.xml") == null) {
+              rootLogger.setLevel(Level.WARN);
+            }
           }
-
         }
       }
     }
