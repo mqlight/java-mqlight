@@ -74,7 +74,15 @@
             </includes>
           </fileSet>
           <fileSet>
-            <directory>${basedir}/../target</directory>
+            <directory>${basedir}/../mqlight/target</directory>
+            <outputDirectory>mqlight-${version}</outputDirectory>
+            <includes>
+              <include>*-sources.jar</include>
+              <include>*-javadoc.jar</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight-samples/target</directory>
             <outputDirectory>mqlight-${version}</outputDirectory>
             <includes>
               <include>*-sources.jar</include>

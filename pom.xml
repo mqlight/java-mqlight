@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Licensed to the Apache Software Foundation (ASF) under one
@@ -22,7 +23,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--   <parent>
+<!--
+  TODO - Uncomment when/if we become a contrib project to org.apache.qpid:proton-project
+         Note that proton-project pom.xml will also require updating to add: <module>contrib/mqlight/java/mqlight-project</module>
+  <parent>
     <groupId>org.apache.qpid</groupId>
     <artifactId>proton-project</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -31,10 +35,15 @@
 -->
 
   <modelVersion>4.0.0</modelVersion>
+
   <groupId>com.ibm.mqlight</groupId>
   <artifactId>mqlight-project</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
+
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>MQ Light Java API and Samples.</description>
+  <url>https://developer.ibm.com/messaging/mq-light</url>
 
   <modules>
     <module>mqlight</module>
@@ -46,26 +55,184 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <github.global.server>github</github.global.server>
   </properties>
-  
-  <url>https://developer.ibm.com/messaging/mq-light</url>
-  
+
   <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+
     <site>
       <id>github-project-site</id>
       <name>Deployment through GitHub's site deployment plugin</name>
       <url>>${project.version}</url>
     </site>
   </distributionManagement>
-  
+
   <build>
     <pluginManagement>
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>2.5.3</version>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.2</version>
+          <configuration>
+            <source>1.7</source>
+            <target>1.7</target>
+            <optimize>true</optimize>
+            <showDeprecation>true</showDeprecation>
+            <showWarnings>true</showWarnings>
+          </configuration>
         </plugin>
-        
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>2.6</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              </manifest>
+            </archive>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>findbugs-maven-plugin</artifactId>
+          <version>3.0.0</version>
+          <configuration>
+            <excludeFilterFile>${basedir}/../findbugs.excludes.xml</excludeFilterFile>
+            <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
+          </configuration>
+          <executions>
+            <execution>
+              <id>findbugs</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>xml-maven-plugin</artifactId>
+          <version>1.0</version>
+          <executions>
+            <execution>
+              <id>findbugs-html-report</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>transform</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <transformationSets>
+              <transformationSet>
+                <dir>${project.build.directory}/findbugs</dir>
+                <outputDir>${project.build.directory}/findbugs</outputDir>
+                <stylesheet>fancy.xsl</stylesheet>
+                <fileMappers>
+                  <fileMapper
+                    implementation="org.codehaus.plexus.components.io.filemappers.RegExpFileMapper">
+                    <pattern>Xml\.xml$</pattern>
+                    <replacement>.html</replacement>
+                  </fileMapper>
+                </fileMappers>
+              </transformationSet>
+            </transformationSets>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>com.google.code.findbugs</groupId>
+              <artifactId>findbugs</artifactId>
+              <version>2.0.0</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.7.4.201502262128</version>
+          <configuration>
+            <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
+            <destFile>${project.build.directory}/jacoco/jacoco-unit.exec</destFile>
+            <dataFile>${project.build.directory}/jacoco/jacoco-unit.exec</dataFile>
+          </configuration>
+          <executions>
+            <execution>
+              <id>jacoco-initialize</id>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>jacoco-test-report</id>
+              <phase>test</phase>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>jacoco-test-check</id>
+              <phase>test</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <rule>
+                    <element>BUNDLE</element>
+                    <limits>
+                      <limit>
+                        <counter>INSTRUCTION</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>0.80</minimum>
+                      </limit>
+                    </limits>
+                  </rule>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.4</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.10.1</version>
+          <configuration>
+            <excludePackageNames>com.ibm.mqlight.api.impl</excludePackageNames>
+          </configuration>
+          <executions>
+            <execution>
+              <id>attach-javadocs</id>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
@@ -74,51 +241,81 @@
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
         </plugin>
-      
+
         <plugin>
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>2.8</version>
         </plugin>
-        
+
       </plugins>
     </pluginManagement>
     
     <plugins>
-        
-      <!-- Generate a source jar containing source for all modules -->
+      <!-- Generate a source jar for projects that contain source -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.4</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>aggregate</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
-
-      <!-- Generate a javadoc jar containing doc for all modules -->
+      
+      <!-- Generate a javadoc jar containing doc for all modules (required to enable 
+        publishing to a single javadoc site) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.1</version>
         <configuration>
           <excludePackageNames>com.ibm.mqlight.api.impl</excludePackageNames>
         </configuration>
         <executions>
           <execution>
-            <id>attach-javadocs</id>
+            <id>aggregate-javadocs</id>
             <goals>
               <goal>aggregate-jar</goal>
             </goals>
+           <phase>site</phase>
           </execution>
         </executions>
-      </plugin>        
+      </plugin>
+
+      <!-- Sign the project artifacts for all modules -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.5</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Deploy and Release to Maven Central
+           command: mvn clean deploy - to deploy to OSSRH (when version does not end in -SNAPSHOT)
+                    mvn nexus-staging:release - to release to Maven Central
+      -->
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.5</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>false</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
 
   <organization>
     <name>International Business Machines Corporation</name>

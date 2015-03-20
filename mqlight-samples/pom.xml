@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Licensed to the Apache Software Foundation (ASF) under one
@@ -26,13 +27,15 @@
     <groupId>com.ibm.mqlight</groupId>
     <artifactId>mqlight-project</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <relativePath>..</relativePath>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.ibm.mqlight</groupId>
+  
   <artifactId>mqlight-api-samples</artifactId>
-
+  
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>MQ Light Java API Samples.</description>
+  
   <dependencies>
     <dependency>
       <groupId>com.ibm.mqlight</groupId>
@@ -49,78 +52,17 @@
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.2</version>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-        </configuration>
-      </plugin>
-
       <!-- Specify that we want findbugs code analysis for the compile phase -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <configuration>
-          <excludeFilterFile>${basedir}/../findbugs.excludes.xml</excludeFilterFile>
-          <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>findbugs</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
 
       <!-- Generate HTML report from the findbugs XML report output -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>xml-maven-plugin</artifactId>
-        <version>1.0</version>
-        <executions>
-          <execution>
-            <id>findbugs-html-report</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>transform</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <transformationSets>
-            <transformationSet>
-              <dir>${project.build.directory}/findbugs</dir>
-              <outputDir>${project.build.directory}/findbugs</outputDir>
-              <stylesheet>fancy.xsl</stylesheet>
-              <fileMappers>
-                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.RegExpFileMapper">
-                  <pattern>Xml\.xml$</pattern>
-                  <replacement>.html</replacement>
-                </fileMapper>
-              </fileMappers>
-            </transformationSet>
-          </transformationSets>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>findbugs</artifactId>
-            <version>2.0.0</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>
-
-  <organization>
-    <name>International Business Machines Corporation</name>
-    <url>http://www.ibm.com/</url>
-  </organization>
 </project>
