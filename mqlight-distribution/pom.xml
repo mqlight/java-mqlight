@@ -97,8 +97,7 @@
         </executions>
       </plugin>
 
-      <!-- Allows upload of javadoc to github (currently to be available at: https://chrispwhite.github.io/mqlight-api-javadoc) -->
-      <!-- TODO - use a more appropriate id, instead of chrispwhite -->
+      <!-- Allows upload of javadoc to github (pages will be available at: https://mqlight.github.io/java-mqlight)-->
       <plugin>
         <groupId>com.github.github</groupId>
         <artifactId>site-maven-plugin</artifactId>
@@ -108,12 +107,12 @@
             <id>upload-javadoc</id>
             <configuration>
               <outputDirectory>${project.parent.build.directory}/apidocs</outputDirectory>
-              <message>Creating site for ${project.version} javadoc</message>
+              <message>javadoc update for ${project.version}</message>
               <includes>
                 <include>**/*</include>
               </includes>
-              <repositoryName>mqlight-api-javadoc</repositoryName>
-              <repositoryOwner>chrispwhite</repositoryOwner>
+              <repositoryName>java-mqlight</repositoryName>
+              <repositoryOwner>mqlight</repositoryOwner>
               <branch>refs/heads/gh-pages</branch>
               <dryRun>false</dryRun>
             </configuration>
