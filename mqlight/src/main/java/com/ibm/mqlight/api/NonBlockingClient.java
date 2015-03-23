@@ -445,7 +445,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#subscribe(String, SubscribeOptions, DestinationListener, CompletionListener, Object)
      */
     public <T> NonBlockingClient subscribe(String topicPattern, DestinationListener<T> dstListener, CompletionListener<T> compListener, T context)
-    throws SubscribedException, StoppedException {
+    throws SubscribedException, StoppedException, IllegalArgumentException {
         return subscribe(topicPattern, defaultSubscribeOptions, dstListener, compListener, context);
     }
 
@@ -495,7 +495,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * without changing the ttl value currently assigned to the destination.
      */
     public abstract <T> NonBlockingClient unsubscribe(String topicPattern, String share, CompletionListener<T> listener, T context)
-    throws UnsubscribedException, StoppedException;
+    throws UnsubscribedException, StoppedException, IllegalArgumentException;
 
     /**
      * Unsubscribes from a destination.  This is equivalent to calling:
@@ -503,7 +503,7 @@ public abstract class NonBlockingClient extends Component { // TODO: not particu
      * @see NonBlockingClient#unsubscribe(String, String, CompletionListener, Object)
      */
     public <T> NonBlockingClient unsubscribe(String topicPattern, CompletionListener<T> listener, T context)
-    throws UnsubscribedException, StoppedException {
+    throws UnsubscribedException, StoppedException, IllegalArgumentException {
         return unsubscribe(topicPattern, null, listener, context);
     }
 }
