@@ -158,9 +158,9 @@ class DestinationListenerWrapper<T> {
                     }
                 }
 
-                String crackedLinkName[] = new SubscriptionTopic(deliveryRequest.topicPattern).crack();
-                String shareName = crackedLinkName[1];
-                String topicPattern = crackedLinkName[0];
+                String parts[] = new SubscriptionTopic(deliveryRequest.topicPattern).split();
+                String shareName = parts[1];
+                String topicPattern = parts[0];
                 long ttl = 0;
                 String topic = "";
                 if (malformedReason == null) {

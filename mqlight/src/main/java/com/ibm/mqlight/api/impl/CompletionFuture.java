@@ -19,7 +19,6 @@
 package com.ibm.mqlight.api.impl;
 
 import com.ibm.mqlight.api.CompletionListener;
-import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;

@@ -969,13 +969,13 @@ public class TestNonBlockingClientImpl {
     }
 
     @Test
-    public void testCrackLinkName() {
-        String[] results = new SubscriptionTopic("private:/kittens").crack();
+    public void testSubscriptionTopicSplit() {
+        String[] results = new SubscriptionTopic("private:/kittens").split();
         assertEquals(2, results.length);
         assertEquals("/kittens", results[0]);
         assertTrue(results[1] == null);
 
-        results = new SubscriptionTopic("share:sharename:/puppies").crack();
+        results = new SubscriptionTopic("share:sharename:/puppies").split();
         assertEquals(2, results.length);
         assertEquals("/puppies", results[0]);
         assertEquals("sharename", results[1]);

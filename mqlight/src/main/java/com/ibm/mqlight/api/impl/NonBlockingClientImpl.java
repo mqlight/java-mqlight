@@ -780,7 +780,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     // Already subscribed - no pending actions on the subscription.
                     if (sd.state == SubData.State.ATTACHING || sd.state == SubData.State.ESTABLISHED) {
                         // Operation fails because it is attempting to subscribed to an already subscribed destination
-                        String[] topicElements = is.topic.crack();
+                        String[] topicElements = is.topic.split();
                         String errMsg = "Cannot subscribe because the client is already subscribe to topic '" + topicElements[0] + "'";
                         if (topicElements[1] != null) {
                             errMsg = errMsg + " and share '" + topicElements[1] + "'.";
@@ -874,7 +874,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             // unsubscribe request (in the case that the server closes the link)
             UnsubscribeResponse ur = (UnsubscribeResponse)message;
             SubData sd = subscribedDestinations.remove(ur.topic);
-            String[] parts = ur.topic.crack();
+            String[] parts = ur.topic.split();
             sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
             if (sd.inProgressUnsubscribe != null) {
                 sd.inProgressUnsubscribe.future.postSuccess(callbackService);
@@ -1063,7 +1063,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 subData.inProgressSubscribe = null;
             }
             if (subData.state == SubData.State.ESTABLISHED) {
-                String parts[] = entry.getKey().crack();
+                String parts[] = entry.getKey().split();
                 subData.listener.onUnsubscribed(callbackService, parts[0], parts[1], null);
             }
             if (subData.inProgressUnsubscribe != null) {
