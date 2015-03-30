@@ -18,6 +18,7 @@
  */
 package com.ibm.mqlight.api.samples;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.Random;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -91,8 +92,8 @@ public class UiWorkout {
 
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-h", "--help", Boolean.class, null)
-              .expect("-s", "--service", String.class, System.getenv("VCAP_SERVICES") == null ? "amqp://localhost" : null);
-            /*.expect("-c", "--trust-certificate", String.class, null) // TODO: not implemented yet... */
+              .expect("-s", "--service", String.class, System.getenv("VCAP_SERVICES") == null ? "amqp://localhost" : null)
+              .expect("-c", "--trust-certificate", String.class, null);
 
         Results tmpArgs = null;
         try {
@@ -112,6 +113,9 @@ public class UiWorkout {
         for (final String[] dest : destinations) {
             ClientOptionsBuilder optBuilder = ClientOptions.builder();
             optBuilder.setId(createClientId());
+            if (args.parsed.containsKey("-c") && args.parsed.get("-c") instanceof String) {
+              optBuilder.setSslTrustCertificate(new File((String) args.parsed.get("-c")));
+            }
             NonBlockingClient.create((String)args.parsed.get("-s"), optBuilder.build(), new NonBlockingClientAdapter<Void>() {
 
                 @Override

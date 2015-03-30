@@ -145,43 +145,6 @@ public class ArgumentParser {
             ++i;
         }
 
-
-
-//        int i = 0;
-//        while(i < args.length) {
-//            ExpectedArgument ea = expected.get(args[i]);
-//            Object value;
-//            if (ea == null) {
-//                break;
-//            } else if (ea.type == Boolean.class) {
-//                value = true;
-//            } else {
-//                ++i;
-//                if (i == args.length) {
-//                    --i;
-//                    break;
-//                } else if (ea.type == String.class) {
-//                    value = args[i];
-//                } else { // ea.type == Double.class || ea.type == Integer.class
-//                    try {
-//                        value = Double.valueOf(args[i]);
-//                    } catch(NumberFormatException nfe) {
-//                        throw new IllegalArgumentException("Value for argumet '" + args[i-1] + "' must be a numberic value");
-//                    }
-//                    if (ea.type == Integer.class) {
-//                        value = ((Double)value).intValue();
-//                    }
-//                }
-//            }
-//            if (ea.shortName != null) parsed.put(ea.shortName, value);
-//            if (ea.longName != null) parsed.put(ea.longName, value);
-//            ++i;
-//        }
-
-        // This doesn't work for - e.g.
-        // -colour=red
-        // -x5
-
         String[] unparsed = new String[args.length - i];
         System.arraycopy(args, i, unparsed, 0, unparsed.length);
         return new Results(parsed, unparsed);
