@@ -144,7 +144,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
 
     // topic pattern -> information about subscribed destination
-    private final HashMap<String, SubData> subscribedDestinations = new HashMap<>();
+    private final HashMap<SubscriptionTopic, SubData> subscribedDestinations = new HashMap<>();
 
     static class SubData {
         private enum State {
@@ -577,27 +577,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         logger.exit(this, methodName);
     }
 
-    private final String buildAmqpTopicName(String topicPattern, String shareName) {
-        final String methodName = "buildAmqpTopicName";
-        logger.entry(this, methodName, topicPattern, shareName);
-
-        String subTopic;
-        if (shareName == null || "".equals(shareName)) {
-            subTopic = "private:" + topicPattern;
-        } else {
-            if (shareName.contains(":")) {
-              final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
-              logger.throwing(this, methodName, exception);
-              throw exception;
-            }
-            subTopic = "share:" + shareName + ":" + topicPattern;
-        }
-
-        logger.exit(this, methodName, subTopic);
-
-        return subTopic;
-    }
-
     @Override
     public <T> NonBlockingClient subscribe(String topicPattern,
             SubscribeOptions subOptions, DestinationListener<T> destListener,
@@ -617,7 +596,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           throw exception;
         }
         if (subOptions == null) subOptions = defaultSubscribeOptions;
-        String subTopic = buildAmqpTopicName(topicPattern, subOptions.getShareName());
+        final SubscriptionTopic subTopic = new SubscriptionTopic(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is =
                 new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int) Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
@@ -718,28 +697,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return this;
     }
 
-    protected static String[] crackLinkName(String linkName) {
-        final String methodName = "crackLinkName";
-        logger.entry(methodName, linkName);
-
-        String topicPattern;
-        String share;
-        if (linkName.startsWith("share:")) {
-            share = linkName.substring("share:".length());
-            topicPattern = share.substring(share.indexOf(':')+1);
-            share = share.substring(0, share.indexOf(':'));
-        } else {
-            topicPattern = linkName.substring("private:".length());
-            share = null;
-        }
-
-        final String [] result = new String[] {topicPattern, share};
-
-        logger.exit(methodName, result);
-
-        return result;
-    }
-
     protected void onReceive(Message message) {
         final String methodName = "onReceive";
         logger.entry(this, methodName, message);
@@ -823,7 +780,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     // Already subscribed - no pending actions on the subscription.
                     if (sd.state == SubData.State.ATTACHING || sd.state == SubData.State.ESTABLISHED) {
                         // Operation fails because it is attempting to subscribed to an already subscribed destination
-                        String[] topicElements = crackLinkName(is.topic);
+                        String[] topicElements = is.topic.crack();
                         String errMsg = "Cannot subscribe because the client is already subscribe to topic '" + topicElements[0] + "'";
                         if (topicElements[1] != null) {
                             errMsg = errMsg + " and share '" + topicElements[1] + "'.";
@@ -877,7 +834,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         } else if (message instanceof InternalUnsubscribe) {
             InternalUnsubscribe<?> iu = (InternalUnsubscribe<?>)message;
-            String amqpTopic = buildAmqpTopicName(iu.topicPattern, iu.share);
+            final SubscriptionTopic amqpTopic = new SubscriptionTopic(iu.topicPattern, iu.share);
             SubData sd = subscribedDestinations.get(amqpTopic);
             NonBlockingClientState state = stateMachine.getState();
 
@@ -917,7 +874,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             // unsubscribe request (in the case that the server closes the link)
             UnsubscribeResponse ur = (UnsubscribeResponse)message;
             SubData sd = subscribedDestinations.remove(ur.topic);
-            String[] parts = crackLinkName(ur.topic);
+            String[] parts = ur.topic.crack();
             sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
             if (sd.inProgressUnsubscribe != null) {
                 sd.inProgressUnsubscribe.future.postSuccess(callbackService);
@@ -944,7 +901,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         } else if (message instanceof DeliveryRequest) {
             DeliveryRequest dr = (DeliveryRequest)message;
-            final SubData subData = subscribedDestinations.get(dr.topicPattern);
+            final SubData subData = subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
             if (dr.qos == QOS.AT_LEAST_ONCE) {
                 pendingDeliveries.add(dr);
             }
@@ -1059,7 +1016,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
         } else {
             remakingInboundLinks = true;
-            for (Map.Entry<String, SubData>entry : subscribedDestinations.entrySet()) {
+            for (Map.Entry<SubscriptionTopic, SubData>entry : subscribedDestinations.entrySet()) {
                 SubData data = entry.getValue();
                 data.state = SubData.State.ATTACHING;
                 SubscribeRequest sr = new SubscribeRequest(currentConnection, entry.getKey(), data.qos, data.credit, data.ttl);
@@ -1099,14 +1056,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
 
         // Flush any pending subscribe operations into pending work queue
-        for (Map.Entry<String, SubData> entry : subscribedDestinations.entrySet()) {
+        for (Map.Entry<SubscriptionTopic, SubData> entry : subscribedDestinations.entrySet()) {
             SubData subData = entry.getValue();
             if (subData.inProgressSubscribe != null) {
                 subData.inProgressSubscribe.future.postFailure(callbackService, new StoppedException("Cannot subscribe because the client is in stopped state"));
                 subData.inProgressSubscribe = null;
             }
             if (subData.state == SubData.State.ESTABLISHED) {
-                String parts[] = crackLinkName(entry.getKey());
+                String parts[] = entry.getKey().crack();
                 subData.listener.onUnsubscribed(callbackService, parts[0], parts[1], null);
             }
             if (subData.inProgressUnsubscribe != null) {
@@ -1330,7 +1287,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
         outstandingSends.clear();
 
-        for (Map.Entry<String, SubData>entry : subscribedDestinations.entrySet()) {
+        for (Map.Entry<SubscriptionTopic, SubData>entry : subscribedDestinations.entrySet()) {
             SubData subData = entry.getValue();
             while(!subData.pending.isEmpty()) {
                 pendingWork.addLast(subData.pending.getFirst());

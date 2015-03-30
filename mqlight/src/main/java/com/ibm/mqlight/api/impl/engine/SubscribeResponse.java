@@ -19,11 +19,12 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import com.ibm.mqlight.api.impl.Message;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 
 public class SubscribeResponse extends Message {
     public final EngineConnection connection;
-    public final String topic;
-    public SubscribeResponse(EngineConnection connection, String topic) {
+    public final SubscriptionTopic topic;
+    public SubscribeResponse(EngineConnection connection, SubscriptionTopic topic) {
         this.connection = connection;
         this.topic = topic;
     }

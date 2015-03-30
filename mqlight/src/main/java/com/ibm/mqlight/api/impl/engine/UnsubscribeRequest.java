@@ -19,12 +19,13 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import com.ibm.mqlight.api.impl.Message;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 
 public class UnsubscribeRequest extends Message {
     public final EngineConnection connection;
-    public final String topic;
+    public final SubscriptionTopic topic;
     public final boolean zeroTtl;
-    public UnsubscribeRequest(EngineConnection connection, String topic, boolean zeroTtl) {
+    public UnsubscribeRequest(EngineConnection connection, SubscriptionTopic topic, boolean zeroTtl) {
         this.connection = connection;
         this.topic = topic;
         this.zeroTtl = zeroTtl;

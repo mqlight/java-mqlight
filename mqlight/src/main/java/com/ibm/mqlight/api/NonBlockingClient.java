@@ -26,7 +26,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.EndpointService;
-import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.NonBlockingClientImpl;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;

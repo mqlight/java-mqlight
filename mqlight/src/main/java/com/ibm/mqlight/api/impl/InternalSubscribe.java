@@ -29,14 +29,14 @@ class InternalSubscribe<T> extends Message implements QueueableWork {
     private static final Logger logger = LoggerFactory.getLogger(InternalSubscribe.class);
   
     final CompletionFuture<T> future;
-    final String topic;
+    final SubscriptionTopic topic;
     final QOS qos;
     final int credit;
     final boolean autoConfirm;
     final int ttl;
     final DestinationListenerWrapper<T> destListener;
 
-    InternalSubscribe(NonBlockingClientImpl client, String topic, QOS qos, int credit, boolean autoConfirm, int ttl,
+    InternalSubscribe(NonBlockingClientImpl client, SubscriptionTopic topic, QOS qos, int credit, boolean autoConfirm, int ttl,
                       GsonBuilder gsonBuilder, DestinationListener<T> destListener, T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, topic, qos, credit, autoConfirm, ttl, gsonBuilder, destListener, context);

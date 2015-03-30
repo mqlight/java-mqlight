@@ -158,7 +158,7 @@ class DestinationListenerWrapper<T> {
                     }
                 }
 
-                String crackedLinkName[] = NonBlockingClientImpl.crackLinkName(deliveryRequest.topicPattern);
+                String crackedLinkName[] = new SubscriptionTopic(deliveryRequest.topicPattern).crack();
                 String shareName = crackedLinkName[1];
                 String topicPattern = crackedLinkName[0];
                 long ttl = 0;

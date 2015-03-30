@@ -19,12 +19,13 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import com.ibm.mqlight.api.impl.Message;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 
 public class UnsubscribeResponse extends Message {
     public final EngineConnection connection;
-    public final String topic;
+    public final SubscriptionTopic topic;
     public final Exception error;
-    public UnsubscribeResponse(EngineConnection connection, String topic, Exception error) {
+    public UnsubscribeResponse(EngineConnection connection, SubscriptionTopic topic, Exception error) {
         this.connection = connection;
         this.topic = topic;
         this.error = error;

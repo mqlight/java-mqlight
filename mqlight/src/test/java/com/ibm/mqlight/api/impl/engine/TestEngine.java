@@ -44,6 +44,7 @@ import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.MockComponent;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 import com.ibm.mqlight.api.impl.network.ConnectionError;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkListener;
@@ -240,7 +241,7 @@ public class TestEngine {
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
 
-        engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
+        engine.tell(new SubscribeRequest(openResponse.connection, new SubscriptionTopic("topic1"), QOS.AT_MOST_ONCE, 10, 0), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type SubscribeResponse", component.getMessages().get(1) instanceof SubscribeResponse);
         assertTrue("Expected message 3 to be of type DeliveryRequest", component.getMessages().get(2) instanceof DeliveryRequest);
@@ -259,7 +260,7 @@ public class TestEngine {
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
 
-        engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_LEAST_ONCE, 10, 0), component);
+        engine.tell(new SubscribeRequest(openResponse.connection, new SubscriptionTopic("topic1"), QOS.AT_LEAST_ONCE, 10, 0), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type SubscribeResponse", component.getMessages().get(1) instanceof SubscribeResponse);
         assertTrue("Expected message 3 to be of type DeliveryRequest", component.getMessages().get(2) instanceof DeliveryRequest);
@@ -281,9 +282,9 @@ public class TestEngine {
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
 
-        engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
+        engine.tell(new SubscribeRequest(openResponse.connection, new SubscriptionTopic("topic1"), QOS.AT_MOST_ONCE, 10, 0), component);
 
-        engine.tell(new UnsubscribeRequest(openResponse.connection, "topic1", true), component);
+        engine.tell(new UnsubscribeRequest(openResponse.connection, new SubscriptionTopic("topic1"), true), component);
         assertEquals("Expected to have received 4 messages to the component", 4, component.getMessages().size());
         assertTrue("Expected 4th message to be of type unsubscribe response", component.getMessages().get(3) instanceof UnsubscribeResponse);
     }
@@ -318,7 +319,7 @@ public class TestEngine {
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
 
-        engine.tell(new SubscribeRequest(openResponse.connection, "topic1", QOS.AT_MOST_ONCE, 10, 0), component);
+        engine.tell(new SubscribeRequest(openResponse.connection, new SubscriptionTopic("topic1"), QOS.AT_MOST_ONCE, 10, 0), component);
         System.out.println(component.getMessages());
     }
 }

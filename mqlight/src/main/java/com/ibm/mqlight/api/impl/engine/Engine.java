@@ -55,6 +55,7 @@ import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
 import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 import com.ibm.mqlight.api.impl.network.ConnectResponse;
 import com.ibm.mqlight.api.impl.network.ConnectionError;
 import com.ibm.mqlight.api.impl.network.DataRead;
@@ -219,17 +220,17 @@ public class Engine extends ComponentImpl {
         } else if (message instanceof SubscribeRequest) {
             SubscribeRequest sr = (SubscribeRequest) message;
             EngineConnection engineConnection = sr.connection;
-            if (engineConnection.subscriptionData.containsKey(sr.topic)) {
+            if (engineConnection.subscriptionData.containsKey(sr.topic.toString())) {
                 // The client is already subscribed...
                 // TODO: should this be an error condition?
                 sr.getSender().tell(new SubscribeResponse(engineConnection, sr.topic), this);
             } else {
-                Receiver linkReceiver = sr.connection.session.receiver(sr.topic);
-                engineConnection.subscriptionData.put(sr.topic, new EngineConnection.SubscriptionData(sr.getSender(), sr.initialCredit, linkReceiver));
+                Receiver linkReceiver = sr.connection.session.receiver(sr.topic.getTopic());
+                engineConnection.subscriptionData.put(sr.topic.toString(), new EngineConnection.SubscriptionData(sr.getSender(), sr.initialCredit, linkReceiver));
                 Source source = new Source();
-                source.setAddress(sr.topic);
+                source.setAddress(sr.topic.getTopic());
                 Target target = new Target();
-                target.setAddress(sr.topic);
+                target.setAddress(sr.topic.getTopic());
 
                 if (sr.ttl > 0) {
                     source.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
@@ -256,7 +257,7 @@ public class Engine extends ComponentImpl {
         } else if (message instanceof UnsubscribeRequest) {
             UnsubscribeRequest ur = (UnsubscribeRequest) message;
             EngineConnection engineConnection = ur.connection;
-            EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(ur.topic);
+            EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(ur.topic.toString());
             Target t = (Target)sd.receiver.getTarget();
             Source s = (Source)sd.receiver.getSource();
             if (ur.zeroTtl) {
@@ -647,7 +648,7 @@ public class Engine extends ComponentImpl {
                         link.getRemoteState() == EndpointState.ACTIVE) {
                     EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
                     EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
-                    sd.subscriber.tell(new SubscribeResponse(engineConnection, link.getName()), this);
+                    sd.subscriber.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic(link.getName())), this);
                 }
             } else if (eventType == Event.Type.LINK_REMOTE_CLOSE
                     || eventType == Event.Type.LINK_REMOTE_DETACH) {
@@ -672,7 +673,7 @@ public class Engine extends ComponentImpl {
                                 "The server indicated that the destination was unsubscribed due to an error condition, " +
                                 "without providing any further error information.");
                         }
-                        sd.subscriber.tell(new UnsubscribeResponse(engineConnection, link.getName(), clientException), this);
+                        sd.subscriber.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic(link.getName()), clientException), this);
                     }
                 }
             }

@@ -803,8 +803,8 @@ public class TestNonBlockingClientImpl {
         assertEquals(2, engine.getMessages().size());
         assertTrue(engine.getMessages().get(1) instanceof SubscribeRequest);
         SubscribeRequest subRequest = (SubscribeRequest)engine.getMessages().get(1);
-        assertEquals("private:/kittens", subRequest.topic);
-        client.tell(new SubscribeResponse(engineConnection, "private:/kittens"), engine);
+        assertEquals("private:/kittens", subRequest.topic.toString());
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("private:/kittens")), engine);
 
         // Subscribing again should give an error
         try {
@@ -816,7 +816,7 @@ public class TestNonBlockingClientImpl {
         client.unsubscribe("/kittens", null, null);
         assertEquals(3, engine.getMessages().size());
         assertTrue(engine.getMessages().get(2) instanceof UnsubscribeRequest);
-        client.tell(new UnsubscribeResponse(engineConnection, "private:/kittens", null), engine);
+        client.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic("private:/kittens"), null), engine);
 
         assertTrue(destAdapter.onUnsubscribeCalled);
         assertEquals("/kittens", destAdapter.unsubscribeTopicPattern);
@@ -970,12 +970,12 @@ public class TestNonBlockingClientImpl {
 
     @Test
     public void testCrackLinkName() {
-        String[] results = NonBlockingClientImpl.crackLinkName("private:/kittens");
+        String[] results = new SubscriptionTopic("private:/kittens").crack();
         assertEquals(2, results.length);
         assertEquals("/kittens", results[0]);
         assertTrue(results[1] == null);
 
-        results = NonBlockingClientImpl.crackLinkName("share:sharename:/puppies");
+        results = new SubscriptionTopic("share:sharename:/puppies").crack();
         assertEquals(2, results.length);
         assertEquals("/puppies", results[0]);
         assertEquals("sharename", results[1]);

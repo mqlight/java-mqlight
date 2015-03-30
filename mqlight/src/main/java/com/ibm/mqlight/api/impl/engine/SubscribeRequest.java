@@ -20,16 +20,16 @@ package com.ibm.mqlight.api.impl.engine;
 
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.Message;
+import com.ibm.mqlight.api.impl.SubscriptionTopic;
 
 public class SubscribeRequest extends Message {
     public final EngineConnection connection;
-    public final String topic;
+    public final SubscriptionTopic topic;
     public final QOS qos;
     public final int initialCredit;
     public final int ttl;
     
-    // TODO: topic must be in the form private:<something> or share:<something>
-    public SubscribeRequest(EngineConnection connection, String topic, QOS qos, int initialCredit, int ttl) {
+    public SubscribeRequest(EngineConnection connection, SubscriptionTopic topic, QOS qos, int initialCredit, int ttl) {
         this.connection = connection;
         this.topic = topic;
         this.qos = qos;
