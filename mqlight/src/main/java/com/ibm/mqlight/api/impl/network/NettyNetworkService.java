@@ -57,6 +57,7 @@ import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.impl.LogbackLogging;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -121,7 +122,8 @@ public class NettyNetworkService implements NetworkService {
                 if (cause instanceof Exception) {
                     exception = (Exception)cause;
                 } else {
-                    exception = new Exception(cause);   // TODO: wrap in a better exception...
+                    logger.ffdc(methodName, FFDCProbeId.PROBE_001, cause, this);
+                    exception = new NetworkException("unexpected error", cause);
                 }
                 // if we have a nested chain of causes, walk it until we have at
                 // most a single pair of Exception and cause

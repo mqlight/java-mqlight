@@ -36,26 +36,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.ClientRuntimeException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
-/*
- * TODO
- { "mqlight": [
-     { "name": "mqlsampleservice",
-       "label": "mqlight",
-       "plan": "default",
-       "credentials":
-         { "username": "jBruGnaTHuwq",
-           "connectionLookupURI": "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090",
-           "password": "xhUQve2gdgAN",
-           "version": "2"
-         }
-      } ] }
- */
 public class BluemixEndpointService extends EndpointServiceImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(BluemixEndpointService.class);
@@ -64,6 +51,24 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         LogbackLogging.setup();
     }
 
+    private static final int THREAD_POOL_CORE_THREADS = Integer.getInteger("com.ibm.mqlight.BluemixEndpointService.coreThreads",5);
+    private static final int THREAD_POOL_MAX_THREADS = Integer.getInteger("com.ibm.mqlight.BluemixEndpointService.maxThreads",5);
+    private static final long THREAD_POOL_KEEP_ALIVE_SECONDS = Integer.getInteger("com.ibm.mqlight.BluemixEndpointService.keepAliveSeconds",5);
+    static {
+        logger.data("clinit>", new Object[] { "THREAD_POOL_CORE_THREADS: ", THREAD_POOL_CORE_THREADS });
+        logger.data("clinit>", new Object[] { "THREAD_POOL_CORE_THREADS: ", THREAD_POOL_MAX_THREADS });
+        logger.data("clinit>", new Object[] { "THREAD_POOL_CORE_THREADS: ", THREAD_POOL_KEEP_ALIVE_SECONDS });
+        if (THREAD_POOL_CORE_THREADS <= 0 || THREAD_POOL_CORE_THREADS > THREAD_POOL_MAX_THREADS) {
+            throw new ClientRuntimeException("Invalid value (" + THREAD_POOL_CORE_THREADS +
+                    ") specified for System property com.ibm.mqlight.BluemixEndpointService.coreThreads (must be > 0 and < the value specified for "+
+                    "System property com.ibm.mqlight.BluemixEndpointService.maxThreads, or 5 when com.ibm.mqlight.BluemixEndpointService.maxThreads is not defined.");
+        }
+        if (THREAD_POOL_KEEP_ALIVE_SECONDS < 0) {
+            throw new ClientRuntimeException("Invalid value (" + THREAD_POOL_KEEP_ALIVE_SECONDS +
+                    ")specified for System property com.ibm.mqlight.BluemixEndpointService.keepAliveSeconds (must be >= 0).");
+        }
+    }
+    
     private static ThreadPoolExecutor executor;
 
     private static class State {
@@ -121,8 +126,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
       
         synchronized(this) {
             if (executor == null) {
-                // TODO: 5 threads == number pulled from thin air.
-                executor = new ThreadPoolExecutor(5, 5, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new BluemixThreadFactory());
+                executor = new ThreadPoolExecutor(THREAD_POOL_CORE_THREADS, THREAD_POOL_MAX_THREADS, THREAD_POOL_KEEP_ALIVE_SECONDS,
+                                                  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new BluemixThreadFactory());
             }
         }
 
@@ -159,7 +164,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     } else {
                         future.setSuccess(endpoint);
                     }
-                } catch(IOException ioException) {  // TODO: should we capture this exception somewhere?
+                } catch(IOException ioException) {
+                    logger.data(this, methodName, "will retry due to java.io.IOException exception", ioException.getLocalizedMessage());
                     // Retry later...
                     doRetry(future);
                 } catch(JsonParseException parseException) {

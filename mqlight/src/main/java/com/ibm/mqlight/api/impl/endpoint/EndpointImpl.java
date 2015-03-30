@@ -50,7 +50,6 @@ class EndpointImpl implements Endpoint {
         final String methodName = "<init>";
         logger.entry(this, methodName, uri, user, "******", certChainFile);
       
-        // TODO: crack the URI into a host/port.
         if (user == null && password != null) {
             final IllegalArgumentException exception = new IllegalArgumentException("Can't have an empty user ID if you specify a password!");
             logger.throwing(this, methodName, exception);
