@@ -26,7 +26,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.endpoint.EndpointService;
-import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.NonBlockingClientImpl;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
@@ -76,7 +76,7 @@ import com.ibm.mqlight.api.timer.TimerService;
  * }
  * </pre>
  */
-public abstract class NonBlockingClient extends Component { // TODO: not particularly sure I like this hierarchy...
+public abstract class NonBlockingClient {
 
     protected static final ClientOptions defaultClientOptions = ClientOptions.builder().build();
     protected static final SendOptions defaultSendOptions = SendOptions.builder().build();

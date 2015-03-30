@@ -32,12 +32,12 @@ import org.junit.Test;
 
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
-import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 
 public class TestEndpointPromiseImpl {
 
-    protected class MockComponent extends Component {
+    protected class MockComponent extends ComponentImpl {
         protected LinkedList<Message> messages = new LinkedList<>();
         
         @Override

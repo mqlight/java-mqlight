@@ -22,10 +22,10 @@ import java.util.LinkedList;
 
 import junit.framework.AssertionFailedError;
 
-import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 
-public class MockComponent extends Component {
+public class MockComponent extends ComponentImpl {
     private LinkedList<Message> messages = new LinkedList<>();
     
     @Override protected void onReceive(Message message) {

@@ -24,6 +24,7 @@ import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -66,7 +67,7 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
             synchronized(this) {
                 this.channel = channel;
             }
-            component.tell(new ConnectResponse(channel, null, context), Component.NOBODY);
+            component.tell(new ConnectResponse(channel, null, context), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
@@ -88,7 +89,7 @@ public class NetworkConnectPromiseImpl implements Promise<NetworkChannel> {
             } else {
                 clientException = new NetworkException("The network operation failed.  See linked exception for more information", exception);
             }
-            component.tell(new ConnectResponse(getChannel(), clientException, context), Component.NOBODY);
+            component.tell(new ConnectResponse(getChannel(), clientException, context), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);

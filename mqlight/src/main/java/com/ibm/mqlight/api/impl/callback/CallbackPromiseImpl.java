@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -74,7 +75,7 @@ public class CallbackPromiseImpl implements Promise<Void> {
             throw ex;
         } else {
             if (!ignoreSuccess) {
-                component.tell(new FlushResponse(), Component.NOBODY);
+                component.tell(new FlushResponse(), ComponentImpl.NOBODY);
             }
         }
         

@@ -33,13 +33,13 @@ public class CompletionFuture<T> {
   
     private boolean complete = false;
     
-    private final NonBlockingClient client;
+    private final NonBlockingClientImpl client;
     private CompletionListener<T> listener;
     private T context;
     
     private Exception cause = null;
     
-    public CompletionFuture(NonBlockingClient client) {
+    public CompletionFuture(NonBlockingClientImpl client) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client);
 

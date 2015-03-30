@@ -31,8 +31,6 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
-import com.ibm.mqlight.api.impl.Message;
-
 public class TestNonBlockingClient {
 
     private Object NULL = new Object();
@@ -49,7 +47,6 @@ public class TestNonBlockingClient {
         @Override public ClientState getState() { return null; }
         @Override public <T> NonBlockingClient start(CompletionListener<T> listener, T context) { return null; }
         @Override public <T> void stop(CompletionListener<T> listener, T context) {}
-        @Override protected void onReceive(Message message) {}
 
         private void testAgainstExpectedValues(Object[] values) {
             if (expectedValues == null) {

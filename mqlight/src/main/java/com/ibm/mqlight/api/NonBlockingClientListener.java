@@ -76,6 +76,13 @@ public interface NonBlockingClientListener<T> {
      */
     void onRetrying(NonBlockingClient client, T context, ClientException exception);
     
-    // TODO: document this!
+    /**
+     * Called as a notification when the client has flushed any buffered messages to the network. This notification
+     * can be used in conjunction with the value returned by a {@link NonBlockingClient#send} method to efficiently
+     * send messages without buffering a large number of messages in memory allocated by the client.
+     * 
+     * @param client a reference to the client that the listener was registered for and this notification pertains to.
+     * @param context the context object that was specified when the listener was registered.
+     */
     void onDrain(NonBlockingClient client, T context);
 }

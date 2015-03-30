@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -57,10 +59,11 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
       
         if (complete.getAndSet(true)) {
             final IllegalStateException ex  = new IllegalStateException("Promise already completed");
+            logger.ffdc(methodName, FFDCProbeId.PROBE_001, ex, this);
             logger.throwing(this, methodName, ex);
             throw ex;
         } else {
-            component.tell(new WriteResponse(context, amount, drained), Component.NOBODY);
+            component.tell(new WriteResponse(context, amount, drained), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
@@ -71,9 +74,9 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
         final String methodName = "setFailure";
         logger.entry(this, methodName, exception);
       
-        // TODO: can never fail?
         if (complete.getAndSet(true)) {
             final IllegalStateException ex  = new IllegalStateException("Promise already completed");
+            logger.ffdc(methodName, FFDCProbeId.PROBE_002, ex, this);
             logger.throwing(this, methodName, ex);
             throw ex;
         }

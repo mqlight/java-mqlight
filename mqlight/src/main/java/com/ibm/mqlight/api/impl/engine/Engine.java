@@ -53,7 +53,7 @@ import com.ibm.mqlight.api.NotPermittedException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
-import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.impl.network.ConnectResponse;
 import com.ibm.mqlight.api.impl.network.ConnectionError;
@@ -73,7 +73,7 @@ import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
-public class Engine extends Component {
+public class Engine extends ComponentImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
 

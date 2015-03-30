@@ -18,61 +18,6 @@
  */
 package com.ibm.mqlight.api.impl;
 
-import java.util.LinkedList;
-
-import com.ibm.mqlight.api.logging.Logger;
-import com.ibm.mqlight.api.logging.LoggerFactory;
-
-public abstract class Component {
-    
-    private static final Logger logger = LoggerFactory.getLogger(Component.class);
-    
-    // TODO: should probably log something in NOBODY
-    public static final Component NOBODY = new Component() {
-        public void tell(Message message, Component self) {}
-        @Override protected void onReceive(Message message) {}
-    };
-    
-    private final LinkedList<Message> queue = new LinkedList<>();
-    private boolean scheduled = false;
-    protected final Object componentMonitor = new Object();
-    
-    public void tell(Message message, Component self) {
-        final String methodName = "tell";
-        logger.entry(this, methodName, message, self);
-
-        message.setSender(self);
-        boolean execute = false;
-        synchronized(queue) {
-            queue.addLast(message);
-            execute = !scheduled;
-            if (execute) scheduled = true;
-        }
-        if (execute) deliverMessages();
-        
-        logger.exit(this, methodName);
-    }
-    
-    private void deliverMessages() {
-        final String methodName = "deliverMessages";
-        logger.entry(this, methodName);
-      
-        while(true) {
-            Message message = null;
-            synchronized(queue) {
-                if (queue.isEmpty()) {
-                    scheduled = false;
-                    break;
-                }
-                else message = queue.removeFirst();
-            }
-            synchronized(componentMonitor) {
-                onReceive(message);
-            }
-        }
-        
-        logger.exit(this, methodName);
-    }
-    
-    protected abstract void onReceive(Message message);
+public interface Component {
+  public void tell(Message message, Component self);
 }

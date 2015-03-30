@@ -286,7 +286,7 @@ public class TestNonBlockingClientImpl {
             private final Queue<Message> messages = new LinkedList<>();
 
             protected <T> MockClient(EndpointService endpointService,
-                    CallbackService callbackService, Component engine,
+                    CallbackService callbackService, ComponentImpl engine,
                     TimerService timerService, GsonBuilder builder,
                     ClientOptions options,
                     NonBlockingClientListener<T> listener, T context) {
@@ -463,7 +463,7 @@ public class TestNonBlockingClientImpl {
         class MockClient extends NonBlockingClientImpl {
             private final LinkedList<Message> messages = new LinkedList<>();
             protected <T> MockClient(EndpointService endpointService,
-                    CallbackService callbackService, Component engine,
+                    CallbackService callbackService, ComponentImpl engine,
                     TimerService timerService, GsonBuilder builder, ClientOptions options,
                     NonBlockingClientListener<T> listener, T context) {
                 super(endpointService, callbackService, engine, timerService, builder, options,
@@ -1044,7 +1044,7 @@ public class TestNonBlockingClientImpl {
             private final LinkedList<InternalSend<?>> sends = new LinkedList<>();
 
             protected <T> MockClient(EndpointService endpointService,
-                    CallbackService callbackService, Component engine,
+                    CallbackService callbackService, ComponentImpl engine,
                     TimerService timerService, GsonBuilder gsonBuilder,
                     ClientOptions options,
                     NonBlockingClientListener<T> listener, T context) {

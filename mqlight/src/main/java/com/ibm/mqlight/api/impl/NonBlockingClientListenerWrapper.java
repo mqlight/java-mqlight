@@ -30,11 +30,11 @@ class NonBlockingClientListenerWrapper<T>{
 
     private static final Logger logger = LoggerFactory.getLogger(NonBlockingClientListenerWrapper.class);
   
-    NonBlockingClient client;
+    NonBlockingClientImpl client;
     NonBlockingClientListener<T> listener;
     T context;
     
-    protected NonBlockingClientListenerWrapper(NonBlockingClient client, NonBlockingClientListener<T> listener, T context) {
+    protected NonBlockingClientListenerWrapper(NonBlockingClientImpl client, NonBlockingClientListener<T> listener, T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, listener, context);
       

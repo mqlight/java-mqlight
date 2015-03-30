@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -55,10 +57,11 @@ public class NetworkClosePromiseImpl implements Promise<Void> {
         
         if (complete.getAndSet(true)) {
             final IllegalStateException exception  = new IllegalStateException("Promise already completed");
+            logger.ffdc(methodName, FFDCProbeId.PROBE_001, exception, this);
             logger.throwing(this, methodName, exception);
             throw exception;
         } else {
-            component.tell(new DisconnectResponse(context), Component.NOBODY);
+            component.tell(new DisconnectResponse(context), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
@@ -68,14 +71,15 @@ public class NetworkClosePromiseImpl implements Promise<Void> {
     public void setFailure(Exception exception) throws IllegalStateException {
         final String methodName = "setFailure";
         logger.entry(this, methodName, exception);
-      
+        logger.ffdc(methodName, FFDCProbeId.PROBE_002, new Exception("should never be called"), this);
+        
         if (complete.getAndSet(true)) {
             final IllegalStateException ex  = new IllegalStateException("Promise already completed");
+            logger.ffdc(methodName, FFDCProbeId.PROBE_003, ex, this);
             logger.throwing(this, methodName, ex);
             throw ex;
         }
         
         logger.exit(this, methodName);
-        // TODO: should never be called!
     }
 }

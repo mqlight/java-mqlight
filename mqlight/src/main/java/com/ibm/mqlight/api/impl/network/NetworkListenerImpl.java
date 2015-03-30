@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkListener;
 
@@ -35,17 +36,17 @@ public class NetworkListenerImpl implements NetworkListener {
 
     @Override
     public void onRead(NetworkChannel channel, ByteBuffer buffer) {
-        component.tell(new DataRead(channel, buffer), Component.NOBODY);
+        component.tell(new DataRead(channel, buffer), ComponentImpl.NOBODY);
     }
 
     @Override
     public void onClose(NetworkChannel channel) {
-        component.tell(new ConnectionError(channel, new IOException("Network connection closed by server")), Component.NOBODY);
+        component.tell(new ConnectionError(channel, new IOException("Network connection closed by server")), ComponentImpl.NOBODY);
     }
 
     @Override
     public void onError(NetworkChannel channel, Exception exception) {
-        component.tell(new ConnectionError(channel, exception), Component.NOBODY);
+        component.tell(new ConnectionError(channel, exception), ComponentImpl.NOBODY);
     }
 
 }

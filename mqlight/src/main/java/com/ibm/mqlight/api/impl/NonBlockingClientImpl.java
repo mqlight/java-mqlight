@@ -97,7 +97,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
-public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions {
+public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions, Component {
 
     static {
         LogbackLogging.setup();
@@ -106,7 +106,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     private final EndpointService endpointService;
     private final CallbackService callbackService;
-    private final Component engine;
+    private final ComponentImpl engine;
     private final TimerService timer;
     private final GsonBuilder gsonBuilder;
     private final Gson gson;
@@ -130,7 +130,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
 
     private final NonBlockingClientListenerWrapper<?> clientListener;
-
+    
     private boolean remakingInboundLinks = false;
 
     private int undrainedSends = 0;
@@ -182,7 +182,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     protected <T> NonBlockingClientImpl(EndpointService endpointService,
             CallbackService callbackService,
-            Component engine,
+            ComponentImpl engine,
             TimerService timerService,
             GsonBuilder gsonBuilder,
             ClientOptions options,
@@ -740,7 +740,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         return result;
     }
 
-    @Override
     protected void onReceive(Message message) {
         final String methodName = "onReceive";
         logger.entry(this, methodName, message);
@@ -1355,5 +1354,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         logger.exit(this, methodName, result);
 
         return result;
+    }
+
+    private final ComponentImpl component = new ComponentImpl() {
+      @Override
+      protected void onReceive(Message message) {
+        NonBlockingClientImpl.this.onReceive(message);
+      }
+    };
+    
+    @Override
+    public void tell(Message message, Component self) {
+      component.tell(message, self);
     }
 }

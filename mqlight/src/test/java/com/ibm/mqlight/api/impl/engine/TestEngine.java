@@ -42,7 +42,7 @@ import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.MockComponent;
 import com.ibm.mqlight.api.impl.network.ConnectionError;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -299,7 +299,7 @@ public class TestEngine {
         Engine engine = new Engine(network, timer);
         OpenRequest expectedOpenRequest = new OpenRequest(endpoint, "client-id");
         engine.tell(expectedOpenRequest, component);
-        engine.tell(new ConnectionError(network.channel, new IOException()), Component.NOBODY);
+        engine.tell(new ConnectionError(network.channel, new IOException()), ComponentImpl.NOBODY);
 
         assertEquals("Expected to have received 1 more message to the component", 2, component.getMessages().size());
     }

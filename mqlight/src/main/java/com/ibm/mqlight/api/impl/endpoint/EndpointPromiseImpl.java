@@ -24,6 +24,7 @@ import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.Component;
+import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -58,7 +59,7 @@ public class EndpointPromiseImpl implements EndpointPromise {
             logger.throwing(this, methodName, exception);
             throw exception;
         } else {
-            component.tell(new EndpointResponse(endpoint, null), Component.NOBODY);
+            component.tell(new EndpointResponse(endpoint, null), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
@@ -74,7 +75,7 @@ public class EndpointPromiseImpl implements EndpointPromise {
             logger.throwing(this, methodName, exception);
             throw exception;
         } else {
-            component.tell(new ExhaustedResponse(delay), Component.NOBODY);
+            component.tell(new ExhaustedResponse(delay), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
@@ -99,7 +100,7 @@ public class EndpointPromiseImpl implements EndpointPromise {
                         exception);
                 logger.data(this, methodName, clientException);
             }
-            component.tell(new EndpointResponse(null, clientException), Component.NOBODY);
+            component.tell(new EndpointResponse(null, clientException), ComponentImpl.NOBODY);
         }
         
         logger.exit(this, methodName);
