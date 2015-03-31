@@ -49,6 +49,7 @@ import com.ibm.mqlight.api.DestinationListener;
 import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientListener;
+import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
 import com.ibm.mqlight.api.SendOptions;
@@ -97,7 +98,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
-public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions, Component {
+public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions, Component, CallbackService {
 
     static {
         LogbackLogging.setup();
@@ -736,7 +737,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else if (NonBlockingClientState.queueingWorkStates.contains(state)) {
                 pendingWork.addLast(is);
             } else {  // Assume state is in NonBlockingClientState.sendFail
-                is.future.postFailure(callbackService, new StoppedException("Cannot send messages because the client is in stopped state"));
+                is.future.setFailure(new StoppedException("Cannot send messages because the client is in stopped state"));
             }
 
         } else if (message instanceof SendResponse) {
@@ -744,9 +745,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             InternalSend<?> is = outstandingSends.remove(sr.request);
             if (is != null) {
                 if (sr.cause == null) {
-                    is.future.postSuccess(callbackService);
+                    is.future.setSuccess(null);
                 } else {
-                    is.future.postFailure(callbackService, sr.cause);
+                    is.future.setFailure(sr.cause);
                 }
             }
         } else if (message instanceof InternalStart) {
@@ -785,7 +786,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                         if (topicElements[1] != null) {
                             errMsg = errMsg + " and share '" + topicElements[1] + "'.";
                         }
-                        is.future.postFailure(callbackService, new SubscribedException(errMsg));
+                        is.future.setFailure(new SubscribedException(errMsg));
                     } else {
                         // Add to pending actions - so operation is attempted when current link is detatched.
                         sd.pending.addLast(is);
@@ -799,7 +800,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else if (NonBlockingClientState.queueingWorkStates.contains(state)) {
                 pendingWork.add(is);
             } else { // Assume state is in NonBlockingClientState.rejectingWorkStates
-                is.future.postFailure(callbackService, new StoppedException("Cannot subscribe because the client is in stopped state"));
+                is.future.setFailure(new StoppedException("Cannot subscribe because the client is in stopped state"));
             }
 
         } else if (message instanceof SubscribeResponse) {
@@ -807,7 +808,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             SubData sd = subscribedDestinations.get(sr.topic);
             if (sd != null) {
                 if (sd.inProgressSubscribe != null) {
-                    sd.inProgressSubscribe.future.postSuccess(callbackService);
+                    sd.inProgressSubscribe.future.setSuccess(null);
                     sd.inProgressSubscribe = null;
                 }
                 sd.state = SubData.State.ESTABLISHED;
@@ -845,7 +846,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                         errMsg = " and share '" + iu.share + "'";
                     }
                     UnsubscribedException se = new UnsubscribedException(errMsg);
-                    iu.future.postFailure(callbackService, se);
+                    iu.future.setFailure(se);
                 } else if (sd.pending.isEmpty()) {
                     if (sd.state == SubData.State.ATTACHING) {
                         pendingWork.addLast(iu);
@@ -853,7 +854,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                       UnsubscribedException se = new UnsubscribedException("Client is not subscribed to " +
                                 ((iu.share == null || "".equals(iu.share)) ? "private" : "shared") +
                                 "destination " + iu.topicPattern);
-                        iu.future.postFailure(callbackService, se);
+                        iu.future.setFailure(se);
                     } else if (sd.state == SubData.State.ESTABLISHED) {
                         sd.state = SubData.State.DETATCHING;
                         sd.inProgressUnsubscribe = iu;
@@ -867,7 +868,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else if (NonBlockingClientState.queueingWorkStates.contains(state)) {
                 pendingWork.addLast(iu);
             } else { // NonBlockingClientState.rejectingWorkStates.contains(state)
-                iu.future.postFailure(callbackService, new StoppedException("Cannot unsubscribe because the client is in stopped state"));
+                iu.future.setFailure(new StoppedException("Cannot unsubscribe because the client is in stopped state"));
             }
         } else if (message instanceof UnsubscribeResponse) {
             // This needs to be tolerant of receiving an unsubscribe response before we've issued an
@@ -877,7 +878,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             String[] parts = ur.topic.split();
             sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
             if (sd.inProgressUnsubscribe != null) {
-                sd.inProgressUnsubscribe.future.postSuccess(callbackService);
+                sd.inProgressUnsubscribe.future.setSuccess(null);
                 sd.inProgressUnsubscribe = null;
             }
             while(!sd.pending.isEmpty()) {
@@ -1059,7 +1060,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         for (Map.Entry<SubscriptionTopic, SubData> entry : subscribedDestinations.entrySet()) {
             SubData subData = entry.getValue();
             if (subData.inProgressSubscribe != null) {
-                subData.inProgressSubscribe.future.postFailure(callbackService, new StoppedException("Cannot subscribe because the client is in stopped state"));
+                subData.inProgressSubscribe.future.setFailure(new StoppedException("Cannot subscribe because the client is in stopped state"));
                 subData.inProgressSubscribe = null;
             }
             if (subData.state == SubData.State.ESTABLISHED) {
@@ -1067,7 +1068,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 subData.listener.onUnsubscribed(callbackService, parts[0], parts[1], null);
             }
             if (subData.inProgressUnsubscribe != null) {
-                subData.inProgressUnsubscribe.future.postFailure(callbackService, new StoppedException("Cannot unsubscribe because the client is in stopped state"));
+                subData.inProgressUnsubscribe.future.setFailure(new StoppedException("Cannot unsubscribe because the client is in stopped state"));
                 subData.inProgressUnsubscribe = null;
             }
             while (!subData.pending.isEmpty()) {
@@ -1079,9 +1080,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         // For any inflight sends - fail AT_LEAST_ONCE, succeed AT_MOST_ONCE
         for (InternalSend<?> send : outstandingSends.values()) {
             if (send.qos == QOS.AT_MOST_ONCE) {
-                send.future.postSuccess(callbackService);
+                send.future.setSuccess(null);
             } else {
-                send.future.postFailure(callbackService, new StoppedException("Cannot send messages because the client is in stopped state"));
+                send.future.setFailure(new StoppedException("Cannot send messages because the client is in stopped state"));
             }
         }
 
@@ -1090,15 +1091,15 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (work instanceof InternalSend<?>) {
                 InternalSend<?> is = (InternalSend<?>)work;
                 StoppedException stoppedException = new StoppedException("Cannot send messages because the client is in stopped state");
-                is.future.postFailure(callbackService, stoppedException);
+                is.future.setFailure(stoppedException);
             } else if (work instanceof InternalSubscribe<?>) {
                 InternalSubscribe<?> is = (InternalSubscribe<?>)work;
                 StoppedException stoppedException = new StoppedException("Cannot subscribe because the client is in stopped state");
-                is.future.postFailure(callbackService, stoppedException);
+                is.future.setFailure(stoppedException);
             } else {  // work instanceof InternalUnsubscribe
                 InternalUnsubscribe<?> iu  = (InternalUnsubscribe<?>)work;
                 StoppedException stoppedException = new StoppedException("Cannot unsubscribe because the client is in stopped state");
-                iu.future.postFailure(callbackService, stoppedException);
+                iu.future.setFailure(stoppedException);
             }
         }
 
@@ -1124,7 +1125,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
-            stop.future.postFailure(callbackService, new StartingException("Cannot stop client because of a subsequent start request"));
+            stop.future.setFailure(new StartingException("Cannot stop client because of a subsequent start request"));
         }
 
         logger.exit(this, methodName);
@@ -1137,7 +1138,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         while(!pendingStops.isEmpty()) {
             InternalStop<?> stop = pendingStops.removeFirst();
-            stop.future.postSuccess(callbackService);
+            stop.future.setSuccess(null);
         }
 
         logger.exit(this, methodName);
@@ -1150,7 +1151,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
-            start.future.postFailure(callbackService, new StoppedException("Cannot start client because of a subsequent stop request"));
+            start.future.setFailure(new StoppedException("Cannot start client because of a subsequent stop request"));
         }
 
         logger.exit(this, methodName);
@@ -1163,7 +1164,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         while(!pendingStarts.isEmpty()) {
             InternalStart<?> start = pendingStarts.removeFirst();
-            start.future.postSuccess(callbackService);
+            start.future.setSuccess(null);
         }
 
         logger.exit(this, methodName);
@@ -1279,7 +1280,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         for (InternalSend<?> sendRequest : outstandingSends.values()) {
             if (sendRequest.qos == QOS.AT_MOST_ONCE) {
                 // We don't know if the message made it or not - but based on this QOS - we have to assume it did...
-                sendRequest.future.postSuccess(callbackService);
+                sendRequest.future.setSuccess(null);
             } else {
                 // And for this QOS - we can be pessimistic and assume it didn't...
                 pendingWork.addLast(sendRequest);
@@ -1323,5 +1324,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     @Override
     public void tell(Message message, Component self) {
       component.tell(message, self);
+    }
+
+    @Override
+    public void run(Runnable runnable, Object orderingCtx, Promise<Void> promise) {
+      callbackService.run(runnable, orderingCtx, promise);
     }
 }

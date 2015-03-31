@@ -19,14 +19,14 @@
 package com.ibm.mqlight.api.impl;
 
 import com.ibm.mqlight.api.CompletionListener;
+import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
-// TODO: re-write this class based on the Promise interface.
-public class CompletionFuture<T> {
+public class CompletionFuture<T> implements Promise<T> {
   
     private static final Logger logger = LoggerFactory.getLogger(CompletionFuture.class);
   
@@ -47,20 +47,24 @@ public class CompletionFuture<T> {
         logger.exit(this, methodName);
     }
     
-    public void postSuccess(CallbackService callbackService) {
+    public void setSuccess(T result) throws IllegalStateException {
         final String methodName = "postSuccess";
-        logger.entry(this, methodName, callbackService);
+        logger.entry(this, methodName, result);
       
         final CompletionListener<T> l;
         final T c;
         synchronized(this) {
-            if (complete) return;
+            if (complete) {
+                final IllegalStateException ex = new IllegalStateException("Promise already completed");
+                logger.throwing(this,  methodName, ex);
+                throw ex;
+            }
             complete = true;
             l = listener;
             c = context;
         }
         if (l != null) {
-            callbackService.run(new Runnable() {
+          client.run(new Runnable() {
                 public void run() {
                     l.onSuccess(client, c);
                 }
@@ -70,21 +74,25 @@ public class CompletionFuture<T> {
         logger.exit(this, methodName);
     }
     
-    public void postFailure(CallbackService callbackService, final Exception cause) {
+    public void setFailure(final Exception exception) throws IllegalStateException {
         final String methodName = "postFailure";
-        logger.entry(this, methodName, callbackService, cause);
+        logger.entry(this, methodName, exception);
       
-        this.cause = cause;
+        this.cause = exception;
         final CompletionListener<T> l;
         final T c;
         synchronized(this) {
-            if (complete) return;
+            if (complete) {
+                final IllegalStateException ex = new IllegalStateException("Promise already completed");
+                logger.throwing(this,  methodName, ex);
+                throw ex;
+            }
             complete = true;
             l = listener;
             c = context;
         }
         if (l != null) {
-            callbackService.run(new Runnable() {
+            client.run(new Runnable() {
                 public void run() {
                     l.onError(client, c, cause);
                 }
@@ -128,5 +136,10 @@ public class CompletionFuture<T> {
         }
         
         logger.exit(this, methodName);
+    }
+
+    @Override
+    public synchronized boolean isComplete() {
+      return complete;
     }
 }
