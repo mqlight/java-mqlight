@@ -40,6 +40,7 @@ import org.apache.qpid.proton.engine.Connection;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Event;
+import org.apache.qpid.proton.engine.Handler;
 import org.apache.qpid.proton.engine.Link;
 import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sasl;
@@ -74,7 +75,7 @@ import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
-public class Engine extends ComponentImpl {
+public class Engine extends ComponentImpl implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
 
@@ -172,7 +173,7 @@ public class Engine extends ComponentImpl {
             boolean linkOpened = false;
             while(true) {
                 if (link == null) {
-                    linkSender = sr.connection.session.sender(sr.topic);    // TODO: the Node.js client uses sender-xxx as a link name...
+                    linkSender = sr.connection.session.sender(sr.topic);
                     Source source = new Source();
                     Target target = new Target();
                     source.setAddress(sr.topic);
@@ -222,7 +223,7 @@ public class Engine extends ComponentImpl {
             EngineConnection engineConnection = sr.connection;
             if (engineConnection.subscriptionData.containsKey(sr.topic.toString())) {
                 // The client is already subscribed...
-                // TODO: should this be an error condition?
+                // TODO: should this be an error condition? Could FFDC??? problem is currently SubscribeResponse does not have an error condition
                 sr.getSender().tell(new SubscribeResponse(engineConnection, sr.topic), this);
             } else {
                 Receiver linkReceiver = sr.connection.session.receiver(sr.topic.getTopic());
@@ -391,79 +392,19 @@ public class Engine extends ComponentImpl {
         logger.exit(this, methodName);
     }
 
-    // TODO: Proton 0.8 provides an Event.dispatch() method that could be used to replace this code...
     private void process(Collector collector) {
         final String methodName = "process";
         logger.entry(this, methodName, collector);
 
         while (collector.peek() != null) {
             Event event = collector.peek();
+            System.out.println("Processing event: "+event.getType());
             logger.data(this, methodName, "Processing event: {}", event.getType());
-            switch(event.getType()) {   // TODO: could some of these be common'ed up? E.g. have one processEventConnection - which deals with both local and remote state changes
-            case CONNECTION_BOUND:
-            case CONNECTION_FINAL:
-            case CONNECTION_INIT:
-            case CONNECTION_UNBOUND:
-                break;
-            case CONNECTION_LOCAL_CLOSE:
-            case CONNECTION_LOCAL_OPEN:
-                processEventConnectionLocalState(event);
-                break;
-            case CONNECTION_REMOTE_CLOSE:
-            case CONNECTION_REMOTE_OPEN:
-                processEventConnectionRemoteState(event);
-                break;
-            case DELIVERY:
-                processEventDelivery(event);
-                break;
-            case LINK_FINAL:
-            case LINK_INIT:
-                break;
-            case LINK_FLOW:
-                processEventLinkFlow(event);
-                break;
-            case LINK_LOCAL_CLOSE:
-            case LINK_LOCAL_DETACH:
-            case LINK_LOCAL_OPEN:
-                processEventLinkLocalState(event);
-                break;
-            case LINK_REMOTE_CLOSE:
-            case LINK_REMOTE_DETACH:
-            case LINK_REMOTE_OPEN:
-                processEventLinkRemoteState(event);
-                break;
-            case SESSION_FINAL:
-            case SESSION_INIT:
-                break;
-            case SESSION_LOCAL_CLOSE:
-            case SESSION_LOCAL_OPEN:
-                processEventSessionLocalState(event);
-                break;
-            case SESSION_REMOTE_CLOSE:
-            case SESSION_REMOTE_OPEN:
-                processEventSessionRemoteState(event);
-                break;
-            case TRANSPORT:
-            case TRANSPORT_CLOSED:
-            case TRANSPORT_ERROR:
-            case TRANSPORT_HEAD_CLOSED:
-            case TRANSPORT_TAIL_CLOSED:
-                processEventTransport(event);
-                break;
-            default:
-                final IllegalStateException exception = new IllegalStateException("Unknown event type: " + event.getType());
-                logger.throwing(this, methodName, exception);
-                throw exception;
-            }
+            event.dispatch(this);
+
             collector.pop();
         }
 
-        logger.exit(this, methodName);
-    }
-
-    private void processEventConnectionLocalState(Event event) {
-        final String methodName = "processEventConnectionLocalState";
-        logger.entry(this, methodName, event);
         logger.exit(this, methodName);
     }
 
@@ -508,11 +449,15 @@ public class Engine extends ComponentImpl {
                         }
                         req.getSender().tell(new OpenResponse(req, clientException), this);
                     }
-                } else {    // TODO: should we also special case closeRequest in progress??
+
+                } else {
                     if (!engineConnection.closed) {
                         engineConnection.notifyInflightQos0(true);
                         engineConnection.closed = true;
-                        engineConnection.channel.close(null);
+                        final CloseRequest cr = engineConnection.closeRequest;
+                        engineConnection.closeRequest = null;
+                        final NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
+                        engineConnection.channel.close(future);
                         Throwable error = getClientException(remoteCondition);
                         engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
                     }
@@ -523,11 +468,9 @@ public class Engine extends ComponentImpl {
                     engineConnection.notifyInflightQos0(true);
                     engineConnection.closed = true;
                     CloseRequest cr = engineConnection.closeRequest;
+                    engineConnection.closeRequest = null;
                     NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
                     engineConnection.channel.close(future);
-//                    DisconnectRequest req = new DisconnectRequest(engineConnection.networkConnection);
-//                    req.setContext(cr);
-//                    NettyNetwork.getInstance().tell(req, this);
                 }
             }
         } else if (event.getConnection().getRemoteState() == EndpointState.ACTIVE) {
@@ -573,55 +516,6 @@ public class Engine extends ComponentImpl {
         return result;
     }
 
-    private void processEventDelivery(Event event) {
-        final String methodName = "processEventDelivery";
-        logger.entry(this, methodName, event);
-
-        EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-        Delivery delivery = event.getDelivery();
-        if (event.getLink() instanceof Sender) {
-            SendRequest sr = engineConnection.inProgressOutboundDeliveries.remove(delivery);
-            Exception exception = null;
-            if (delivery.getRemoteState() instanceof Rejected) {
-                Rejected rejected = (Rejected)delivery.getRemoteState();
-                // If we ever need to check the symbolic error code returned by the server -
-                // this is accessible via the getCondition() method - e.g.
-                //     rejected.getError().getCondition() => 'MAX_TTL_EXCEEDED'
-                String description = rejected.getError().getDescription();
-                if (description == null) {
-                    exception = new Exception("Message was rejected");
-                } else {
-                    exception = new Exception(description);
-                }
-            } else if (delivery.getRemoteState() instanceof Released) {;
-                exception = new Exception("Message was released");
-            } else if (delivery.getRemoteState() instanceof Modified) {
-                exception = new Exception("Message was modified");
-            }
-            sr.getSender().tell(new SendResponse(sr, exception), this);
-        } else if (delivery.isReadable() && !delivery.isPartial()) {    // Assuming link instanceof Receiver...
-            Receiver receiver = (Receiver)event.getLink();
-            int amount = delivery.pending();
-            byte[] data = new byte[amount];
-            receiver.recv(data, 0, amount);
-            receiver.advance();
-            ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
-
-            EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(event.getLink().getName());
-            subData.unsettled++;
-            QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
-            subData.subscriber.tell(new DeliveryRequest(buf, qos, event.getLink().getName(), delivery, event.getConnection()), this);
-        }
-
-        logger.exit(this, methodName);
-    }
-
-    private void processEventLinkFlow(Event event) {
-        final String methodName = "processEventLinkFlow";
-        logger.entry(this, methodName, event);
-        logger.exit(this, methodName);
-    }
-
     private void processEventLinkLocalState(Event event) {
         final String methodName = "processEventLinkFlow";
         logger.entry(this, methodName, event);
@@ -664,7 +558,6 @@ public class Engine extends ComponentImpl {
 
                     if (sd == null) {
                       logger.ffdc(this, methodName, FFDCProbeId.PROBE_001, null, this, event);
-                        // TODO: throw IllegalStateException?
                     } else {
                         // we assume that getRemoteCondition will be null or empty if there is no error
                         ClientException clientException = getClientException(link.getRemoteCondition());
@@ -681,7 +574,7 @@ public class Engine extends ComponentImpl {
             if (eventType == Event.Type.LINK_REMOTE_CLOSE &&
                     link.getRemoteState() == EndpointState.CLOSED) {
                 if (link.getLocalState() != EndpointState.CLOSED) {
-                    // TODO: trace an error - as the server has closed our sending link unexpectedly...
+                    logger.data(this, methodName, "server unexpectedly closed our sending link", link, this);
                     link.close();
                 }
                 link.free();
@@ -692,17 +585,8 @@ public class Engine extends ComponentImpl {
 
     }
 
-    private void processEventSessionLocalState(Event event) {
-        final String methodName = "processEventSessionLocalState";
-        logger.entry(this, methodName, event);
-
-        // TODO: do we care about this event?
-
-        logger.exit(this, methodName);
-    }
-
     private void processEventSessionRemoteState(Event event) {
-        final String methodName = "processEventSessionLocalState";
+        final String methodName = "processEventSessionRemoteState";
         logger.entry(this, methodName, event);
 
         if (event.getSession().getLocalState() == EndpointState.ACTIVE &&
@@ -719,9 +603,194 @@ public class Engine extends ComponentImpl {
         logger.exit(this, methodName);
     }
 
-    private void processEventTransport(Event event) {
-        final String methodName = "processEventTransport";
-        logger.entry(this, methodName, event);
-        logger.exit(this, methodName);
+    @Override
+    public void onConnectionInit(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onConnectionLocalOpen(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onConnectionRemoteOpen(Event e) {
+      processEventConnectionRemoteState(e);
+    }
+
+    @Override
+    public void onConnectionLocalClose(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onConnectionRemoteClose(Event e) {
+      processEventConnectionRemoteState(e);      
+    }
+
+    @Override
+    public void onConnectionBound(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onConnectionUnbound(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onConnectionFinal(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onSessionInit(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onSessionLocalOpen(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onSessionRemoteOpen(Event e) {
+      processEventSessionRemoteState(e);
+    }
+
+    @Override
+    public void onSessionLocalClose(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onSessionRemoteClose(Event e) {
+      processEventSessionRemoteState(e);
+    }
+
+    @Override
+    public void onSessionFinal(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onLinkInit(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onLinkLocalOpen(Event e) {
+      processEventLinkLocalState(e);
+    }
+
+    @Override
+    public void onLinkRemoteOpen(Event e) {
+      processEventLinkRemoteState(e);
+    }
+
+    @Override
+    public void onLinkLocalDetach(Event e) {
+      processEventLinkLocalState(e);
+    }
+
+    @Override
+    public void onLinkRemoteDetach(Event e) {
+      processEventLinkRemoteState(e);
+    }
+
+    @Override
+    public void onLinkLocalClose(Event e) {
+      processEventLinkLocalState(e);
+    }
+
+    @Override
+    public void onLinkRemoteClose(Event e) {
+      processEventLinkRemoteState(e);
+    }
+
+    @Override
+    public void onLinkFlow(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onLinkFinal(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onDelivery(Event event) {
+      final String methodName = "onDelivery";
+      logger.entry(this, methodName, event);
+
+      EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+      Delivery delivery = event.getDelivery();
+      if (event.getLink() instanceof Sender) {
+          SendRequest sr = engineConnection.inProgressOutboundDeliveries.remove(delivery);
+          Exception exception = null;
+          if (delivery.getRemoteState() instanceof Rejected) {
+              Rejected rejected = (Rejected)delivery.getRemoteState();
+              // If we ever need to check the symbolic error code returned by the server -
+              // this is accessible via the getCondition() method - e.g.
+              //     rejected.getError().getCondition() => 'MAX_TTL_EXCEEDED'
+              String description = rejected.getError().getDescription();
+              if (description == null) {
+                  exception = new Exception("Message was rejected");
+              } else {
+                  exception = new Exception(description);
+              }
+          } else if (delivery.getRemoteState() instanceof Released) {;
+              exception = new Exception("Message was released");
+          } else if (delivery.getRemoteState() instanceof Modified) {
+              exception = new Exception("Message was modified");
+          }
+          sr.getSender().tell(new SendResponse(sr, exception), this);
+      } else if (delivery.isReadable() && !delivery.isPartial()) {    // Assuming link instanceof Receiver...
+          Receiver receiver = (Receiver)event.getLink();
+          int amount = delivery.pending();
+          byte[] data = new byte[amount];
+          receiver.recv(data, 0, amount);
+          receiver.advance();
+          ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
+
+          EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(event.getLink().getName());
+          subData.unsettled++;
+          QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
+          subData.subscriber.tell(new DeliveryRequest(buf, qos, event.getLink().getName(), delivery, event.getConnection()), this);
+      }
+
+      logger.exit(this, methodName);
+    }
+
+    @Override
+    public void onTransport(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onTransportError(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onTransportHeadClosed(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onTransportTailClosed(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onTransportClosed(Event e) {
+      // No action required
+    }
+
+    @Override
+    public void onUnhandled(Event e) {
+      final IllegalStateException exception = new IllegalStateException("Unknown event type: " + e.getType());
+      logger.throwing(this, "onUnhandled", exception);
+      throw exception;
     }
 }
