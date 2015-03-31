@@ -286,22 +286,25 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseSslListener(34567);
 
-        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(3);
-        MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
+        LatchedLinkedList<Event> channelEvents = new LatchedLinkedList<Event>(2);
+        LatchedLinkedList<Event> connectEvents = new LatchedLinkedList<Event>(1);
+        MockNetworkListener listener = new MockNetworkListener(channelEvents);
+        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(connectEvents);
         final StubEndpoint endpoint = new StubEndpoint("localhost", 34567);
         endpoint.setUseSsl(true);
         endpoint.setVerifyName(false);
         nn.connect(endpoint, listener, promise);
 
-        events.await(5000);
+        connectEvents.await(2500);
+        channelEvents.await(2500);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
-        assertEquals("Wrong number of events seen: " + events.toString(), 3, events.size());
-        assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
-        assertEquals("Expected second event to be a channel error", Event.Type.CHANNEL_ERROR, events.get(1).type);
-        assertEquals("Expected third event to be a close", Event.Type.CHANNEL_CLOSE, events.get(2).type);
+        assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
+        assertEquals("Wrong number of channel events seen: " + channelEvents.toString(), 2, channelEvents.size());
+        assertEquals("Expected connect event to be successful", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
+        assertEquals("Expected first channel event to be a channel error", Event.Type.CHANNEL_ERROR, channelEvents.get(0).type);
+        assertEquals("Expected second channel event to be a close", Event.Type.CHANNEL_CLOSE, channelEvents.get(1).type);
     }
 
     @Test
