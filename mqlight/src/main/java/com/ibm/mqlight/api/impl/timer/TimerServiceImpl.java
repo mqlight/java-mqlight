@@ -18,7 +18,7 @@
  */
 package com.ibm.mqlight.api.impl.timer;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -29,8 +29,6 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.timer.TimerService;
 
-// TODO: this could be re-written based on a ConcurrentHashMap to reduce the amount of lock
-//       contention on the single 'promiseToTimer' HashMap used in this implementation.
 public class TimerServiceImpl implements TimerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TimerServiceImpl.class);
@@ -45,16 +43,17 @@ public class TimerServiceImpl implements TimerService {
         executor.setRemoveOnCancelPolicy(true);
     }
     
-    private static final HashMap<Promise<Void>, Timer> promiseToTimer = new HashMap<>();
+    // Using a default ConcurrentHashMap, with concurrency level 16, which should be sufficient for most applications
+    private static final ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer = new ConcurrentHashMap<>();
     
     private static class Timer implements Runnable {
       
         private static final Logger logger = LoggerFactory.getLogger(Timer.class);
       
         private final Promise<Void> promise;
-        private final HashMap<Promise<Void>, Timer> promiseToTimer;
+        private final ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer;
         private ScheduledFuture<?> future;
-        private Timer(Promise<Void> promise, HashMap<Promise<Void>, Timer> promiseToTimer) {
+        private Timer(Promise<Void> promise, ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer) {
             final String methodName = "<init>";
             logger.entry(this, methodName, promise, promiseToTimer);
           
@@ -67,9 +66,7 @@ public class TimerServiceImpl implements TimerService {
             final String methodName = "run";
             logger.entry(this, methodName);
           
-            synchronized(promiseToTimer) {
-                promiseToTimer.remove(promise);
-            }
+            promiseToTimer.remove(promise);
             promise.setSuccess(null);
             
             logger.exit(this, methodName);
@@ -81,12 +78,10 @@ public class TimerServiceImpl implements TimerService {
         final String methodName = "schedule";
         logger.entry(this, methodName, delay, promise);
       
-        Timer timer = new Timer(promise, promiseToTimer);
-        synchronized(promiseToTimer) {
-            ScheduledFuture<?> sf = executor.schedule(timer, delay, TimeUnit.MILLISECONDS);
-            timer.future = sf;
-            promiseToTimer.put(promise, timer);
-        }
+        final Timer timer = new Timer(promise, promiseToTimer);
+        final ScheduledFuture<?> sf = executor.schedule(timer, delay, TimeUnit.MILLISECONDS);
+        timer.future = sf;
+        promiseToTimer.put(promise, timer);
         
         logger.exit(this, methodName);
     }
@@ -95,14 +90,12 @@ public class TimerServiceImpl implements TimerService {
     public void cancel(Promise<Void> promise) {
         final String methodName = "cancel";
         logger.entry(this, methodName, promise);
-        
-        synchronized(promiseToTimer) {
-            Timer timer = promiseToTimer.get(promise);
-            if (timer != null) {
-                if (timer.future.cancel(false)) {
-                    promiseToTimer.remove(promise);
-                    promise.setFailure(failureException);
-                }
+
+        final Timer timer = promiseToTimer.get(promise);
+        if (timer != null) {
+            if (timer.future.cancel(false)) {
+                promiseToTimer.remove(promise);
+                promise.setFailure(failureException);
             }
         }
         
