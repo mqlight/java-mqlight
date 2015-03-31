@@ -20,7 +20,7 @@ package com.ibm.mqlight.api.impl.network;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -226,12 +226,11 @@ public class NettyNetworkService implements NetworkService {
         }
 
         @Override
-        public void write(ByteBuffer buffer, Promise<Boolean> promise) {
+        public void write(ByteBuf buffer, Promise<Boolean> promise) {
             final String methodName = "write";
             logger.entry(this, methodName, buffer, promise);
 
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(buffer);
-            doWrite(new WriteRequest(byteBuf, promise));
+            doWrite(new WriteRequest(buffer, promise));
 
             logger.exit(this, methodName);
         }

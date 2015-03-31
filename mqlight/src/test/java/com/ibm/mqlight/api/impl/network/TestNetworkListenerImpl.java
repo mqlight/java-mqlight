@@ -18,9 +18,12 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
+import io.netty.buffer.ByteBuf;
+
 import java.nio.ByteBuffer;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 import com.ibm.mqlight.api.Promise;
@@ -31,7 +34,7 @@ public class TestNetworkListenerImpl {
 
     private class StubNetworkChannel implements NetworkChannel {
         @Override public void close(Promise<Void> promise) {}
-        @Override public void write(ByteBuffer buffer, Promise<Boolean> promise) {}
+        @Override public void write(ByteBuf buffer, Promise<Boolean> promise) {}
         @Override public void setContext(Object context) {}
         @Override public Object getContext() { return null; }
     }

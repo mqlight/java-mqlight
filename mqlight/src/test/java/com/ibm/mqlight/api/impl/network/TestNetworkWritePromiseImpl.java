@@ -24,14 +24,16 @@ import junit.framework.AssertionFailedError;
 import org.junit.Test;
 
 import com.ibm.mqlight.api.impl.MockComponent;
+import com.ibm.mqlight.api.impl.engine.EngineConnection;
+import com.ibm.mqlight.api.impl.engine.NetworkWritePromiseImpl;
 
 public class TestNetworkWritePromiseImpl {
 
     @Test
     public void success() {
         MockComponent component = new MockComponent();
-        long expectedAmount = 1000;
-        Object expectedContext = new Object();
+        int expectedAmount = 1000;
+        EngineConnection expectedContext = new EngineConnection();
         NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, expectedAmount, expectedContext);
         boolean expectedDrainValue = true;
         
@@ -64,7 +66,7 @@ public class TestNetworkWritePromiseImpl {
     @Test
     public void failure() {
         MockComponent component = new MockComponent();
-        Object expectedContext = new Object();
+        EngineConnection expectedContext = new EngineConnection();
         NetworkWritePromiseImpl promise = new NetworkWritePromiseImpl(component, 1000, expectedContext);
         
         promise.setFailure(new Exception());

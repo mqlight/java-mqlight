@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
+import io.netty.buffer.ByteBuf;
+
 import java.nio.ByteBuffer;
 
 import org.apache.qpid.proton.Proton;
@@ -63,9 +65,9 @@ public class MockNetworkChannel implements NetworkChannel {
     }
 
     @Override
-    public void write(ByteBuffer buffer, Promise<Boolean> promise) {
+    public void write(ByteBuf buf, Promise<Boolean> promise) {
         promise.setSuccess(true);
-        
+        ByteBuffer buffer = buf.nioBuffer();
         ByteBuffer tail = transport.tail();
         while(buffer.remaining() > 0) {
             int amount = Math.min(buffer.remaining(), tail.capacity());

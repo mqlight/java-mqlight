@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -64,7 +65,6 @@ import com.ibm.mqlight.api.impl.network.DisconnectResponse;
 import com.ibm.mqlight.api.impl.network.NetworkClosePromiseImpl;
 import com.ibm.mqlight.api.impl.network.NetworkConnectPromiseImpl;
 import com.ibm.mqlight.api.impl.network.NetworkListenerImpl;
-import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
@@ -379,14 +379,8 @@ public class Engine extends ComponentImpl implements Handler {
         if (engineConnection.transport.pending() > 0) {
             ByteBuffer head = engineConnection.transport.head();
             int amount = head.remaining();
-            ByteBuffer tmp = ByteBuffer.allocate(amount);       // TODO: we could avoid allocating this if we were a bit smarter
-            tmp.put(head);                                      //       about when we popped the transport...
-            tmp.flip();
-            //ByteBuf buf = Unpooled.wrappedBuffer(head);
-            engineConnection.transport.pop(amount);
-            engineConnection.transport.tick(System.currentTimeMillis());
-            engineConnection.channel.write(tmp, new NetworkWritePromiseImpl(this, amount, engineConnection));
-            //nn.tell(new WriteRequest(connection, buf), this);
+            final ByteBuf buf = Unpooled.wrappedBuffer(head);
+            engineConnection.channel.write(buf, new NetworkWritePromiseImpl(this, amount, engineConnection));
         }
 
         logger.exit(this, methodName);
@@ -398,7 +392,6 @@ public class Engine extends ComponentImpl implements Handler {
 
         while (collector.peek() != null) {
             Event event = collector.peek();
-            System.out.println("Processing event: "+event.getType());
             logger.data(this, methodName, "Processing event: {}", event.getType());
             event.dispatch(this);
 

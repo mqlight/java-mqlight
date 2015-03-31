@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.ibm.mqlight.api.impl.network;
+package com.ibm.mqlight.api.impl.engine;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.ComponentImpl;
+import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
@@ -33,10 +34,10 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
   
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final Component component;
-    private final long amount;
-    private final Object context;
+    private final int amount;
+    private final EngineConnection context;
     
-    public NetworkWritePromiseImpl(Component component, long amount, Object context) {
+    public NetworkWritePromiseImpl(Component component, int amount, EngineConnection context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, component, context);
       
@@ -63,6 +64,10 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
             logger.throwing(this, methodName, ex);
             throw ex;
         } else {
+            if (context.transport != null) {
+                context.transport.pop(amount);
+                context.transport.tick(System.currentTimeMillis());
+            }
             component.tell(new WriteResponse(context, amount, drained), ComponentImpl.NOBODY);
         }
         
@@ -79,6 +84,11 @@ public class NetworkWritePromiseImpl implements Promise<Boolean> {
             logger.ffdc(methodName, FFDCProbeId.PROBE_002, ex, this);
             logger.throwing(this, methodName, ex);
             throw ex;
+        } else {
+            if (context.transport != null) {
+                context.transport.pop(amount);
+                context.transport.tick(System.currentTimeMillis());
+            }
         }
         
         logger.exit(this, methodName);
