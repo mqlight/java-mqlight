@@ -269,18 +269,21 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         BaseListener testListener = new BaseListener(34567);
 
-        LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(2);
-        MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
+        LatchedLinkedList<Event> channelEvents = new LatchedLinkedList<Event>(1);
+        LatchedLinkedList<Event> connectEvents = new LatchedLinkedList<Event>(1);
+        MockNetworkListener listener = new MockNetworkListener(channelEvents);
+        MockNetworkConnectPromise promise = new MockNetworkConnectPromise(connectEvents);
         nn.connect(new StubEndpoint("localhost", 34567), listener, promise);
 
-        events.await(5000);
+        connectEvents.await(2500);
+        channelEvents.await(2500);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
-        assertEquals("Wrong number of events seen: " + events.toString(), 2, events.size());
-        assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.get(0).type);
-        assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, events.get(1).type);
+        assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
+        assertEquals("Wrong number of channel events seen: " + channelEvents.toString(), 1, channelEvents.size());
+        assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
+        assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, channelEvents.get(0).type);
     }
 
     @Test
@@ -470,35 +473,37 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         SendListener testListener = new SendListener(34567);
 
-        LinkedList<Event> events = new LinkedList<>();
-        MockNetworkListener listener = new MockNetworkListener(events);
-        MockNetworkConnectPromise connectPromise = new MockNetworkConnectPromise(events);
+        LatchedLinkedList<Event> channelEvents = new LatchedLinkedList<Event>(2);
+        LatchedLinkedList<Event> connectEvents = new LatchedLinkedList<Event>(1);
+        MockNetworkListener listener = new MockNetworkListener(channelEvents);
+        MockNetworkConnectPromise connectPromise = new MockNetworkConnectPromise(connectEvents);
         nn.connect(new StubEndpoint("localhost", 34567), listener, connectPromise);
 
-        for (int i = 0 ; i < 20; ++i) {
-            if (connectPromise.isComplete()) break;
-            Thread.sleep(50);
-        }
+        connectEvents.await(5000);
+
         assertTrue("Expected connect promise to be marked done", connectPromise.isComplete());
         assertNotNull("Expected connect promise to contain a channel", connectPromise.getChannel());
-
+        assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
+        
         assertTrue("Expected listener to end!", testListener.join(2500));
 
+        channelEvents.await(5000);
         for (int i = 0; i < 20; ++i) {
-            synchronized(events) {
-                if ((events.size() > 1) && events.getLast().type == Event.Type.CHANNEL_CLOSE) {
+            synchronized(channelEvents) {
+                if (channelEvents.getLast().type == Event.Type.CHANNEL_CLOSE) {
                     break;
                 }
             }
             Thread.sleep(50);
         }
-        assertTrue("Expected at least three events...", events.size() > 3);
-        assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, events.removeFirst().type);
-        assertEquals("Expected last event to be a channel close", Event.Type.CHANNEL_CLOSE, events.removeLast().type);
+
+        assertTrue("Expected at least three channel events", channelEvents.size() > 2);
+        assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, connectEvents.removeFirst().type);
+        assertEquals("Expected last event to be a channel close", Event.Type.CHANNEL_CLOSE, channelEvents.removeLast().type);
 
         int amount = 0;
-        while(!events.isEmpty()) {
-            Event event = events.removeFirst();
+        while(!channelEvents.isEmpty()) {
+            Event event = channelEvents.removeFirst();
             assertEquals("Expected channel read event", Event.Type.CHANNEL_READ, event.type);
             amount += ((ByteBuffer)event.context).remaining();
         }
