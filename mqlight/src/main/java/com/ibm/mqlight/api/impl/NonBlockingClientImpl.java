@@ -560,6 +560,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "stop";
         logger.entry(this, methodName, listener, context);
 
+        System.out.println("invoked stop");
         InternalStop<T> is = new InternalStop<T>(this);
         try {
           is.future.setListener(callbackService, listener, context);
@@ -763,6 +764,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             timerPromise = null;
             stateMachine.fire(NonBlockingClientTrigger.TIMER_RESP_POP);
         } else if (message instanceof CancelResponse) {
+            timerPromise = null;
             stateMachine.fire(NonBlockingClientTrigger.TIMER_RESP_CANCEL);
         } else if (message instanceof InternalSubscribe) {
             InternalSubscribe<?> is = (InternalSubscribe<?>)message;
@@ -806,6 +808,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof SubscribeResponse) {
             SubscribeResponse sr = (SubscribeResponse)message;
             SubData sd = subscribedDestinations.get(sr.topic);
+            if (sr.error != null) logger.ffdc(methodName, FFDCProbeId.PROBE_007, sr.error , sr, this);
             if (sd != null) {
                 if (sd.inProgressSubscribe != null) {
                     sd.inProgressSubscribe.future.setSuccess(null);
@@ -956,7 +959,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void startTimer() {
         final String methodName = "startTimer";
         logger.entry(this, methodName);
-
+        
+        if (timerPromise != null) logger.ffdc(methodName, FFDCProbeId.PROBE_008, new Exception("timer already active"), this);
+        
         timerPromise = new TimerPromiseImpl(this, null);
         timer.schedule(retryDelay, timerPromise);
 

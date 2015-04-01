@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.util.EnumSet;
 
 import org.apache.qpid.proton.Proton;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.UnsignedInteger;
 import org.apache.qpid.proton.amqp.messaging.Modified;
 import org.apache.qpid.proton.amqp.messaging.Rejected;
@@ -55,6 +56,7 @@ import com.ibm.mqlight.api.NotPermittedException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
+import com.ibm.mqlight.api.SubscribedException;
 import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.impl.SubscriptionTopic;
@@ -222,9 +224,9 @@ public class Engine extends ComponentImpl implements Handler {
             SubscribeRequest sr = (SubscribeRequest) message;
             EngineConnection engineConnection = sr.connection;
             if (engineConnection.subscriptionData.containsKey(sr.topic.toString())) {
-                // The client is already subscribed...
-                // TODO: should this be an error condition? Could FFDC??? problem is currently SubscribeResponse does not have an error condition
-                sr.getSender().tell(new SubscribeResponse(engineConnection, sr.topic), this);
+                // The client is already subscribed - should not really occur
+                final SubscribedException exception = new SubscribedException("Cannot subscribe because the client is already subscribe to topic "+sr.topic.toString());
+                sr.getSender().tell(new SubscribeResponse(engineConnection, sr.topic, exception), this);
             } else {
                 Receiver linkReceiver = sr.connection.session.receiver(sr.topic.getTopic());
                 engineConnection.subscriptionData.put(sr.topic.toString(), new EngineConnection.SubscriptionData(sr.getSender(), sr.initialCredit, linkReceiver));
@@ -582,16 +584,22 @@ public class Engine extends ComponentImpl implements Handler {
         final String methodName = "processEventSessionRemoteState";
         logger.entry(this, methodName, event);
 
-        if (event.getSession().getLocalState() == EndpointState.ACTIVE &&
-            event.getSession().getRemoteState() == EndpointState.ACTIVE) {
-            // First session has opened on the connection
-            EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-            OpenRequest req = engineConnection.openRequest;
-            engineConnection.openRequest = null;
-            engineConnection.requestor.tell(new OpenResponse(req, engineConnection), this);
+        if (event.getSession().getRemoteState() == EndpointState.ACTIVE) {
+            if (event.getSession().getLocalState() == EndpointState.ACTIVE) {
+                // First session has opened on the connection
+                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+                OpenRequest req = engineConnection.openRequest;
+                engineConnection.openRequest = null;
+                engineConnection.requestor.tell(new OpenResponse(req, engineConnection), this);
+            } else {
+                // The remote end is trying to establish a new session with us, which is not allowed. I don't think this is a usual case,
+                // but could occur with a badly written remote end (i.e. sends an initial AMQP open immediately followed by a begin)
+                final Connection engineConnection = event.getConnection();
+                engineConnection.setCondition(new ErrorCondition(Symbol.getSymbol("mqlight:session-remote-open-rejected"),
+                                                                 "MQ Light client is unable to accept an open session request"));
+                engineConnection.close();
+            }
         }
-
-        // TODO: should reject remote party trying to establish sessions with us
 
         logger.exit(this, methodName);
     }

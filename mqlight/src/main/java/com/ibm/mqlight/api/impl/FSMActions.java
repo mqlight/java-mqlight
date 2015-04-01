@@ -30,11 +30,21 @@ public interface FSMActions {
     
     public void requestEndpoint();
     
-    public void remakeInboundLinks();  // TODO: AKA "remake subscriptions"
+    /**
+     * This action remakes the client's subscriptions.
+     * <p>
+     * The action is invoked whenever a connection is recovered.
+     */
+    public void remakeInboundLinks();
     
     public void blessEndpoint();
     
-    public void cleanup();  // TODO: AKA "fail outbound, wait for inbound"
+    /**
+     * This action performs the cleanup operations such as flushing/failing any pending sends or subscribes.
+     * <p>
+     * The action can be invoked when a client is stopping.
+     */
+    public void cleanup();
     
     public void failPendingStops();
     
@@ -44,7 +54,7 @@ public interface FSMActions {
     
     public void succeedPendingStarts();
     
-    // TODO: all of these relate to external state machine transitions...
+    // All of these relate to external state machine transitions
     public void eventStarting();
     public void eventUserStopping();
     public void eventSystemStopping();
@@ -53,7 +63,11 @@ public interface FSMActions {
     public void eventRetrying();
     public void eventRestarted();
 
-    // TODO: AKA "break subs"
+    /**
+     * This action breaks any pending sends and subscription requests from the client
+     * <p>
+     * The action is invoked whenever a network error occurs and the client is not stopping.
+     */
     public void breakInboundLinks();
     
     public void processQueuedActions();

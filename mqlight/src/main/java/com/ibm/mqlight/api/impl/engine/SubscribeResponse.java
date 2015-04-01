@@ -24,8 +24,13 @@ import com.ibm.mqlight.api.impl.SubscriptionTopic;
 public class SubscribeResponse extends Message {
     public final EngineConnection connection;
     public final SubscriptionTopic topic;
-    public SubscribeResponse(EngineConnection connection, SubscriptionTopic topic) {
+    public final Exception error;
+    public SubscribeResponse(EngineConnection connection, SubscriptionTopic topic, Exception error) {
         this.connection = connection;
         this.topic = topic;
+        this.error = error;
     }
+    public SubscribeResponse(EngineConnection connection, SubscriptionTopic topic) {
+      this(connection, topic, null);
+  }
 }

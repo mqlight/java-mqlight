@@ -20,7 +20,7 @@ package com.ibm.mqlight.api.impl.engine;
 
 import com.ibm.mqlight.api.impl.Message;
 
-// TODO: this is unusual for a response message in that it flows to the engine.
+// Note: this is unusual for a response message in that it flows to the engine.
 public class DeliveryResponse extends Message {
     public final DeliveryRequest request;
     public DeliveryResponse(DeliveryRequest request) {

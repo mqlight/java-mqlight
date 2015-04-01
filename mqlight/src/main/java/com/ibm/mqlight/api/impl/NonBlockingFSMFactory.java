@@ -312,7 +312,7 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.TIMER_RESP_CANCEL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR1B)
-              .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)  // TODO: cancel timer needs to deal with duplicate cancels!
+              .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
         
         config.configure(NonBlockingClientState.StoppingR1B)
@@ -356,7 +356,7 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR2B)
               .permit(NonBlockingClientTrigger.TIMER_RESP_CANCEL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.StoppingB)
-              .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)  // TODO: another reason cancel needs to deal with multiple calls...
+              .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
         
         config.configure(NonBlockingClientState.StoppingR2B)

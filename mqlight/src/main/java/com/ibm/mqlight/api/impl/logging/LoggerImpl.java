@@ -170,15 +170,13 @@ class LoggerImpl implements Logger {
 
   @Override
   public void throwing(String methodName, Throwable throwable) {
-    // TODO this is invoking the Logger.trace(Marker, String, Object, Object) method so not sure if this will work as intended for all Logger implementations (i.e. the fact that an
-    // exception has been thrown may be lost)
+    // Note that as on SJF4J 1.6 when the last argument is a Throwable then the stack trace is output.
+    // (i.e. the following will give a similar output to calling: logger.trace(LogMarker.THROWING.getValue(), methodName, throwable));
     logger.trace(LogMarker.THROWING.getValue(), methodName, null, throwable);
   }
 
   @Override
   public void throwing(Object source, String methodName, Throwable throwable) {
-    // TODO this is invoking the Logger.trace(Marker, String, Object, Object) method so not sure if this will work as intended for all Logger implementations (i.e. the fact that an
-    // exception has been thrown may be lost)
     logger.trace(LogMarker.THROWING.getValue(), methodName, source, throwable);
   }
 

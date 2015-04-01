@@ -26,7 +26,7 @@ import org.apache.qpid.proton.engine.Delivery;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.impl.Message;
 
-// TODO: this is slightly unusual in that it is sent from the Engine to the
+// Note: this is slightly unusual in that it is sent from the Engine to the
 //       component that issued the subscribe (rather than most messages in
 //       this package which are sent from some Component to the Engine component)
 public class DeliveryRequest extends Message {
