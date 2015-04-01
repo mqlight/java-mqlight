@@ -20,7 +20,6 @@ package com.ibm.mqlight.api.impl.network;
 
 import io.netty.buffer.ByteBuf;
 
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 
 import com.ibm.mqlight.api.impl.network.Event.Type;

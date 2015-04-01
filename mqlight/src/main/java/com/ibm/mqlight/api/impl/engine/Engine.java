@@ -221,7 +221,7 @@ public class Engine extends ComponentImpl implements Handler {
             EngineConnection engineConnection = sr.connection;
             if (engineConnection.subscriptionData.containsKey(sr.topic.toString())) {
                 // The client is already subscribed - should not really occur
-                final SubscribedException exception = new SubscribedException("Cannot subscribe because the client is already subscribe to topic "+sr.topic.toString());
+                final SubscribedException exception = new SubscribedException("Cannot subscribe because the client is already subscribed to topic "+sr.topic.toString());
                 sr.getSender().tell(new SubscribeResponse(engineConnection, sr.topic, exception), this);
             } else {
                 Receiver linkReceiver = sr.connection.session.receiver(sr.topic.getTopic());
