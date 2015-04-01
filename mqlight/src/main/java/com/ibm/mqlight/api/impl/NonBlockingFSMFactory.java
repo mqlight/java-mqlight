@@ -447,9 +447,6 @@ class NonBlockingFSMFactory {
     }
     
     private static void generateDotFile(OutputStream dotFile) {
-        //OutputStreamWriter w = new OutputStreamWriter(dotFile, "UTF-8")) {
-            //PrintWriter writer = new PrintWriter(w);
-            //writer.write("digraph G {\n");
         System.out.println("digraph G {");
         final HashSet<String> invokedMethods = new HashSet<String>();
         InvocationHandler handler = new InvocationHandler() {
@@ -467,7 +464,6 @@ class NonBlockingFSMFactory {
         
         for (NonBlockingClientState state : EnumSet.allOf(NonBlockingClientState.class)) {
             StateRepresentation<NonBlockingClientState, NonBlockingClientTrigger> rep = smConfig.getRepresentation(state);
-            //System.out.println(rep.getUnderlyingState());
             
             for (NonBlockingClientTrigger trigger : rep.getPermittedTriggers()) {
                 StateMachine<NonBlockingClientState, NonBlockingClientTrigger> sm = new StateMachine<NonBlockingClientState, NonBlockingClientTrigger>(rep.getUnderlyingState(), smConfig);
@@ -487,16 +483,9 @@ class NonBlockingFSMFactory {
         }
             
         System.out.println("}");
-           // writer.write("}");
-        //}
     }
     public static void main(String[] args) throws IOException {
-      LogbackLogging.stop();
-
-        //FileOutputStream dotFile = new FileOutputStream("statemachine.dot");
+        LogbackLogging.stop();
         generateDotFile(null);
-
-        //createConfig(null).generateDotFileInto(fos);
-        //fos.close();
     }
 }

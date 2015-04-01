@@ -111,9 +111,6 @@ public class Engine extends ComponentImpl implements Handler {
 
         if (message instanceof OpenRequest) {
             OpenRequest or = (OpenRequest)message;
-            //ConnectRequest connectRequest = new ConnectRequest(or.endpoint.getHost(), or.endpoint.getPort());
-            //connectRequest.setContext(or);
-            //nn.tell(connectRequest, this);
             NetworkListenerImpl listener = new NetworkListenerImpl(this);
             Promise<NetworkChannel> promise = new NetworkConnectPromiseImpl(this, or);
             network.connect(or.endpoint, listener, promise);
@@ -161,7 +158,6 @@ public class Engine extends ComponentImpl implements Handler {
                 timer.cancel(tmp);
             }
             protonConnection.close();
-            //engineConnection.transport.close_head();
             engineConnection.closeRequest = cr;
             writeToNetwork(engineConnection);
         } else if (message instanceof SendRequest) {
@@ -733,9 +729,6 @@ public class Engine extends ComponentImpl implements Handler {
           Exception exception = null;
           if (delivery.getRemoteState() instanceof Rejected) {
               Rejected rejected = (Rejected)delivery.getRemoteState();
-              // If we ever need to check the symbolic error code returned by the server -
-              // this is accessible via the getCondition() method - e.g.
-              //     rejected.getError().getCondition() => 'MAX_TTL_EXCEEDED'
               String description = rejected.getError().getDescription();
               if (description == null) {
                   exception = new Exception("Message was rejected");
