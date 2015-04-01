@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.nio.ByteBuffer;
 
@@ -91,8 +92,9 @@ public class MockNetworkChannel implements NetworkChannel {
             ByteBuffer tmp = ByteBuffer.allocate(amount);
             tmp.put(head);
             tmp.flip();
+            final ByteBuf buf = Unpooled.wrappedBuffer(tmp);
             transport.pop(amount);
-            listener.onRead(this, tmp);
+            listener.onRead(this, buf);
         }
     }
     

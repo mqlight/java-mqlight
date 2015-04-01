@@ -37,7 +37,6 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -97,17 +96,7 @@ public class NettyNetworkService implements NetworkService {
             final String methodName = "channelRead";
             logger.entry(this, methodName, ctx, msg);
 
-            // Make a copy of the buffer
-            // TODO: this is inefficient - support for pooling should be integrated into
-            //       the interfaces that define a network service...
-            if (listener != null) {
-                ByteBuf buf = ((ByteBuf)msg);
-                ByteBuffer nioBuf = ByteBuffer.allocate(buf.readableBytes());
-                buf.readBytes(nioBuf);
-                nioBuf.flip();
-                listener.onRead(this, nioBuf);
-                buf.release();
-            }
+            if (listener != null) listener.onRead(this, (ByteBuf)msg);
 
             logger.exit(this, methodName);
         }

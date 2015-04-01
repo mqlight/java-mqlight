@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.impl.network;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.nio.ByteBuffer;
 
@@ -44,8 +45,8 @@ public class TestNetworkListenerImpl {
         MockComponent component = new MockComponent();
         NetworkListenerImpl listener = new NetworkListenerImpl(component);
         StubNetworkChannel expectedChannel = new StubNetworkChannel();
-        ByteBuffer expectedBuffer = ByteBuffer.allocate(1);
-
+        ByteBuffer buf = ByteBuffer.allocate(1);
+        ByteBuf expectedBuffer = Unpooled.wrappedBuffer(buf);
         listener.onRead(expectedChannel, expectedBuffer);
         assertEquals("Expected component to receive 1 message", 1, component.getMessages().size());
         assertTrue("Expected message to be instanceof DataRead", component.getMessages().get(0) instanceof DataRead);

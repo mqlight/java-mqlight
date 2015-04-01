@@ -18,8 +18,9 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import com.ibm.mqlight.api.impl.Component;
 import com.ibm.mqlight.api.impl.ComponentImpl;
@@ -35,7 +36,7 @@ public class NetworkListenerImpl implements NetworkListener {
     }
 
     @Override
-    public void onRead(NetworkChannel channel, ByteBuffer buffer) {
+    public void onRead(NetworkChannel channel, ByteBuf buffer) {
         component.tell(new DataRead(channel, buffer), ComponentImpl.NOBODY);
     }
 

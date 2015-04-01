@@ -18,15 +18,15 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
-import java.nio.ByteBuffer;
+import io.netty.buffer.ByteBuf;
 
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.network.NetworkChannel;
 
 public class DataRead extends Message {
     public final NetworkChannel channel;
-    public final ByteBuffer buffer;
-    public DataRead(NetworkChannel channel, ByteBuffer buffer) {
+    public final ByteBuf buffer;
+    public DataRead(NetworkChannel channel, ByteBuf buffer) {
         this.channel = channel;
         this.buffer = buffer;
     }

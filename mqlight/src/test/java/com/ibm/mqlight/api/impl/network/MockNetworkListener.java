@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
+import io.netty.buffer.ByteBuf;
+
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 
@@ -34,7 +36,7 @@ class MockNetworkListener implements NetworkListener {
     }
 
     @Override
-    public void onRead(NetworkChannel channel, ByteBuffer buffer) {
+    public void onRead(NetworkChannel channel, ByteBuf buffer) {
         synchronized(events) {
             events.addLast(new Event(Type.CHANNEL_READ, buffer));
         }

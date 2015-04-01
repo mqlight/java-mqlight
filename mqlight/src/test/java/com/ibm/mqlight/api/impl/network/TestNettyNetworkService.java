@@ -505,7 +505,7 @@ public class TestNettyNetworkService {
         while(!channelEvents.isEmpty()) {
             Event event = channelEvents.removeFirst();
             assertEquals("Expected channel read event", Event.Type.CHANNEL_READ, event.type);
-            amount += ((ByteBuffer)event.context).remaining();
+            amount += ((ByteBuf)event.context).readableBytes();
         }
         assertEquals("Didn't receive the same amount of data as was written", testListener.getBytesWritten(), amount);
     }

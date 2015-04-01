@@ -18,7 +18,7 @@
  */
 package com.ibm.mqlight.api.network;
 
-import java.nio.ByteBuffer;
+import io.netty.buffer.ByteBuf;
 
 /**
  * A listener for events that occur on a particular network channel.
@@ -33,8 +33,13 @@ public interface NetworkListener {
      *               to the implementation of this method - and will not be
      *               altered by the implementation of {@link NetworkService} once
      *               this method has been invoked.
+     *               <p>
+     *               Once the buffer is finished with the {@link buffer#release()}
+     *               method must be called to return the buffer to the pool, otherwise
+     *               a memory leak will eventually be reported by the
+     *               {@link io.netty.util.ResourceLeakDetector}.
      */
-    void onRead(NetworkChannel channel, ByteBuffer buffer);
+    void onRead(NetworkChannel channel, ByteBuf buffer);
     
     /**
      * Called when the network connection is closed at the remote end.

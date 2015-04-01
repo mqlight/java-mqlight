@@ -316,17 +316,19 @@ public class Engine extends ComponentImpl implements Handler {
             // Message from the network telling us that data has been read...
             DataRead dr = (DataRead)message;
             EngineConnection engineConnection = (EngineConnection)dr.channel.getContext();
-            while (dr.buffer.remaining() > 0) {
-                int origLimit = dr.buffer.limit();
+            final ByteBuffer buffer = dr.buffer.nioBuffer();
+            while (buffer.remaining() > 0) {
+                int origLimit = buffer.limit();
                 ByteBuffer tail = engineConnection.transport.tail();
-                int amount = Math.min(tail.remaining(), dr.buffer.remaining());
-                dr.buffer.limit(dr.buffer.position() + amount);
-                tail.put(dr.buffer);
-                dr.buffer.limit(origLimit);
+                int amount = Math.min(tail.remaining(), buffer.remaining());
+                buffer.limit(buffer.position() + amount);
+                tail.put(buffer);
+                buffer.limit(origLimit);
                 engineConnection.transport.process();
                 engineConnection.transport.tick(System.currentTimeMillis());
                 process(engineConnection.collector);
             }
+            dr.buffer.release();
 
             // Write any data from Proton to the network.
             writeToNetwork(engineConnection);
