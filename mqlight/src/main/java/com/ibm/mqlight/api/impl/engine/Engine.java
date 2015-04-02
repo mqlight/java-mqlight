@@ -415,7 +415,7 @@ public class Engine extends ComponentImpl implements Handler {
                 Runnable receiveTimeout = new Runnable() {
                     @Override
                     public void run() {
-                        final String methodName = "resetReceiveIdleTimer";
+                        final String methodName = "run";
                         logger.entry(this, methodName);
                         transport.process();
                         transport.tick(System.currentTimeMillis());
