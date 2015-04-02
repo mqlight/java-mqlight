@@ -20,6 +20,7 @@ package com.ibm.mqlight.api.impl.network;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -151,7 +152,7 @@ public class NettyNetworkService implements NetworkService {
             final String methodName = "channelWritabilityChanged";
             logger.entry(this, methodName, ctx);
 
-            doWrite(null);
+            doWrite();
 
             logger.exit(this, methodName);
         }
@@ -219,7 +220,7 @@ public class NettyNetworkService implements NetworkService {
             final String methodName = "write";
             logger.entry(this, methodName, buffer, promise);
 
-            doWrite(new WriteRequest(buffer, promise));
+            doWrite(buffer, promise);
 
             logger.exit(this, methodName);
         }
@@ -228,38 +229,67 @@ public class NettyNetworkService implements NetworkService {
         LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
         boolean writeInProgress = false;
 
-        private void doWrite(final WriteRequest writeRequest) {
+        private void processWriteRequest(WriteRequest toProcess) {
+            final String methodName = "processWriteRequest";
+            logger.entry(this, methodName, toProcess);
+            final Promise<Boolean> writeCompletePromise = toProcess.promise;
+            logger.data(this, methodName, "writeAndFlush {}", toProcess);
+            final ChannelFuture f = channel.pipeline().writeAndFlush(toProcess.buffer);
+            f.addListener(new GenericFutureListener<ChannelFuture>() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    boolean havePendingWrites = false;
+                    synchronized(pendingWrites) {
+                        writeInProgress = false;
+                        havePendingWrites = !pendingWrites.isEmpty();
+                    }
+                    logger.data(this, methodName, "doWrite (complete)");
+                    writeCompletePromise.setSuccess(!havePendingWrites);
+                    doWrite();
+                }
+            });
+            logger.exit(this, methodName);
+        }
+
+        private void doWrite() {
+          final String methodName = "doWrite";
+          logger.entry(this, methodName);
+
+          WriteRequest toProcess = null;
+          synchronized(pendingWrites) {
+              if (!writeInProgress && channel.isWritable() && !pendingWrites.isEmpty()) {
+                  toProcess = pendingWrites.removeFirst();
+                  writeInProgress = true;
+              }
+          }
+
+          if (toProcess != null) {
+            processWriteRequest(toProcess);
+          }
+
+          logger.exit(this, methodName);          
+        }
+        
+        private void doWrite(ByteBuf buffer, Promise<Boolean> promise) {
             final String methodName = "doWrite";
-            logger.entry(this, methodName, writeRequest);
+            logger.entry(this, methodName, buffer, promise);
 
             WriteRequest toProcess = null;
             synchronized(pendingWrites) {
-                if (writeRequest != null) {
-                    pendingWrites.addLast(writeRequest);
-                }
-                if (!writeInProgress && channel.isWritable() && !pendingWrites.isEmpty()) {
-                    toProcess = pendingWrites.removeFirst();
+                if (!writeInProgress && channel.isWritable()) {
+                    if (pendingWrites.isEmpty()) {
+                        toProcess = new WriteRequest(buffer, promise);
+                    } else {
+                        pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
+                    }
                     writeInProgress = true;
+                } else {
+                    pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
                 }
             }
 
             if (toProcess != null) {
-                final Promise<Boolean> writeCompletePromise = toProcess.promise;
-                logger.data(this, methodName, "writeAndFlush {}", toProcess);
-                final ChannelFuture f = channel.pipeline().writeAndFlush(toProcess.buffer);
-                f.addListener(new GenericFutureListener<ChannelFuture>() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        boolean havePendingWrites = false;
-                        synchronized(pendingWrites) {
-                            writeInProgress = false;
-                            havePendingWrites = !pendingWrites.isEmpty();
-                        }
-                        logger.data(this, methodName, "doWrite (complete)");
-                        writeCompletePromise.setSuccess(!havePendingWrites);
-                        doWrite(null);
-                    }
-                });
+              processWriteRequest(toProcess);
             }
 
             logger.exit(this, methodName);

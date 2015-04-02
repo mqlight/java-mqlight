@@ -25,7 +25,6 @@ import org.junit.Test;
 
 import com.ibm.mqlight.api.impl.MockComponent;
 import com.ibm.mqlight.api.impl.engine.EngineConnection;
-import com.ibm.mqlight.api.impl.engine.NetworkWritePromiseImpl;
 
 public class TestNetworkWritePromiseImpl {
 

@@ -29,7 +29,6 @@ class MockNetworkWritePromise implements Promise<Boolean> {
 
     @Override
     public boolean isComplete() {
-        // TODO Auto-generated method stub
         return done.get();
     }
 

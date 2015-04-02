@@ -70,6 +70,7 @@ import com.ibm.mqlight.api.impl.network.DisconnectResponse;
 import com.ibm.mqlight.api.impl.network.NetworkClosePromiseImpl;
 import com.ibm.mqlight.api.impl.network.NetworkConnectPromiseImpl;
 import com.ibm.mqlight.api.impl.network.NetworkListenerImpl;
+import com.ibm.mqlight.api.impl.network.NetworkWritePromiseImpl;
 import com.ibm.mqlight.api.impl.network.WriteResponse;
 import com.ibm.mqlight.api.impl.timer.PopResponse;
 import com.ibm.mqlight.api.impl.timer.TimerPromiseImpl;
@@ -384,6 +385,8 @@ public class Engine extends ComponentImpl implements Handler {
             int amount = head.remaining();
             final ByteBuf buf = Unpooled.wrappedBuffer(head);
             engineConnection.channel.write(buf, new NetworkWritePromiseImpl(this, amount, engineConnection));
+            engineConnection.transport.pop(amount);
+            engineConnection.transport.tick(System.currentTimeMillis());
         }
 
         logger.exit(this, methodName);
