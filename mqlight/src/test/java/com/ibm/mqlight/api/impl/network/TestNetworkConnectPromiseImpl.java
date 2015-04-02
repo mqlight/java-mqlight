@@ -23,7 +23,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import io.netty.buffer.ByteBuf;
+
+import java.nio.ByteBuffer;
+
 import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
@@ -37,7 +39,7 @@ public class TestNetworkConnectPromiseImpl {
 
     private class StubNetworkChannel implements NetworkChannel {
         @Override public void close(Promise<Void> promise) {}
-        @Override public void write(ByteBuf buffer, Promise<Boolean> promise) {}
+        @Override public void write(ByteBuffer buffer, Promise<Boolean> promise) {}
         @Override public void setContext(Object context) {}
         @Override public Object getContext() { return null; }
     }

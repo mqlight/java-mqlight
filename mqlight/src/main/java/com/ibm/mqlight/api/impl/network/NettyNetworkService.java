@@ -38,6 +38,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -216,7 +217,7 @@ public class NettyNetworkService implements NetworkService {
         }
 
         @Override
-        public void write(ByteBuf buffer, Promise<Boolean> promise) {
+        public void write(ByteBuffer buffer, Promise<Boolean> promise) {
             final String methodName = "write";
             logger.entry(this, methodName, buffer, promise);
 
@@ -234,7 +235,7 @@ public class NettyNetworkService implements NetworkService {
             logger.entry(this, methodName, toProcess);
             final Promise<Boolean> writeCompletePromise = toProcess.promise;
             logger.data(this, methodName, "writeAndFlush {}", toProcess);
-            final ChannelFuture f = channel.pipeline().writeAndFlush(toProcess.buffer);
+            final ChannelFuture f = channel.writeAndFlush(toProcess.buffer);
             f.addListener(new GenericFutureListener<ChannelFuture>() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -263,14 +264,12 @@ public class NettyNetworkService implements NetworkService {
               }
           }
 
-          if (toProcess != null) {
-            processWriteRequest(toProcess);
-          }
+          if (toProcess != null) processWriteRequest(toProcess);
 
           logger.exit(this, methodName);          
         }
         
-        private void doWrite(ByteBuf buffer, Promise<Boolean> promise) {
+        private void doWrite(ByteBuffer buffer, Promise<Boolean> promise) {
             final String methodName = "doWrite";
             logger.entry(this, methodName, buffer, promise);
 
@@ -278,7 +277,10 @@ public class NettyNetworkService implements NetworkService {
             synchronized(pendingWrites) {
                 if (!writeInProgress && channel.isWritable()) {
                     if (pendingWrites.isEmpty()) {
-                        toProcess = new WriteRequest(buffer, promise);
+                        // Ideally here we should be able to use Unpooled.wrappedBuffer, to save copying. But network
+                        // writes can become deferred under load, hence we must make a copy of the buffer to protect the
+                        // data (as the caller may need to reuse the buffer when we return)
+                        toProcess = new WriteRequest(Unpooled.copiedBuffer(buffer), promise);
                     } else {
                         pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
                     }
@@ -288,9 +290,7 @@ public class NettyNetworkService implements NetworkService {
                 }
             }
 
-            if (toProcess != null) {
-              processWriteRequest(toProcess);
-            }
+            if (toProcess != null) processWriteRequest(toProcess);
 
             logger.exit(this, methodName);
         }

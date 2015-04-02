@@ -18,7 +18,7 @@
  */
 package com.ibm.mqlight.api.network;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import com.ibm.mqlight.api.Promise;
 
@@ -38,7 +38,7 @@ public interface NetworkChannel {
      * @param buffer contains the data to write.
      * @param promise a promise which is to be completed when the data is written.
      */
-    void write(ByteBuf buffer, Promise<Boolean> promise);
+    void write(ByteBuffer buffer, Promise<Boolean> promise);
     
     /**
      * Allows an arbitrary object to be associated with this channel object.

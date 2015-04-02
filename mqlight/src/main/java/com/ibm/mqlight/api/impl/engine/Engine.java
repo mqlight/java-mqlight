@@ -19,7 +19,6 @@
 package com.ibm.mqlight.api.impl.engine;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -383,8 +382,7 @@ public class Engine extends ComponentImpl implements Handler {
         if (engineConnection.transport.pending() > 0) {
             ByteBuffer head = engineConnection.transport.head();
             int amount = head.remaining();
-            final ByteBuf buf = Unpooled.wrappedBuffer(head);
-            engineConnection.channel.write(buf, new NetworkWritePromiseImpl(this, amount, engineConnection));
+            engineConnection.channel.write(head, new NetworkWritePromiseImpl(this, amount, engineConnection));
             engineConnection.transport.pop(amount);
             engineConnection.transport.tick(System.currentTimeMillis());
         }

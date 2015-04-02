@@ -35,7 +35,7 @@ public class TestNetworkListenerImpl {
 
     private class StubNetworkChannel implements NetworkChannel {
         @Override public void close(Promise<Void> promise) {}
-        @Override public void write(ByteBuf buffer, Promise<Boolean> promise) {}
+        @Override public void write(ByteBuffer buffer, Promise<Boolean> promise) {}
         @Override public void setContext(Object context) {}
         @Override public Object getContext() { return null; }
     }

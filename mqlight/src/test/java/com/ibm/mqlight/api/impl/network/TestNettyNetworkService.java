@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -428,9 +427,8 @@ public class TestNettyNetworkService {
         Promise<Boolean>[] promises = new Promise[25];
         for (int i = 0; i < 25; ++i) {
             ByteBuffer buffer = ByteBuffer.wrap(data, 0, 1 << i);
-            ByteBuf buf = Unpooled.wrappedBuffer(buffer);
             promises[i] = new MockNetworkWritePromise();
-            promise.getChannel().write(buf, promises[i]);
+            promise.getChannel().write(buffer, promises[i]);
             expectedBytes += (1 << i);
         }
 
