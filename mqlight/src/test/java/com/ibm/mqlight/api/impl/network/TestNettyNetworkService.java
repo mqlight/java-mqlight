@@ -262,6 +262,7 @@ public class TestNettyNetworkService {
         public void setVerifyName(final boolean verifyName) { this.verifyName = verifyName; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
+        @Override public int getIdleTimeout() { return 0; }
     }
 
     @Test
@@ -484,7 +485,7 @@ public class TestNettyNetworkService {
         assertTrue("Expected connect promise to be marked done", connectPromise.isComplete());
         assertNotNull("Expected connect promise to contain a channel", connectPromise.getChannel());
         assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
-        
+
         assertTrue("Expected listener to end!", testListener.join(2500));
 
         channelEvents.await(5000);

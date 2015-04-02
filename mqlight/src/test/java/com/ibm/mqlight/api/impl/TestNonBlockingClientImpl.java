@@ -106,6 +106,7 @@ public class TestNonBlockingClientImpl {
         @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() {return null;}
+        @Override public int getIdleTimeout() { return 0; }
     }
 
     private class MockEndpointService implements EndpointService {
@@ -812,7 +813,7 @@ public class TestNonBlockingClientImpl {
           fail("expected a SubscribedException");
         } catch (SubscribedException e) {
         }
-        
+
         client.unsubscribe("/kittens", null, null);
         assertEquals(3, engine.getMessages().size());
         assertTrue(engine.getMessages().get(2) instanceof UnsubscribeRequest);
@@ -822,7 +823,7 @@ public class TestNonBlockingClientImpl {
         assertEquals("/kittens", destAdapter.unsubscribeTopicPattern);
         assertEquals(null, destAdapter.unsubscribeShare);
         assertEquals(null, destAdapter.unsubscribedError);
-        
+
         // unsubscribing again should give an error
         try {
           client.unsubscribe("/kittens", null, null);
@@ -830,7 +831,7 @@ public class TestNonBlockingClientImpl {
         } catch (UnsubscribedException e) {
         }
     }
-        
+
     private class MockCompletionListener implements CompletionListener<Object> {
         protected boolean onSuccessCalled = false;
         protected boolean onErrorCalled = false;
@@ -847,7 +848,7 @@ public class TestNonBlockingClientImpl {
           onErrorException = exception;
         }
     }
-    
+
     @Test
     public void testStopFailsSubscribe() {
         MockComponent engine = new MockComponent();
@@ -861,7 +862,7 @@ public class TestNonBlockingClientImpl {
 
         MockCompletionListener inflightListener = new MockCompletionListener();
         client.subscribe("inflight/kittens", new DestinationAdapter<Object>() {}, inflightListener, null);
-        
+
         client.tell(new DisconnectNotification(engineConnection, new ClientException("you got disconnected!")), engine);
         assertEquals(ClientState.RETRYING, client.getState());
 
@@ -878,10 +879,10 @@ public class TestNonBlockingClientImpl {
         assertFalse(inflightListener.onSuccessCalled);
         assertTrue(inflightListener.onErrorCalled);
         assertTrue(inflightListener.onErrorException instanceof StoppedException);
-     
+
         assertFalse(queuedListener.onSuccessCalled);
         assertTrue(queuedListener.onErrorCalled);
-        assertTrue(queuedListener.onErrorException instanceof StoppedException);        
+        assertTrue(queuedListener.onErrorException instanceof StoppedException);
     }
 
     @Test
@@ -1025,11 +1026,11 @@ public class TestNonBlockingClientImpl {
         // message has never been sent.
         assertTrue(queuedQos0Listener.onErrorCalled);
         assertTrue(queuedQos1Listener.onErrorCalled);
-        
+
         assertTrue(queuedQos0Listener.onErrorException instanceof StoppedException);
         assertTrue(queuedQos1Listener.onErrorException instanceof StoppedException);
     }
-    
+
     private org.apache.qpid.proton.message.Message decodeProtonMessage(InternalSend<?> send) {
         org.apache.qpid.proton.message.Message result = Proton.message();
         result.decode(send.buf.array(), 0, send.length);
@@ -1108,5 +1109,5 @@ public class TestNonBlockingClientImpl {
         assertEquals("Message 5: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertEquals("Message 5: content type set incorrectly", "application/json", msg.getContentType());
         assertEquals("Message 5: body doesn't match", expectedRawJson, ((AmqpValue)msg.getBody()).getValue());
-    }   
+    }
 }

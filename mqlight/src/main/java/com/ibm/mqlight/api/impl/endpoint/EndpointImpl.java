@@ -27,29 +27,31 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class EndpointImpl implements Endpoint {
-
     private static final Logger logger = LoggerFactory.getLogger(EndpointImpl.class);
-  
+
+    /** Default to requesting some data from the server at least every 60 seconds */
+    private static final int DEFAULT_IDLE_TIMEOUT = Integer.getInteger("com.ibm.mqlight.api.idleTimeout", 60000);
+
     private String host;
     private int port;
     private boolean useSsl;
     private File certChainFile;
-    private boolean verifyName;
+    private final boolean verifyName;
     private String user;
     private String password;
-    
-    
+    private final int idleTimeout;
+
     protected EndpointImpl(final String uri, final String user,
             final String password) throws IllegalArgumentException {
         this(uri, user, password, null, false);
     }
-    
+
     protected EndpointImpl(final String uri, final String user,
             final String password, final File certChainFile, final boolean verifyName)
             throws IllegalArgumentException {
         final String methodName = "<init>";
         logger.entry(this, methodName, uri, user, "******", certChainFile);
-      
+
         if (user == null && password != null) {
             final IllegalArgumentException exception = new IllegalArgumentException("Can't have an empty user ID if you specify a password!");
             logger.throwing(this, methodName, exception);
@@ -86,7 +88,7 @@ class EndpointImpl implements Endpoint {
             if (serviceUri.getPort() > -1) {
                 port = serviceUri.getPort();
             }
-            
+
             String userInfo = serviceUri.getUserInfo();
             if (userInfo == null) {
                 if (user != null) {
@@ -129,7 +131,6 @@ class EndpointImpl implements Endpoint {
             logger.throwing(this, methodName, exception);
             throw exception;
         }
-        
 
         if (certChainFile != null) {
             if (!certChainFile.exists()) {
@@ -149,10 +150,11 @@ class EndpointImpl implements Endpoint {
             this.certChainFile = certChainFile;
         }
         this.verifyName = verifyName;
-        
+        this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
+
         logger.exit(this, methodName);
     }
-    
+
     @Override
     public String getHost() {
         return host;
@@ -167,12 +169,12 @@ class EndpointImpl implements Endpoint {
     public boolean useSsl() {
         return useSsl;
     }
-    
+
     @Override
     public File getCertChainFile() {
         return certChainFile;
     }
-    
+
     @Override
     public boolean getVerifyName() {
         return verifyName;
@@ -186,6 +188,11 @@ class EndpointImpl implements Endpoint {
     @Override
     public String getPassword() {
         return password;
+    }
+
+    @Override
+    public int getIdleTimeout() {
+        return idleTimeout;
     }
 
 }

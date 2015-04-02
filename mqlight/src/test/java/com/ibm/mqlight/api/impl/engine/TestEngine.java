@@ -164,6 +164,7 @@ public class TestEngine {
         @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
+        @Override public int getIdleTimeout() { return 0; }
     }
 
     @Test

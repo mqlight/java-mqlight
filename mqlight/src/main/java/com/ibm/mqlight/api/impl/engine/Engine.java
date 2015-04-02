@@ -24,6 +24,9 @@ import io.netty.buffer.Unpooled;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Symbol;
@@ -124,6 +127,7 @@ public class Engine extends ComponentImpl implements Handler {
             } else {
                 Connection protonConnection = Proton.connection();
                 Transport transport = Proton.transport();
+                transport.setIdleTimeout(or.endpoint.getIdleTimeout());
                 transport.bind(protonConnection);
                 Collector collector = Proton.collector();
                 protonConnection.setContainer(or.clientId);
@@ -321,7 +325,6 @@ public class Engine extends ComponentImpl implements Handler {
                 tail.put(buffer);
                 buffer.limit(origLimit);
                 engineConnection.transport.process();
-                engineConnection.transport.tick(System.currentTimeMillis());
                 process(engineConnection.collector);
             }
             dr.buffer.release();
@@ -386,6 +389,46 @@ public class Engine extends ComponentImpl implements Handler {
         logger.exit(this, methodName);
     }
 
+    /** Runs scheduled asynchronous Tasks. */
+    private final ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1);
+    /** A scheduled task that runs if we receive no data from the client in the scheduled time. */
+    private ScheduledFuture<?> receiveScheduledFuture;
+
+    /**
+     * Reset the local idle timers, now that we have received some data.
+     *
+     * If we have set an idle timeout the client must send some data at least that often,
+     * we double the timeout before checking.
+     */
+    private void resetReceiveIdleTimer(Event event) {
+        final String methodName = "resetReceiveIdleTimer";
+        logger.entry(this, methodName, event);
+
+        if (receiveScheduledFuture != null) {
+            receiveScheduledFuture.cancel(false);
+        }
+
+        final Transport transport = event.getTransport();
+        if (transport != null) {
+            final int localIdleTimeOut = transport.getIdleTimeout();
+            if (localIdleTimeOut > 0) {
+                Runnable receiveTimeout = new Runnable() {
+                    @Override
+                    public void run() {
+                        final String methodName = "resetReceiveIdleTimer";
+                        logger.entry(this, methodName);
+                        transport.process();
+                        transport.tick(System.currentTimeMillis());
+                        logger.exit(methodName);
+                    }
+                };
+                receiveScheduledFuture = scheduler.schedule(receiveTimeout,
+                        localIdleTimeOut, TimeUnit.MILLISECONDS);
+            }
+        }
+        logger.exit(this, methodName);
+    }
+
     private void process(Collector collector) {
         final String methodName = "process";
         logger.entry(this, methodName, collector);
@@ -394,6 +437,7 @@ public class Engine extends ComponentImpl implements Handler {
             Event event = collector.peek();
             logger.data(this, methodName, "Processing event: {}", event.getType());
             event.dispatch(this);
+            resetReceiveIdleTimer(event);
 
             collector.pop();
         }
@@ -624,7 +668,7 @@ public class Engine extends ComponentImpl implements Handler {
 
     @Override
     public void onConnectionRemoteClose(Event e) {
-      processEventConnectionRemoteState(e);      
+      processEventConnectionRemoteState(e);
     }
 
     @Override

@@ -39,13 +39,13 @@ public class TestEndpointPromiseImpl {
 
     protected class MockComponent extends ComponentImpl {
         protected LinkedList<Message> messages = new LinkedList<>();
-        
+
         @Override
         protected void onReceive(Message message) {
             messages.addLast(message);
         }
     }
-    
+
     protected class StubEndpoint implements Endpoint {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
@@ -54,8 +54,9 @@ public class TestEndpointPromiseImpl {
         @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
+        @Override public int getIdleTimeout() { return 0; }
     }
-    
+
     private void testPromiseThrowsIllegalStateException(EndpointPromise promise) {
         try {
             promise.setSuccess(null);
@@ -76,12 +77,12 @@ public class TestEndpointPromiseImpl {
             // Expected
         }
     }
-    
+
     @Test
     public void endpointNotDone() {
         MockComponent component = new MockComponent();
         EndpointPromise promise = new EndpointPromiseImpl(component);
-        
+
         assertFalse("future should not have been marked done", promise.isComplete());
         assertTrue("component should not have been notified of any messages", component.messages.isEmpty());
     }
@@ -92,7 +93,7 @@ public class TestEndpointPromiseImpl {
         EndpointPromise promise = new EndpointPromiseImpl(component);
         long waitValue = 12345;
         promise.setWait(waitValue);
-        
+
         assertTrue("future should have been marked as done", promise.isComplete());
         assertEquals("one message should have been delivered to the component", 1, component.messages.size());
         assertEquals("wrong type for message delivered to component", ExhaustedResponse.class, component.messages.getFirst().getClass());
@@ -100,7 +101,7 @@ public class TestEndpointPromiseImpl {
         assertEquals("wrong delay value in message", waitValue, resp.delay);
         testPromiseThrowsIllegalStateException(promise);
     }
-    
+
     @Test
     public void setSuccess() {
         MockComponent component = new MockComponent();
@@ -115,7 +116,7 @@ public class TestEndpointPromiseImpl {
         assertSame("wrong value in message", endpoint, resp.endpoint);
         testPromiseThrowsIllegalStateException(promise);
     }
-    
+
     @Test
     public void setFailure() {
         MockComponent component = new MockComponent();

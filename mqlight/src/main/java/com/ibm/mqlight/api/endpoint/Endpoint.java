@@ -30,40 +30,46 @@ public interface Endpoint {
      * @return the host name of the system to connect to.
      */
     String getHost();
-    
+
     /**
      * @return the port number to connect to.
      */
     int getPort();
-    
+
     /**
      * @return indicates whether an SSL/TLS protected connection should
      *         be used.
      */
     boolean useSsl();
-    
+
     /**
      * @return an (optional) X.509 certificate chain file to use for the SSL/TLS
      *         protected connection
      */
     File getCertChainFile();
-    
+
     /**
      * @return a {@code boolean} indicating whether the client validates that
      *         the CN name of the server's certificate matches its DNS name.
      */
     boolean getVerifyName();
-    
+
     /**
      * @return the user name to use as part of a SASL PLAIN flow used to
      *         authenticate the client.  If this value is <code>null</code>
      *         then the SASL ANONYMOUS mechanism will be used instead.
      */
     String getUser();
-    
+
     /**
      * @return the password to use as part of a SASL PLAIN flow used to
      *         authenticate the client.
      */
     String getPassword();
+
+    /**
+     * @return the maximum idle period between activity (frames) on the
+     *         connection that the client desires from this endpoint.
+     */
+    int getIdleTimeout();
 }
