@@ -59,7 +59,7 @@ public class SubscriptionTopic {
     return topic;
   }
 
-  public String[] crack() {
+  public String[] split() {
     final String methodName = "crack";
     logger.entry(methodName);
 
