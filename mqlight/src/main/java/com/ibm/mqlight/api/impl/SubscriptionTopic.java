@@ -60,7 +60,7 @@ public class SubscriptionTopic {
   }
 
   public String[] split() {
-    final String methodName = "crack";
+    final String methodName = "split";
     logger.entry(methodName);
 
     String topicPattern;
