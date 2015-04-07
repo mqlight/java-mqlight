@@ -283,6 +283,7 @@ public class NettyNetworkService implements NetworkService {
                         toProcess = new WriteRequest(Unpooled.copiedBuffer(buffer), promise);
                     } else {
                         pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
+                        toProcess = pendingWrites.removeFirst();
                     }
                     writeInProgress = true;
                 } else {
