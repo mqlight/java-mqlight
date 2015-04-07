@@ -133,9 +133,9 @@ public class LogbackLoggingImpl {
             }
           } else {
             // If the default logback configuration is set then update the level to WARN (as the default is DEBUG)
-            if (ClassLoader.class.getResource("logback.groovy") == null &&
-                ClassLoader.class.getResource("logback-test.xml") == null &&
-                ClassLoader.class.getResource("logback.xml") == null) {
+            if (ClassLoader.class.getResource("/logback.groovy") == null &&
+                ClassLoader.class.getResource("/logback-test.xml") == null &&
+                ClassLoader.class.getResource("/logback.xml") == null) {
               rootLogger.setLevel(Level.WARN);
             }
           }
