@@ -453,57 +453,15 @@ public class Engine extends ComponentImpl implements Handler {
         logger.entry(this, methodName, event);
 
         if (event.getConnection().getRemoteState() == EndpointState.CLOSED) {
-            if (event.getConnection().getLocalState() != EndpointState.CLOSED) {
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                if (engineConnection.timerPromise != null) {
-                    TimerPromiseImpl tmp = engineConnection.timerPromise;
-                    engineConnection.timerPromise = null;
-                    timer.cancel(tmp);
-                }
-                final ErrorCondition remoteCondition = event.getConnection().getRemoteCondition();
+            final ErrorCondition remoteCondition = event.getConnection().getRemoteCondition();
+            final EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+            if (engineConnection.timerPromise != null) {
+                TimerPromiseImpl tmp = engineConnection.timerPromise;
+                engineConnection.timerPromise = null;
+                timer.cancel(tmp);
+            }
 
-                if (engineConnection.openRequest != null) {
-                    OpenRequest req = engineConnection.openRequest;
-                    engineConnection.openRequest = null;
-                    if (!engineConnection.closed) {
-                        engineConnection.notifyInflightQos0(true);
-                        engineConnection.closed = true;
-                        engineConnection.channel.close(null);
-
-                        final ClientException clientException;
-                        // check for SASL failures
-                        final Sasl sasl = engineConnection.transport.sasl();
-                        if (sasl.getOutcome() == Sasl.SaslOutcome.PN_SASL_AUTH) {
-                            clientException = new com.ibm.mqlight.api.SecurityException(
-                                    "Failed to authenticate with server - invalid username or password",
-                                    getClientException(remoteCondition));
-                        } else {
-                            // else just report error condition on event
-                            if (remoteCondition == null
-                                    || remoteCondition.getDescription() == null) {
-                                clientException = new NetworkException(
-                                        "The server closed the connection without providing any error information.");
-                            } else {
-                                clientException = getClientException(remoteCondition);
-                            }
-                        }
-                        req.getSender().tell(new OpenResponse(req, clientException), this);
-                    }
-
-                } else {
-                    if (!engineConnection.closed) {
-                        engineConnection.notifyInflightQos0(true);
-                        engineConnection.closed = true;
-                        final CloseRequest cr = engineConnection.closeRequest;
-                        engineConnection.closeRequest = null;
-                        final NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
-                        engineConnection.channel.close(future);
-                        Throwable error = getClientException(remoteCondition);
-                        engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
-                    }
-                }
-            } else {
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+            if (event.getConnection().getLocalState() == EndpointState.CLOSED || engineConnection.openRequest == null) {
                 if (!engineConnection.closed) {
                     engineConnection.notifyInflightQos0(true);
                     engineConnection.closed = true;
@@ -511,6 +469,37 @@ public class Engine extends ComponentImpl implements Handler {
                     engineConnection.closeRequest = null;
                     NetworkClosePromiseImpl future = new NetworkClosePromiseImpl(this, cr);
                     engineConnection.channel.close(future);
+                    if (cr == null) {
+                        Throwable error = getClientException(remoteCondition);
+                        engineConnection.requestor.tell(new DisconnectNotification(engineConnection, error), this);
+                    }
+                }
+            } else {
+                OpenRequest req = engineConnection.openRequest;
+                engineConnection.openRequest = null;
+                if (!engineConnection.closed) {
+                    engineConnection.notifyInflightQos0(true);
+                    engineConnection.closed = true;
+                    engineConnection.channel.close(null);
+
+                    final ClientException clientException;
+                    // check for SASL failures
+                    final Sasl sasl = engineConnection.transport.sasl();
+                    if (sasl.getOutcome() == Sasl.SaslOutcome.PN_SASL_AUTH) {
+                        clientException = new com.ibm.mqlight.api.SecurityException(
+                                "Failed to authenticate with server - invalid username or password",
+                                getClientException(remoteCondition));
+                    } else {
+                        // else just report error condition on event
+                        if (remoteCondition == null
+                                || remoteCondition.getDescription() == null) {
+                            clientException = new NetworkException(
+                                    "The server closed the connection without providing any error information.");
+                        } else {
+                            clientException = getClientException(remoteCondition);
+                        }
+                    }
+                    req.getSender().tell(new OpenResponse(req, clientException), this);
                 }
             }
         } else if (event.getConnection().getRemoteState() == EndpointState.ACTIVE) {
@@ -526,29 +515,31 @@ public class Engine extends ComponentImpl implements Handler {
         logger.exit(this, methodName);
     }
 
-    private ClientException getClientException(ErrorCondition condition) {
+    private ClientException getClientException(ErrorCondition errorCondition) {
         final String methodName = "getClientException";
-        logger.entry(this, methodName, condition);
+        logger.entry(this, methodName, errorCondition);
 
         ClientException result = null;
 
-        if (condition != null) {
-            if (condition.getCondition() != null) {
-                if (condition.getCondition().toString().contains("_Takeover")) {
-                    result = new ReplacedException(condition.getDescription());
-                } else if (condition.getCondition().toString().contains("_InvalidSourceTimeout")) {
-                    result = new NotPermittedException(condition.getDescription());
-                }
+        if (errorCondition != null && errorCondition.getCondition() != null) {
+            if (errorCondition.getCondition().toString().contains("_Takeover")) {
+                result = new ReplacedException(errorCondition.getDescription());
+            } else if (errorCondition.getCondition().toString().contains("_InvalidSourceTimeout")) {
+                result = new NotPermittedException(errorCondition.getDescription());
             }
 
-            if (result == null && condition.getDescription() != null) {
-                if (condition.getDescription().contains("sasl ") || condition.getDescription().contains("SSL ")) {
-                    result = new com.ibm.mqlight.api.SecurityException(condition.getDescription());
+            if (result == null && errorCondition.getDescription() != null) {
+                if (errorCondition.getDescription().contains("sasl ") || errorCondition.getDescription().contains("SSL ")) {
+                    result = new com.ibm.mqlight.api.SecurityException(errorCondition.getDescription());
                 }
             }
 
             if (result == null) {
-                result = new NetworkException(condition.getDescription());
+                String msg = errorCondition.getCondition().toString();
+                if (errorCondition.getDescription() != null) {
+                    msg += ": " + errorCondition.getDescription();
+                }
+                result = new NetworkException(msg);
             }
         }
 
@@ -557,7 +548,7 @@ public class Engine extends ComponentImpl implements Handler {
     }
 
     private void processEventLinkLocalState(Event event) {
-        final String methodName = "processEventLinkFlow";
+        final String methodName = "processEventLinkLocalState";
         logger.entry(this, methodName, event);
 
         Link link = event.getLink();
@@ -567,7 +558,7 @@ public class Engine extends ComponentImpl implements Handler {
     }
 
     private void processEventLinkRemoteState(Event event) {
-        final String methodName = "processEventLinkFlow";
+        final String methodName = "processEventLinkRemoteState";
         logger.entry(this, methodName, event);
 
         Link link = event.getLink();
@@ -614,7 +605,24 @@ public class Engine extends ComponentImpl implements Handler {
             if (eventType == Event.Type.LINK_REMOTE_CLOSE &&
                     link.getRemoteState() == EndpointState.CLOSED) {
                 if (link.getLocalState() != EndpointState.CLOSED) {
-                    logger.data(this, methodName, "server unexpectedly closed our sending link", link, this);
+                    String msg = "The server indicated that our sending link was closed due to an error condition, ";
+                    ErrorCondition remoteCondition = link.getRemoteCondition();
+                    if (remoteCondition == null || remoteCondition.getCondition() == null) {
+                        msg += "without providing any further error information.";
+                    } else {
+                        msg += remoteCondition.getCondition().toString();
+                        if (remoteCondition.getDescription() != null) {
+                            msg += " - " + remoteCondition.getDescription();
+                        }
+                    }
+                    logger.data(this, methodName, msg, link.getTarget().getAddress(), this);
+                    EngineConnection engineConnection = (EngineConnection) event.getConnection().getContext();
+                    for (Delivery delivery = link.head(); delivery != null; delivery = delivery.next()) {
+                        SendRequest sr = engineConnection.inProgressOutboundDeliveries.remove(delivery);
+                        if (sr != null && sr.getSender() != null) {
+                            sr.getSender().tell(new SendResponse(sr, new ClientException(msg)), this);
+                        }
+                    }
                     link.close();
                 }
                 link.free();
@@ -775,12 +783,12 @@ public class Engine extends ComponentImpl implements Handler {
           SendRequest sr = engineConnection.inProgressOutboundDeliveries.remove(delivery);
           Exception exception = null;
           if (delivery.getRemoteState() instanceof Rejected) {
-              Rejected rejected = (Rejected)delivery.getRemoteState();
-              String description = rejected.getError().getDescription();
-              if (description == null) {
+              final Rejected rejected = (Rejected) delivery.getRemoteState();
+              final ErrorCondition error = rejected.getError();
+              if (error == null || error.getDescription() == null) {
                   exception = new Exception("Message was rejected");
               } else {
-                  exception = new Exception(description);
+                  exception = new Exception(error.getDescription());
               }
           } else if (delivery.getRemoteState() instanceof Released) {;
               exception = new Exception("Message was released");
