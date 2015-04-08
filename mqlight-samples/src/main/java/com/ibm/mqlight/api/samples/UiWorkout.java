@@ -27,11 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.ClientOptions.ClientOptionsBuilder;
 import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.DestinationAdapter;
 import com.ibm.mqlight.api.NonBlockingClient;
 import com.ibm.mqlight.api.NonBlockingClientAdapter;
-import com.ibm.mqlight.api.ClientOptions.ClientOptionsBuilder;
 import com.ibm.mqlight.api.SubscribeOptions;
 import com.ibm.mqlight.api.samples.ArgumentParser.Results;
 
@@ -144,7 +144,7 @@ public class UiWorkout {
                                     try {
 
                                     int start = Math.abs(rand.nextInt() % (loremIpsum.length - 15));
-                                    int end = Math.abs(start + 5 + (rand.nextInt() % 10));
+                                    int end = start + 5 + Math.abs(rand.nextInt() % 10);
                                     String message = "";
                                     for (int i = start; i < end; ++i) {
                                         message += loremIpsum[i];
