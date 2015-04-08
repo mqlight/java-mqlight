@@ -131,7 +131,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     private final HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
 
     private final NonBlockingClientListenerWrapper<?> clientListener;
-    
+
     private boolean remakingInboundLinks = false;
 
     private int undrainedSends = 0;
@@ -509,7 +509,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length);
         ++undrainedSends;
         tell(is, this);
-        
+
         try {
           is.future.setListener(callbackService, listener, context);
         } catch (StoppedException e) {
@@ -521,7 +521,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.throwing(this, methodName, e);
           throw exception;
         }
-        
+
         boolean result = undrainedSends < 2;
         pendingDrain |= !result;
 
@@ -535,7 +535,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "start";
         logger.entry(this, methodName, listener, context);
 
-        InternalStart<T> is = new InternalStart<T>(this);       
+        InternalStart<T> is = new InternalStart<T>(this);
         try {
           is.future.setListener(callbackService, listener, context);
         } catch (StoppedException e) {
@@ -547,7 +547,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.throwing(this, methodName, e);
           throw exception;
         }
-        
+
         tell(is, this);
 
         logger.entry(this, methodName, this);
@@ -573,7 +573,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.throwing(this, methodName, e);
           throw exception;
         }
-        
+
         tell(is, this);
 
         logger.exit(this, methodName);
@@ -846,7 +846,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 if (sd == null) {
                     String errMsg = "Client is not subscribed to topic '" + iu.topicPattern + "'";
                     if (iu.share != null) {
-                        errMsg = " and share '" + iu.share + "'";
+                        errMsg += " and share '" + iu.share + "'";
                     }
                     UnsubscribedException se = new UnsubscribedException(errMsg);
                     iu.future.setFailure(se);
@@ -959,9 +959,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     public void startTimer() {
         final String methodName = "startTimer";
         logger.entry(this, methodName);
-        
+
         if (timerPromise != null) logger.ffdc(methodName, FFDCProbeId.PROBE_008, new Exception("timer already active"), this);
-        
+
         timerPromise = new TimerPromiseImpl(this, null);
         timer.schedule(retryDelay, timerPromise);
 
@@ -1325,7 +1325,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         NonBlockingClientImpl.this.onReceive(message);
       }
     };
-    
+
     @Override
     public void tell(Message message, Component self) {
       component.tell(message, self);
