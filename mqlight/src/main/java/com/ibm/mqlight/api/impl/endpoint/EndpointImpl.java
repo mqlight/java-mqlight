@@ -29,8 +29,12 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 class EndpointImpl implements Endpoint {
     private static final Logger logger = LoggerFactory.getLogger(EndpointImpl.class);
 
-    /** Default to requesting some data from the server at least every 60 seconds */
-    private static final int DEFAULT_IDLE_TIMEOUT = Integer.getInteger("com.ibm.mqlight.api.idleTimeout", 60000);
+    /**
+     * Property to allow the user to set a local idle timeout (in milliseconds)
+     * which will request that the server sends data at least that often.
+     * Defaults to 0, which disables the functionality.
+     */
+    private static final int DEFAULT_IDLE_TIMEOUT = Integer.getInteger("com.ibm.mqlight.api.idleTimeout", 0);
 
     private String host;
     private int port;
