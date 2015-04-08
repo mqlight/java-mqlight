@@ -28,18 +28,18 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class TimerPromiseImpl implements Promise<Void> {
 
     private static final Logger logger = LoggerFactory.getLogger(TimerPromiseImpl.class);
-  
+
     private final Component component;
     private final Object context;
-    private AtomicBoolean complete = new AtomicBoolean(false);
-    
+    private final AtomicBoolean complete = new AtomicBoolean(false);
+
     public TimerPromiseImpl(Component component, Object context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, component, context);
-      
+
         this.component = component;
         this.context = context;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -47,7 +47,7 @@ public class TimerPromiseImpl implements Promise<Void> {
     public void setFailure(Exception exception) throws IllegalStateException {
         final String methodName = "setFailure";
         logger.entry(this, methodName, exception);
-      
+
         if (complete.getAndSet(true)) {
             final IllegalStateException ex  = new IllegalStateException("Promise already completed");
             logger.throwing(this, methodName, ex);
@@ -55,7 +55,7 @@ public class TimerPromiseImpl implements Promise<Void> {
         } else {
             component.tell(new CancelResponse(this), component);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -63,7 +63,7 @@ public class TimerPromiseImpl implements Promise<Void> {
     public void setSuccess(Void result) throws IllegalStateException {
         final String methodName = "setSuccess";
         logger.entry(this, methodName, result);
-      
+
         if (complete.getAndSet(true)) {
             final IllegalStateException exception  = new IllegalStateException("Promise already completed");
             logger.throwing(this, methodName, exception);
@@ -71,7 +71,7 @@ public class TimerPromiseImpl implements Promise<Void> {
         } else {
             component.tell(new PopResponse(this), component);
         }
-        
+
         logger.exit(this, methodName);
     }
 
