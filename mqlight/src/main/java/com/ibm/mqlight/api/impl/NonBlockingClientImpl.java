@@ -924,7 +924,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             } else if (error instanceof ClientException) {
                 if (lastException == null) lastException = (ClientException) error;
                 stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
-            } else if (error instanceof Throwable) {
+            } else if (error != null) {
                 if (lastException == null) lastException = new NetworkException(error.getMessage(), error.getCause());
                 stateMachine.fire(NonBlockingClientTrigger.NETWORK_ERROR);
             }
