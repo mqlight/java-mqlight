@@ -316,21 +316,23 @@ public class Engine extends ComponentImpl implements Handler {
             // Message from the network telling us that data has been read...
             DataRead dr = (DataRead)message;
             EngineConnection engineConnection = (EngineConnection)dr.channel.getContext();
-            final ByteBuffer buffer = dr.buffer.nioBuffer();
-            while (buffer.remaining() > 0) {
-                int origLimit = buffer.limit();
-                ByteBuffer tail = engineConnection.transport.tail();
-                int amount = Math.min(tail.remaining(), buffer.remaining());
-                buffer.limit(buffer.position() + amount);
-                tail.put(buffer);
-                buffer.limit(origLimit);
-                engineConnection.transport.process();
-                process(engineConnection.collector);
-            }
-            dr.buffer.release();
+            if (!engineConnection.closed) {
+                final ByteBuffer buffer = dr.buffer.nioBuffer();
+                while (buffer.remaining() > 0) {
+                    int origLimit = buffer.limit();
+                    ByteBuffer tail = engineConnection.transport.tail();
+                    int amount = Math.min(tail.remaining(), buffer.remaining());
+                    buffer.limit(buffer.position() + amount);
+                    tail.put(buffer);
+                    buffer.limit(origLimit);
+                    engineConnection.transport.process();
+                    process(engineConnection.collector);
+                }
+                dr.buffer.release();
 
-            // Write any data from Proton to the network.
-            writeToNetwork(engineConnection);
+                // Write any data from Proton to the network.
+                writeToNetwork(engineConnection);
+            }
         } else if (message instanceof DisconnectResponse) {
             // Message from network telling us that it has completed our disconnect request.
             DisconnectResponse dr = (DisconnectResponse)message;
