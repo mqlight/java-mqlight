@@ -1310,9 +1310,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         logger.entry(this, methodName, request);
 
         boolean result = pendingDeliveries.remove(request);
-        if (result) {
-            engine.tell(new DeliveryResponse(request), this);
-        }
+        engine.tell(new DeliveryResponse(request), this);
 
         logger.exit(this, methodName, result);
 
