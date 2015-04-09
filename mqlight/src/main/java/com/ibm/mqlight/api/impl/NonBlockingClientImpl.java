@@ -1304,18 +1304,24 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         logger.exit(this, methodName);
     }
 
-    // Result: true == it might have worked, false == it really didn't work!
+    /**
+     * Pass a {@link DeliveryResponse} back to the engine which will settle the delivery
+     * (in the AT_LEAST_ONCE case) and flow deliveryCount++ and link-credit to the remote end
+     *
+     * @param request
+     *            the {@link DeliveryRequest} to process.
+     * @return true == it might have worked, false == it really didn't work!
+     */
     protected boolean doDelivery(DeliveryRequest request) {
         final String methodName = "doDelivery";
         logger.entry(this, methodName, request);
 
-        boolean result = pendingDeliveries.remove(request);
+        final boolean result = (request.qos == QOS.AT_MOST_ONCE || pendingDeliveries.remove(request));
         if (result) {
             engine.tell(new DeliveryResponse(request), this);
         }
 
         logger.exit(this, methodName, result);
-
         return result;
     }
 
