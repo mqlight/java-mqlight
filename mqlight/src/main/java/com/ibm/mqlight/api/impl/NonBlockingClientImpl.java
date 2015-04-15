@@ -20,9 +20,7 @@ package com.ibm.mqlight.api.impl;
 
 import io.netty.buffer.ByteBuf;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
-import java.net.URLEncoder;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -381,54 +379,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
     };
 
-
-    /**
-     * URI encode the given topic address to a fully qualified AMQP URI.
-     *
-     * @param unencodedTopic a {@link String} containing the unencoded topic address
-     * @return a {@link String} containing the correctly encoded AMQP URI
-     * @throws IllegalArgumentException
-     */
-    protected static String encodeTopic(String unencodedTopic) throws IllegalArgumentException {
-        final String methodName = "encodeTopic";
-        logger.entry(methodName, (Object)unencodedTopic);
-
-        StringBuilder amqpAddress = new StringBuilder("amqp:///");
-        try {
-            // use URLEncoder to do a first pass at encoding the topic URI
-            // then back over the encoded version, undoing any immutable transforms
-            String encodedTopic = URLEncoder.encode(unencodedTopic, "UTF-8");
-            int size = encodedTopic.length();
-            for (int i = 0; i < size; i++) {
-                char c = encodedTopic.charAt(i);
-                if (c == '+') {
-                    amqpAddress.append("%20");
-                } else if (c == '%') {
-                    String key = "" + c;
-                    key += encodedTopic.charAt(++i);
-                    key += encodedTopic.charAt(++i);
-                    String replacement = immutable.get(key);
-                    if (replacement == null) {
-                        amqpAddress.append(key);
-                    } else {
-                        amqpAddress.append(replacement);
-                    }
-                } else {
-                    amqpAddress.append(c);
-                }
-            }
-        } catch(UnsupportedEncodingException e) {
-          final IllegalArgumentException exception = new IllegalArgumentException("topic cannot be encoded into URL encoded UTF-8", e);
-          logger.throwing(methodName, exception);
-          throw exception;
-        }
-        final String result = amqpAddress.toString();
-
-        logger.exit(methodName, (Object)result);
-
-        return result;
-    }
-
     protected static boolean isValidPropertyValue(Object value) {
         final String methodName = "isValidPropertyValue";
         logger.entry(methodName, value);
@@ -458,7 +408,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           throw exception;
         }
 
-        protonMsg.setAddress(encodeTopic(topic));
+        protonMsg.setAddress("amqp:///" + topic);
         protonMsg.setTtl(sendOptions.getTtl());
         Map<String, Object> amqpProperties = new HashMap<>();
         if ((properties != null) && !properties.isEmpty()) {
