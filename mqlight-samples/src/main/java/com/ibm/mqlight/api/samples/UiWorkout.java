@@ -101,13 +101,13 @@ public class UiWorkout {
         } catch(IllegalArgumentException e) {
             System.err.println(e.getMessage());
             showUsage();
-            System.exit(0);
+            System.exit(1);
         }
         final Results args = tmpArgs;
 
         if (args.parsed.get("-h").equals(true) || args.unparsed.length != 0) {
             showUsage();
-            System.exit(1);
+            System.exit(0);
         }
 
         for (final String[] dest : destinations) {
@@ -182,13 +182,17 @@ public class UiWorkout {
 
                 @Override
                 public void onStopped(NonBlockingClient client, Void context, ClientException throwable) {
+                    final int exitCode;
                     if (throwable != null) {
                         System.err.println("*** error ***");
                         System.err.println(throwable.getMessage());
+                        exitCode = 1;
+                    } else {
+                        exitCode = 0;
                     }
                     scheduledExecutor.shutdownNow();
                     System.out.println("Exiting");
-                    System.exit(1);
+                    System.exit(exitCode);
                 }
 
             }, null);

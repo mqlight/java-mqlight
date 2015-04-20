@@ -151,7 +151,7 @@ public class Send {
         } catch(IllegalArgumentException e) {
             System.err.println(e.getMessage());
             showUsage();
-            System.exit(0);
+            System.exit(1);
         }
         final ArgumentParser.Results args = tmpArgs;
 
@@ -238,16 +238,20 @@ public class Send {
 
             @Override
             public void onStopped(NonBlockingClient client, Void context, ClientException throwable) {
+                final int exitCode;
                 if (throwable != null) {
                     System.err.println("*** error ***");
                     System.err.println(throwable.getMessage());
                     if (throwable.getCause() != null) {
                         System.err.println(throwable.getCause().toString());
                     }
+                    exitCode = 1;
+                } else {
+                    exitCode = 0;
                 }
                 scheduledExecutor.shutdownNow();
                 System.out.println("Exiting");
-                System.exit(1);
+                System.exit(exitCode);
             }
         }, null);
     }
