@@ -734,7 +734,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     if (sd.state == SubData.State.ATTACHING || sd.state == SubData.State.ESTABLISHED) {
                         // Operation fails because it is attempting to subscribed to an already subscribed destination
                         String[] topicElements = is.topic.split();
-                        String errMsg = "Cannot subscribe because the client is already subscribe to topic '" + topicElements[0] + "'";
+                        String errMsg = "Cannot subscribe because the client is already subscribed to topic '" + topicElements[0] + "'";
                         if (topicElements[1] != null) {
                             errMsg = errMsg + " and share '" + topicElements[1] + "'.";
                         }
