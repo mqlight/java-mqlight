@@ -57,14 +57,16 @@ Logback Core    | 1.1.2
 Apache Netty    | 4.0.21.Final
 SLF4J           | 1.7.5
 Stateless4J     | 2.5.0
-  
-The client also includes a `pom.xml` that can be used to install it into a
-Maven repository and automatically resolve these dependencies. For example:
+
+The client can be installed into a Maven repository and automatically resolve these dependencies. For example:
     
 ```
-mvn install:install-file -Dfile=mqlight-api-1.0-SNAPSHOT.jar -DpomFile=pom.xml
-mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:1.0-SNAPSHOT
+mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-$version.jar
+mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:$version
 ```
+
+The client includes 'maven_install.sh' (for Linux) and 'maven_install.cmd' (for Windows) scripts to perform the
+above maven install step, and additionally installs samples and the currently required patched proton-j jar file.
 
 ## Plug-points for extending the client
 

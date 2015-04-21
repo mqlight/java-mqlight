@@ -52,6 +52,38 @@
 
   <build>
     <plugins>
+      <!-- Update the maven install scripts to contain the correct version number -->
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>replacer</artifactId>
+        <version>1.5.3</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>replace</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <basedir>${basedir}/..</basedir>
+          <includes>
+            <include>README.md</include>
+            <include>mqlight-distribution/maven_install.*</include>
+          </includes>
+          <replacements>
+            <replacement>
+              <token>%version%</token>
+              <value>${project.parent.version}</value>
+            </replacement>
+            <replacement>
+              <token>\$version</token>
+              <value>${project.parent.version}</value>
+            </replacement>
+          </replacements>
+        </configuration>
+      </plugin>
+
       <!-- Indicate that the source plugin is not required -->
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
@@ -60,7 +92,7 @@
             <id>attach-sources</id>
             <phase />
           </execution>
-        </executions>        
+        </executions>
       </plugin>
 
       <!-- Indicate that the javadoc plugin is not required -->
@@ -97,7 +129,7 @@
         </executions>
       </plugin>
 
-      <!-- Allows upload of javadoc to github (pages will be available at: https://mqlight.github.io/java-mqlight)-->
+      <!-- Allows upload of javadoc to github (pages will be available at: https://mqlight.github.io/java-mqlight) -->
       <plugin>
         <groupId>com.github.github</groupId>
         <artifactId>site-maven-plugin</artifactId>
@@ -129,7 +161,7 @@
         <artifactId>maven-site-plugin</artifactId>
         <version>3.4</version>
       </plugin>
-      
+
       <plugin>
         <artifactId>maven-project-info-reports-plugin</artifactId>
         <version>2.8</version>
