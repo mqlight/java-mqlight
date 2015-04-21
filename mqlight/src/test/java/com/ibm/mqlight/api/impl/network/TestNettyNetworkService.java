@@ -53,6 +53,9 @@ import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 
 public class TestNettyNetworkService {
+  
+    private static final int EVENT_WAIT_TIMEOUT_SECONDS = 10000;
+    
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
 
@@ -275,8 +278,8 @@ public class TestNettyNetworkService {
         MockNetworkConnectPromise promise = new MockNetworkConnectPromise(connectEvents);
         nn.connect(new StubEndpoint("localhost", 34567), listener, promise);
 
-        connectEvents.await(2500);
-        channelEvents.await(2500);
+        connectEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
+        channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
@@ -300,8 +303,8 @@ public class TestNettyNetworkService {
         endpoint.setVerifyName(false);
         nn.connect(endpoint, listener, promise);
 
-        connectEvents.await(2500);
-        channelEvents.await(2500);
+        connectEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
+        channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
         assertTrue("Expected listener to end!", testListener.join(2500));
@@ -327,7 +330,7 @@ public class TestNettyNetworkService {
             LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            events.await(2000);
+            events.await(EVENT_WAIT_TIMEOUT_SECONDS);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertEquals("Expected first event to be a connect failure", Event.Type.CONNECT_FAILURE, events.getLast().type);
             assertTrue("Expected a last event to have a SecurityException, but instead had: "+events.getLast().context, events.getLast().context instanceof SecurityException);
@@ -352,7 +355,7 @@ public class TestNettyNetworkService {
             LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            events.await(2000);
+            events.await(EVENT_WAIT_TIMEOUT_SECONDS);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
@@ -394,7 +397,7 @@ public class TestNettyNetworkService {
             LatchedLinkedList<Event> events = new LatchedLinkedList<Event>(1);
             MockNetworkConnectPromise promise = new MockNetworkConnectPromise(events);
             nn.connect(endpoint, listener, promise);
-            events.await(2000);
+            events.await(EVENT_WAIT_TIMEOUT_SECONDS);
             assertTrue("Expected promise to be marked completed", promise.isComplete());
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);
@@ -478,7 +481,7 @@ public class TestNettyNetworkService {
         MockNetworkConnectPromise connectPromise = new MockNetworkConnectPromise(connectEvents);
         nn.connect(new StubEndpoint("localhost", 34567), listener, connectPromise);
 
-        connectEvents.await(5000);
+        connectEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
 
         assertTrue("Expected connect promise to be marked done", connectPromise.isComplete());
         assertNotNull("Expected connect promise to contain a channel", connectPromise.getChannel());
@@ -486,7 +489,7 @@ public class TestNettyNetworkService {
 
         assertTrue("Expected listener to end!", testListener.join(2500));
 
-        channelEvents.await(5000);
+        channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
         for (int i = 0; i < 20; ++i) {
             synchronized(channelEvents) {
                 if (channelEvents.getLast().type == Event.Type.CHANNEL_CLOSE) {
