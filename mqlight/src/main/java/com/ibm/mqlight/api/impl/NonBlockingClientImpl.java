@@ -205,6 +205,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.throwing(this, methodName, exception);
           throw exception;
         }
+        if (context instanceof NonBlockingClientListener) {
+          final IllegalArgumentException exception = new IllegalArgumentException(
+                "context cannot be of type NonBlockingClientListener");
+          logger.throwing(this, methodName, exception);
+          throw exception;
+        }
         this.endpointService = endpointService;
         this.callbackService = callbackService;
         this.engine = engine;

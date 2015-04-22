@@ -76,7 +76,6 @@ import com.ibm.mqlight.api.timer.TimerService;
  * </pre>
  */
 public abstract class NonBlockingClient {
-
     protected static final ClientOptions defaultClientOptions = ClientOptions.builder().build();
     protected static final SendOptions defaultSendOptions = SendOptions.builder().build();
     protected static final SubscribeOptions defaultSubscribeOptions = SubscribeOptions.builder().build();
@@ -129,7 +128,7 @@ public abstract class NonBlockingClient {
     }
 
     /**
-     * Send a message to the MQ Light server.  This is equivalent to calling:
+     * Creates a new instance of the <code>NonBlockingClient</code> in started state.  This is equivalent to calling:
      * <code>create(service, ClientOptions.create, listener, context);</code>
      * @see NonBlockingClient#create(String, ClientOptions, NonBlockingClientListener, Object)
      */
@@ -393,7 +392,7 @@ public abstract class NonBlockingClient {
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the start method relating to the listener invocation.
      * @return the instance of <code>NonBlockingClient</code> that the start method was invoked upon.
-     * @throws StoppedException if the client is in the process of stopping when this method is invoked. 
+     * @throws StoppedException if the client is in the process of stopping when this method is invoked.
      */
     public abstract <T> NonBlockingClient start(CompletionListener<T> listener, T context) throws StoppedException;
 
@@ -405,7 +404,7 @@ public abstract class NonBlockingClient {
      *                 the client has attained stopped state.
      * @param context a context object that is passed into the listener.  This can be used within the listener code to
      *                identify the specific instance of the stop method relating to the listener invocation.
-     * @throws StartingException if the client is in the process of starting when this method is invoked. 
+     * @throws StartingException if the client is in the process of starting when this method is invoked.
      */
     public abstract <T> void stop(CompletionListener<T> listener, T context) throws StartingException;
 
