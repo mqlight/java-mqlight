@@ -140,8 +140,8 @@ public class NettyNetworkService implements NetworkService {
                     listener.onError(this, exception);
                 }
             } catch (Throwable t) {
-                logger.throwing(this, methodName, t);
-                throw t;
+                logger.error("An exception was thrown during " + methodName
+                        + "() handling of " + cause.toString(), t);
             }
 
             logger.exit(this, methodName);
@@ -266,9 +266,9 @@ public class NettyNetworkService implements NetworkService {
 
           if (toProcess != null) processWriteRequest(toProcess);
 
-          logger.exit(this, methodName);          
+          logger.exit(this, methodName);
         }
-        
+
         private void doWrite(ByteBuffer buffer, Promise<Boolean> promise) {
             final String methodName = "doWrite";
             logger.entry(this, methodName, buffer, promise);

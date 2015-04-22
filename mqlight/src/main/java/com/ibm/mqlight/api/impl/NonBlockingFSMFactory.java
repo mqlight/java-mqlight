@@ -32,7 +32,7 @@ import com.github.oxo42.stateless4j.StateRepresentation;
 import com.github.oxo42.stateless4j.delegates.Action;
 
 class NonBlockingFSMFactory {
-    
+
     private static StateMachineConfig<NonBlockingClientState, NonBlockingClientTrigger> createConfig(final FSMActions actions) {
 
         Action startTimerAction = new Action() {
@@ -40,73 +40,73 @@ class NonBlockingFSMFactory {
                 actions.startTimer();
             }
         };
-        
+
         Action cancelTimerAction = new Action() {
             @Override public void doIt() {
                 actions.cancelTimer();
             }
         };
-        
+
         Action requestEndpointAction = new Action() {
             @Override public void doIt() {
                 actions.requestEndpoint();
             }
         };
-        
+
         Action blessEndpointAction = new Action() {
             @Override public void doIt() {
                 actions.blessEndpoint();
             }
         };
-        
+
         Action openConnectionAction = new Action() {
             @Override public void doIt() {
                 actions.openConnection();
             }
         };
-        
+
         Action closeConnectionAction = new Action() {
             @Override public void doIt() {
                 actions.closeConnection();
             }
         };
-        
+
         Action remakeInboundLinksAction = new Action() {
             @Override public void doIt() {
                 actions.remakeInboundLinks();
             }
         };
-        
+
         Action cleanupAction = new Action() {
             @Override public void doIt() {
                 actions.cleanup();
             }
         };
-        
+
         Action failPendingStopsAction = new Action() {
             @Override public void doIt() {
                 actions.failPendingStops();
             }
         };
-        
+
         Action succeedPendingStopsAction = new Action() {
             @Override public void doIt() {
                 actions.succeedPendingStops();
             }
         };
-        
+
         Action failPendingStartAction = new Action() {
             @Override public void doIt() {
                 actions.failPendingStarts();
             }
         };
-        
+
         Action succeedPendingStartsAction = new Action() {
             @Override public void doIt() {
                 actions.succeedPendingStarts();
             }
         };
-        
+
         Action eventStartingAction = new Action() {
             @Override public void doIt() {
                 actions.eventStarting();
@@ -152,33 +152,35 @@ class NonBlockingFSMFactory {
                 actions.processQueuedActions();
             }
         };
-        
+
         StateMachineConfig<NonBlockingClientState, NonBlockingClientTrigger> config = new StateMachineConfig<>();
-        
+
         config.configure(NonBlockingClientState.Retrying1A)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.Retrying1B)
               .permit(NonBlockingClientTrigger.STOP,  NonBlockingClientState.StoppingR1A)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, startTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, eventRetryingAction);
-        
+
         config.configure(NonBlockingClientState.Retrying1B)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.Retrying1C)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR1C)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.Retrying1A)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying1A)
               .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction);
-        
+
         config.configure(NonBlockingClientState.Retrying1C)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR1E)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Started)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.Retrying1B)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying1B)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_OK, openConnectionAction);
-              
+
         config.configure(NonBlockingClientState.Retrying2A)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.Retrying2D)
@@ -190,21 +192,21 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, eventRetryingAction)
               .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, breakInboundLinksAction);
-        
+
         config.configure(NonBlockingClientState.Retrying2B)
               .ignore(NonBlockingClientTrigger.START)
+              .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Retrying2C)
+              .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2E)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
-              .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2E)
-              .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Retrying2C)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_OK, openConnectionAction);
-        
+
         config.configure(NonBlockingClientState.Retrying2C)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.SUBS_REMADE, NonBlockingClientState.Started)
-              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2G)
               .permit(NonBlockingClientTrigger.REPLACED, NonBlockingClientState.StoppingB)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_OK, remakeInboundLinksAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_OK, blessEndpointAction);
 
@@ -212,10 +214,11 @@ class NonBlockingFSMFactory {
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2A)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.Retrying2A)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, startTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, eventRetryingAction);
-              
-        config.configure(NonBlockingClientState.Started)    
+
+        config.configure(NonBlockingClientState.Started)
               .permitReentry(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingA)
@@ -228,7 +231,7 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.SUBS_REMADE, processQueuedActionsAction)
               .onEntryFrom(NonBlockingClientTrigger.START, succeedPendingStartsAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_OK, processQueuedActionsAction);
-        
+
         config.configure(NonBlockingClientState.StartingA)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingSA)
@@ -240,15 +243,16 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.START, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.START, eventStartingAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction);
-        
+
         config.configure(NonBlockingClientState.StartingB)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StartingA)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Started)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.STOP,  NonBlockingClientState.StoppingSC)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_OK, openConnectionAction);
-        
+
         config.configure(NonBlockingClientState.Stopped)
               .permitReentry(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StartingA)
@@ -256,7 +260,7 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.INBOUND_WORK_COMPLETE, succeedPendingStopsAction)
               .onEntryFrom(NonBlockingClientTrigger.INBOUND_WORK_COMPLETE, eventStoppedAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, succeedPendingStopsAction);
-        
+
         config.configure(NonBlockingClientState.StoppingA)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingC)
@@ -266,7 +270,7 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.SUBS_REMADE, closeConnectionAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, closeConnectionAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-              
+
         config.configure(NonBlockingClientState.StoppingB)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingD)
@@ -314,13 +318,13 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR1B)
               .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR1B)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR1A)
               .permit(NonBlockingClientTrigger.TIMER_RESP_CANCEL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingR1C)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.StoppingB)
@@ -328,14 +332,14 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR1D)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR1D)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR1C);
-        
+
         config.configure(NonBlockingClientState.StoppingR1E)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingA)
@@ -343,14 +347,14 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR1F)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR1F)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingC)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR1E);
-        
+
         config.configure(NonBlockingClientState.StoppingR2A)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR2B)
@@ -358,13 +362,13 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, cancelTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR2B)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2A)
               .permit(NonBlockingClientTrigger.TIMER_RESP_CANCEL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingR2C)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR2D)
@@ -372,14 +376,14 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR2D)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2C)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingR2E)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR2F)
@@ -387,14 +391,14 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR2F)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2E)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingC)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingR2G)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingR2H)
@@ -402,13 +406,13 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.REPLACED, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingR2H)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2G)
               .permit(NonBlockingClientTrigger.SUBS_REMADE, NonBlockingClientState.StoppingC)
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingSA)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingSB)
@@ -416,14 +420,14 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingSB)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingSA)
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.StoppingD);
-        
+
         config.configure(NonBlockingClientState.StoppingSC)
               .ignore(NonBlockingClientTrigger.STOP)
               .permit(NonBlockingClientTrigger.START, NonBlockingClientState.StoppingSD)
@@ -431,21 +435,21 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
-        
+
         config.configure(NonBlockingClientState.StoppingSD)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingSC)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingC)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingD)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingD);
-        
+
         return config;
     }
-    
+
     public static StateMachine<NonBlockingClientState, NonBlockingClientTrigger> newStateMachine(final FSMActions actions) {
         return new StateMachine<>(NonBlockingClientState.StartingA, createConfig(actions));
     }
-    
+
     private static void generateDotFile(OutputStream dotFile) {
         System.out.println("digraph G {");
         final HashSet<String> invokedMethods = new HashSet<String>();
@@ -459,12 +463,12 @@ class NonBlockingFSMFactory {
         };
         FSMActions actions = (FSMActions) Proxy.newProxyInstance(FSMActions.class.getClassLoader(), new Class[] {FSMActions.class}, handler);
 
-        
+
         StateMachineConfig<NonBlockingClientState, NonBlockingClientTrigger> smConfig = createConfig(actions);
-        
+
         for (NonBlockingClientState state : EnumSet.allOf(NonBlockingClientState.class)) {
             StateRepresentation<NonBlockingClientState, NonBlockingClientTrigger> rep = smConfig.getRepresentation(state);
-            
+
             for (NonBlockingClientTrigger trigger : rep.getPermittedTriggers()) {
                 StateMachine<NonBlockingClientState, NonBlockingClientTrigger> sm = new StateMachine<NonBlockingClientState, NonBlockingClientTrigger>(rep.getUnderlyingState(), smConfig);
                 sm.fire(trigger);
@@ -478,10 +482,10 @@ class NonBlockingFSMFactory {
                 }
                 System.out.println("\" ];");
             }
-            
-            
+
+
         }
-            
+
         System.out.println("}");
     }
     public static void main(String[] args) throws IOException {
