@@ -510,7 +510,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "stop";
         logger.entry(this, methodName, listener, context);
 
-        System.out.println("invoked stop");
         InternalStop<T> is = new InternalStop<T>(this);
         try {
           is.future.setListener(callbackService, listener, context);
