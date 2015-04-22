@@ -73,8 +73,7 @@ public class NettyNetworkService implements NetworkService {
         LogbackLogging.setup();
     }
 
-    private static Bootstrap insecureBootstrap;
-    private static Bootstrap secureBootstrap;
+    private static Bootstrap bootstrap;
 
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
 
@@ -414,32 +413,36 @@ public class NettyNetworkService implements NetworkService {
             final SSLEngine sslEngine) {
         final String methodName = "getBootstrap";
         logger.entry(methodName, secure, sslEngine);
-
+        
         ++useCount;
         if (useCount == 1) {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
-            secureBootstrap = new Bootstrap();
-            secureBootstrap.group(workerGroup);
-            secureBootstrap.channel(NioSocketChannel.class);
-            secureBootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-            secureBootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
-            secureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addFirst(new SslHandler(sslEngine));
-                    ch.pipeline().addLast(new NettyInboundHandler(ch));
-                }
-            });
-            insecureBootstrap = secureBootstrap.clone();
-            insecureBootstrap.handler(new ChannelInitializer<SocketChannel>() {
+            bootstrap = new Bootstrap();
+            bootstrap.group(workerGroup);
+            bootstrap.channel(NioSocketChannel.class);
+            bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
+            bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(new NettyInboundHandler(ch));
                 }
             });
         }
-
-        final Bootstrap result = (secure) ? secureBootstrap : insecureBootstrap;
+        
+        final Bootstrap result; 
+        if (secure) {
+          result = bootstrap.clone();
+          result.handler(new ChannelInitializer<SocketChannel>() {
+              @Override
+              public void initChannel(SocketChannel ch) throws Exception {
+                  ch.pipeline().addFirst(new SslHandler(sslEngine));
+                  ch.pipeline().addLast(new NettyInboundHandler(ch));
+              }
+          });
+        } else {
+          result = bootstrap;
+        }
 
         logger.exit(methodName, result);
 
@@ -456,15 +459,10 @@ public class NettyNetworkService implements NetworkService {
 
         --useCount;
         if (useCount <= 0) {
-            /*
-             * NB: workerGroup is shared between both secure and insecure, so
-             * we only need to call shutdown via the group on one of them
-             */
-            if (secureBootstrap != null) {
-                secureBootstrap.group().shutdownGracefully(0, 500, TimeUnit.MILLISECONDS);
+            if (bootstrap != null) {
+              bootstrap.group().shutdownGracefully(0, 500, TimeUnit.MILLISECONDS);
             }
-            secureBootstrap = null;
-            insecureBootstrap = null;
+            bootstrap = null;
             useCount = 0;
         }
 
