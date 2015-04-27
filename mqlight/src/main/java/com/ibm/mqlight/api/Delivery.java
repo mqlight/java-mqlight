@@ -29,8 +29,6 @@ public interface Delivery {
 
     /**
      * Possible types of data that can be associated with this delivery.
-     * <p>
-     * TODO: should these be BINARY and TEXT?
      */
     enum Type {
         BYTES, STRING, MALFORMED, JSON

@@ -211,8 +211,6 @@ public class Engine extends ComponentImpl implements Handler {
             // amount of data expected (as the linkSender.send() won't count against the amount of
             // data in transport.head() unless there is link credit - which there won't be until
             // the server responds to the link open).
-            // TODO: track credit in this class so that we can detect this case and more accurately
-            //       calculate when the first message sent will have been flushed to the network.
             if (linkOpened) {
                 delta += sr.length;
             }
@@ -600,6 +598,7 @@ public class Engine extends ComponentImpl implements Handler {
                         sd.subscriber.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic(link.getName()), clientException), this);
                     }
                 }
+
             }
         } else if (link instanceof Sender) {
             if (eventType == Event.Type.LINK_REMOTE_CLOSE &&
