@@ -22,7 +22,10 @@ REM Install the Patched proton-j library to the local Maven repository
 call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=proton-j-0.8-PATCHED-%version%.jar
 
 REM Install the MQ Light API to the local Maven repository
-call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-%version%.jar
+call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-%version%.jar -DpomFile=mqlight/pom.xml
 
 REM Install the MQ Light API samples to the local Maven repository
-call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-samples-%version%.jar
+call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-samples-%version%.jar -DpomFile=mqlight-samples/pom.xml
+
+REM Install the required dependencies to the local Maven repository
+call mvn dependency:get -Dartifact=com.ibm.mqlight:mqlight-api:%version%

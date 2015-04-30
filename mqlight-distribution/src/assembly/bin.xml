@@ -44,21 +44,22 @@
 
       <sources>
         <includeModuleDirectory>false</includeModuleDirectory>
-          <fileSets>
-            <fileSet>
-              <directory>${basedir}/..</directory>
-              <outputDirectory>mqlight-${version}</outputDirectory>
-              <includes>
-                <include>README.md</include>
-              </includes>
-            </fileSet>
-            <fileSet>
-              <directory>${basedir}/../mqlight/src/main/java/com/ibm/mqlight/api/doc-files</directory>
-              <outputDirectory>mqlight-${version}/mqlight/src/main/java/com/ibm/mqlight/api/doc-files</outputDirectory>
-              <includes>
-                <include>sm.gif</include>
-              </includes>
-            </fileSet>
+        <fileSets>
+          <fileSet>
+            <directory>${basedir}/..</directory>
+            <outputDirectory>mqlight-${version}</outputDirectory>
+            <includes>
+              <include>README.md</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight/src/main/java/com/ibm/mqlight/api/doc-files</directory>
+            <outputDirectory>mqlight-${version}/mqlight/src/main/java/com/ibm/mqlight/api/doc-files</outputDirectory>
+            <includes>
+              <include>sm.gif</include>
+            </includes>
+          </fileSet>
+
           <fileSet>
             <directory>${basedir}/../mqlight-distribution</directory>
             <outputDirectory>mqlight-${version}</outputDirectory>
@@ -66,6 +67,44 @@
               <include>maven_install.*</include>
             </includes>
           </fileSet>
+
+          <fileSet>
+            <directory>${basedir}/..</directory>
+            <outputDirectory>mqlight-${version}</outputDirectory>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight</directory>
+            <outputDirectory>mqlight-${version}/mqlight</outputDirectory>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight-samples</directory>
+            <outputDirectory>mqlight-${version}/mqlight-samples</outputDirectory>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight-distribution</directory>
+            <outputDirectory>mqlight-${version}/mqlight-distribution</outputDirectory>
+            <includes>
+              <include>pom.xml</include>
+              <include>src/assembly/bin.xml</include>
+            </includes>
+          </fileSet>
+          <fileSet>
+            <directory>${basedir}/../mqlight-distribution/src/assembly</directory>
+            <outputDirectory>mqlight-${version}/mqlight-distribution/src/assembly</outputDirectory>
+            <includes>
+              <include>bin.xml</include>
+            </includes>
+          </fileSet>
+
           <fileSet>
             <directory>${basedir}/../mqlight/target</directory>
             <outputDirectory>mqlight-${version}</outputDirectory>
