@@ -1210,6 +1210,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         externalState = ClientState.RETRYING;
         clientListener.onRetrying(callbackService, stoppedByUser ? null : lastException);
+        lastException = null;
 
         logger.exit(this, methodName);
     }
