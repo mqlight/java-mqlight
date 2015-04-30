@@ -520,9 +520,9 @@ public class Engine extends ComponentImpl implements Handler {
         ClientException result = null;
 
         if (errorCondition != null && errorCondition.getCondition() != null) {
-            if (errorCondition.getCondition().toString().contains("_Takeover")) {
+            if (errorCondition.getDescription().toString().contains("_Takeover")) {
                 result = new ReplacedException(errorCondition.getDescription());
-            } else if (errorCondition.getCondition().toString().contains("_InvalidSourceTimeout")) {
+            } else if (errorCondition.getDescription().toString().contains("_InvalidSourceTimeout")) {
                 result = new NotPermittedException(errorCondition.getDescription());
             }
 
