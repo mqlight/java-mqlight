@@ -39,6 +39,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.UnresolvedAddressException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -312,12 +313,14 @@ public class NettyNetworkService implements NetworkService {
 
         private final Logger logger = LoggerFactory.getLogger(ConnectListener.class);
 
+        private final Endpoint endpoint;
         private final Promise<NetworkChannel> promise;
         private final NetworkListener listener;
-        protected ConnectListener(ChannelFuture cFuture, Promise<NetworkChannel> promise, NetworkListener listener) {
+        protected ConnectListener(Endpoint endpoint, ChannelFuture cFuture, Promise<NetworkChannel> promise, NetworkListener listener) {
             final String methodName = "<init>";
-            logger.entry(this, methodName, cFuture, promise, listener);
+            logger.entry(this, methodName, endpoint, cFuture, promise, listener);
 
+            this.endpoint = endpoint;
             this.promise = promise;
             this.listener = listener;
 
@@ -333,7 +336,15 @@ public class NettyNetworkService implements NetworkService {
                 handler.setListener(listener);
                 promise.setSuccess(handler);
             } else {
-                ClientException cause = new NetworkException("Could not connect to server: " + cFuture.cause().getMessage(), cFuture.cause());
+                String message = cFuture.cause().getMessage();
+                if (message == null || message.length() == 0) {
+                  if (cFuture.cause() instanceof UnresolvedAddressException) {
+                    message = "unresolved address " + endpoint.getURI();
+                  } else {
+                    message = cFuture.cause().toString() + " for address " + endpoint.getURI();
+                  }
+                }
+                final ClientException cause = new NetworkException("Could not connect to server: " + message, cFuture.cause());
                 promise.setFailure(cause);
                 decrementUseCount();
             }
@@ -382,7 +393,7 @@ public class NettyNetworkService implements NetworkService {
 
             final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine);
             final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
-            f.addListener(new ConnectListener(f, promise, listener));
+            f.addListener(new ConnectListener(endpoint, f, promise, listener));
 
         } catch (SSLException e) {
             if (e.getCause() == null) {

@@ -36,6 +36,7 @@ class EndpointImpl implements Endpoint {
      */
     private static final int DEFAULT_IDLE_TIMEOUT = Integer.getInteger("com.ibm.mqlight.api.idleTimeout", 0);
 
+    private final URI uri;
     private String host;
     private int port;
     private boolean useSsl;
@@ -67,8 +68,9 @@ class EndpointImpl implements Endpoint {
         }
         port = 5672;
         useSsl = false;
+        URI serviceUri = null;
         try {
-            URI serviceUri = new URI(uri);
+            serviceUri = new URI(uri);
             if (serviceUri.getScheme() == null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("No scheme in service URI");
                 logger.throwing(this, methodName, exception);
@@ -155,6 +157,7 @@ class EndpointImpl implements Endpoint {
         }
         this.verifyName = verifyName;
         this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
+        this.uri = serviceUri;
 
         logger.exit(this, methodName);
     }
@@ -197,6 +200,11 @@ class EndpointImpl implements Endpoint {
     @Override
     public int getIdleTimeout() {
         return idleTimeout;
+    }
+
+    @Override
+    public URI getURI() {
+      return uri;
     }
 
 }

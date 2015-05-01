@@ -19,6 +19,7 @@
 package com.ibm.mqlight.api.endpoint;
 
 import java.io.File;
+import java.net.URI;
 
 /**
  * Bundles information that the client uses when establishing connections
@@ -72,4 +73,10 @@ public interface Endpoint {
      *         connection that the client desires from this endpoint.
      */
     int getIdleTimeout();
+
+    /**
+     * @return The URI for this endpoint, derived from the host and port,
+     *         and taking into account whether or not SSL/TLS is enabled.
+     */
+    URI getURI();
 }

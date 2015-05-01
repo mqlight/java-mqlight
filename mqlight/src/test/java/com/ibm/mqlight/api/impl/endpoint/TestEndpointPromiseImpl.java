@@ -24,6 +24,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.net.URI;
 import java.util.LinkedList;
 
 import junit.framework.AssertionFailedError;
@@ -55,6 +56,7 @@ public class TestEndpointPromiseImpl {
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
         @Override public int getIdleTimeout() { return 0; }
+        @Override public URI getURI() { return null; }
     }
 
     private void testPromiseThrowsIllegalStateException(EndpointPromise promise) {

@@ -30,6 +30,7 @@ import io.netty.buffer.ByteBuf;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -107,6 +108,7 @@ public class TestNonBlockingClientImpl {
         @Override public String getUser() { return null; }
         @Override public String getPassword() {return null;}
         @Override public int getIdleTimeout() { return 0; }
+        @Override public URI getURI() { return null; }
     }
 
     private class MockEndpointService implements EndpointService {

@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
@@ -165,6 +166,7 @@ public class TestEngine {
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
         @Override public int getIdleTimeout() { return 0; }
+        @Override public URI getURI() { return null; }
     }
 
     @Test

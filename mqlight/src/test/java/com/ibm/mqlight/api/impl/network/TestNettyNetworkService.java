@@ -34,6 +34,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.util.Arrays;
@@ -265,6 +267,10 @@ public class TestNettyNetworkService {
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
         @Override public int getIdleTimeout() { return 0; }
+        @Override public URI getURI() { URI uri = null;
+                                        try { uri = new URI((useSsl() ? "amqps://" : "amqp://") + host + ":" + port);
+                                            } catch (URISyntaxException e) {}
+                                        return uri; }
     }
 
     @Test

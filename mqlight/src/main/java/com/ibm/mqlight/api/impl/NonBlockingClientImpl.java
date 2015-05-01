@@ -21,6 +21,7 @@ package com.ibm.mqlight.api.impl;
 import io.netty.buffer.ByteBuf;
 
 import java.lang.reflect.Type;
+import java.net.URI;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -994,8 +995,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "blessEndpoint";
         logger.entry(this, methodName);
 
-        serviceUri = (currentEndpoint.useSsl() ? "amqps://" : "amqp://") +
-                     currentEndpoint.getHost() + ":" + currentEndpoint.getPort();
+        final URI uri = currentEndpoint.getURI();
+        serviceUri = uri == null ? null : uri.toString();
         retryDelay = 0;
         endpointService.onSuccess(currentEndpoint);
 
