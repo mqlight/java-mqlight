@@ -577,7 +577,13 @@ public class Engine extends ComponentImpl implements Handler {
                     || eventType == Event.Type.LINK_REMOTE_DETACH) {
                 // Receiver link has been closed by the server.
                 if (link.getRemoteState() == EndpointState.CLOSED) {
+                    ClientException clientException = getClientException(link.getRemoteCondition());
                     if (link.getLocalState() != EndpointState.CLOSED) {
+                        if (clientException == null) {
+                            clientException = new ClientException(
+                                "The server indicated that the destination was unsubscribed due to an error condition, " +
+                                "without providing any further error information.");
+                        }
                         link.close();
                     }
                     link.free();
@@ -588,8 +594,6 @@ public class Engine extends ComponentImpl implements Handler {
                     if (sd == null) {
                       logger.ffdc(this, methodName, FFDCProbeId.PROBE_001, null, this, event);
                     } else {
-                        // we assume that getRemoteCondition will be null or empty if there is no error
-                        final ClientException clientException = getClientException(link.getRemoteCondition());
                         sd.subscriber.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic(link.getName()), clientException), this);
                     }
                 }
