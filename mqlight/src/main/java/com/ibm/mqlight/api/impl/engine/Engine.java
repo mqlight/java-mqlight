@@ -551,7 +551,6 @@ public class Engine extends ComponentImpl implements Handler {
 
         Link link = event.getLink();
         logger.data(this, methodName, "LINK_LOCAL {} {} {}", link, link.getLocalState(), link.getRemoteState());
-
         logger.exit(this, methodName);
     }
 
@@ -578,7 +577,7 @@ public class Engine extends ComponentImpl implements Handler {
                 // Receiver link has been closed by the server.
                 if (link.getRemoteState() == EndpointState.CLOSED) {
                     ClientException clientException = getClientException(link.getRemoteCondition());
-                    if (link.getLocalState() != EndpointState.CLOSED) {
+                    if (link.getLocalState() != EndpointState.CLOSED && !link.detached()) {
                         if (clientException == null) {
                             clientException = new ClientException(
                                 "The server indicated that the destination was unsubscribed due to an error condition, " +
