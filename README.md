@@ -66,7 +66,7 @@ mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:$version
 ```
 
 The client includes 'maven_install.sh' (for Linux) and 'maven_install.cmd' (for Windows) scripts to perform the
-above maven install step, and additionally installs samples and the currently required patched proton-j jar file.
+above maven install step, and additionally installs the samples.
 
 ## Plug-points for extending the client
 

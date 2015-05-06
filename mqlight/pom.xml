@@ -30,12 +30,12 @@
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
-  
+
   <artifactId>mqlight-api</artifactId>
-  
+
   <name>${project.groupId}:${project.artifactId}</name>
   <description>MQ Light Java API.</description>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.qpid</groupId>
@@ -89,11 +89,34 @@
       <artifactId>junit</artifactId>
       <version>4.11</version>
       <scope>test</scope>
-   </dependency>    
+    </dependency>
   </dependencies>
-    
+
   <build>
     <plugins>
+      <!-- Specify that we want to include the proton-j classes -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <minimizeJar>true</minimizeJar>
+              <artifactSet>
+                <includes>
+                  <include>org.apache.qpid:proton-j</include>
+                </includes>
+              </artifactSet>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Specify that we want findbugs code analysis for the compile phase -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -112,7 +135,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
     </plugins>
-  
+
     <resources>
       <resource>
         <directory>src/main/java/com/ibm/mqlight/api/resources</directory>

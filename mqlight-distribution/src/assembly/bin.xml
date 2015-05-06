@@ -28,6 +28,14 @@
   </formats>
   <includeBaseDirectory>false</includeBaseDirectory>
 
+  <files>
+    <file>
+      <source>${basedir}/../mqlight/dependency-reduced-pom.xml</source>
+      <outputDirectory>mqlight-${version}/mqlight</outputDirectory>
+      <destName>pom.xml</destName>
+    </file>
+  </files>
+  
   <moduleSets>
     <moduleSet>
 
@@ -39,6 +47,16 @@
       </includes>
       <binaries>
         <outputDirectory>mqlight-${version}</outputDirectory>
+          <dependencySets>
+            <dependencySet>
+              <includes>
+                <include>*:jar:*</include>
+              </includes>
+              <excludes>
+                <exclude>org.apache.qpid:proton-j</exclude>
+              </excludes>
+            </dependencySet>
+          </dependencySets>
         <unpack>false</unpack>
       </binaries>
 
@@ -72,13 +90,6 @@
           <fileSet>
             <directory>${basedir}/..</directory>
             <outputDirectory>mqlight-${version}</outputDirectory>
-            <includes>
-              <include>pom.xml</include>
-            </includes>
-          </fileSet>
-          <fileSet>
-            <directory>${basedir}/../mqlight</directory>
-            <outputDirectory>mqlight-${version}/mqlight</outputDirectory>
             <includes>
               <include>pom.xml</include>
             </includes>
