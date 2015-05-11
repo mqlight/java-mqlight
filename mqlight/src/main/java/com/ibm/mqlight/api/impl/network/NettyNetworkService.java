@@ -48,6 +48,7 @@ import java.security.cert.CertificateException;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -353,6 +354,8 @@ public class NettyNetworkService implements NetworkService {
         }
 
     }
+    /** Pattern of cipher suites to disable */
+    final Pattern disablePattern = Pattern.compile(".*_(NULL|EXPORT|DES|RC4|MD5|PSK|SRP|CAMELLIA)_.*");
 
     @Override
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
@@ -383,8 +386,21 @@ public class NettyNetworkService implements NetworkService {
                 sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
             }
 
-            SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
+            final SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
             sslEngine.setUseClientMode(true);
+            sslEngine.setEnabledProtocols(sslEngine.getSupportedProtocols());
+
+            final LinkedList<String> enabledCipherSuites = new LinkedList<String>() {
+              private static final long serialVersionUID = 7838479468739671083L;
+              {
+                for (String cipher : sslEngine.getSupportedCipherSuites()) {
+                  if (!disablePattern.matcher(cipher).matches()) {
+                    add(cipher);
+                  }
+                }
+              }
+            };
+            sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[0]));
             if (endpoint.getVerifyName()) {
                 SSLParameters sslParams = sslEngine.getSSLParameters();
                 sslParams.setEndpointIdentificationAlgorithm("HTTPS");
@@ -424,7 +440,7 @@ public class NettyNetworkService implements NetworkService {
             final SSLEngine sslEngine) {
         final String methodName = "getBootstrap";
         logger.entry(methodName, secure, sslEngine);
-        
+
         ++useCount;
         if (useCount == 1) {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -440,8 +456,8 @@ public class NettyNetworkService implements NetworkService {
                 }
             });
         }
-        
-        final Bootstrap result; 
+
+        final Bootstrap result;
         if (secure) {
           result = bootstrap.clone();
           result.handler(new ChannelInitializer<SocketChannel>() {
