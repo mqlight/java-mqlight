@@ -95,9 +95,7 @@
 
   <moduleSets>
     <moduleSet>
-
       <useAllReactorProjects>true</useAllReactorProjects>
-
       <includes>
         <include>com.ibm.mqlight:mqlight-api</include>
         <include>com.ibm.mqlight:mqlight-api-samples</include>
@@ -107,11 +105,8 @@
         <dependencySets>
           <dependencySet>
             <includes>
-              <include>*:jar:*</include>
+              <include>com.ibm.mqlight:*:jar:*</include>
             </includes>
-            <excludes>
-              <exclude>org.apache.qpid:proton-j</exclude>
-            </excludes>
           </dependencySet>
         </dependencySets>
         <unpack>false</unpack>
