@@ -23,125 +23,135 @@
   <title>MQ Light Java API</title>
  </head>
  <body>
-  <h2>Non-blocking API</h2>
-  Example code for using the non-blocking client to send a message
-  <pre>
-     NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter<Void>() {
-         public void onStarted(NonBlockingClient client, Void context) {
-             SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
-             client.send("/public", "Hello World!", null, opts, new CompletionListener<Void>() {
-                 public void onSuccess(NonBlockingClient client, Void context) {
-                     client.stop(null, null);
-                 }
-                 public void onError(NonBlockingClient client, Void context, Exception exception) {
-                     client.stop(null, null);
-                 }
-             }, null);
-         }
-         public void onDrain(NonBlockingClient client, Void context) {}
-     }, null);
-   </pre>
-   <p>
-   Example code for receiving messages published to the '/public' topic.
-   <pre>
-     public static void main(String[] args) {
-         NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
-         client.subscribe("/public", new DestinationAdapter<Void>() {
-             public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
-                 switch (delivery.getType()) {
-                 case BYTES:
-                     BytesDelivery bd = (BytesDelivery)delivery;
-                     System.out.println(bd.getData());
-                     break;
-                 case STRING:
-                     StringDelivery sd = (StringDelivery)delivery;
-                     System.out.println(sd.getData());
-                     break;
-                 }
-             }
-         }, null, null);
-     }
-   </pre>
-  
-  State machine that underpins the client:<br>
-  <img src="doc-files/sm.gif">
-  <p>
-  <h2>Getting started</h2>
-  The client depends on the following jar files (and has been built and tested using the indicated versions):
-  <table width="50%" border="1">
-    <tr><th>Dependency</th><th>Version</th></tr>
-    <tr><td>Google Gson</td><td>2.2.4</td></tr>
-    <tr><td>Logback Classic</td><td>1.1.2</td></tr>
-    <tr><td>Logback Core</td><td>1.1.2</td></tr>
-    <tr><td>Apache Netty</td><td>4.0.21.Final</td></tr>
-    <tr><td>SLF4J</td><td>1.7.5</td></tr>
-    <tr><td>Stateless4J</td><td>2.5.0</td></tr>
+  <h2 id="non-blocking-api">Non-blocking API</h2>
+  <p>Example code for using the non-blocking client to send a message</p>
+  <pre><code class="lang-java">NonBlockingClient.create(&quot;amqp://localhost&quot;, new NonBlockingClientAdapter() {
+    public void onStarted(NonBlockingClient client, Void context) {
+      SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
+      client.send(&quot;/public&quot;, &quot;Hello World!&quot;, null, opts, new CompletionListener() {
+        public void onSuccess(NonBlockingClient client, Void context) {
+          client.stop(null, null);
+        }
+        public void onError(NonBlockingClient client, Void context, Exception exception) {
+          client.stop(null, null);
+        }
+      }, null);
+    }
+    public void onDrain(NonBlockingClient client, Void context) {}
+  }, null);
+  </code></pre>
+  <p>Example code for receiving messages published to the &#39;/public&#39; topic.</p>
+  <pre><code class="lang-java">public static void main(String[] args) {
+    NonBlockingClient client = NonBlockingClient.create(&quot;amqp://localhost&quot;, null, null);
+    client.subscribe(&quot;/public&quot;, new DestinationAdapter() {
+      public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
+        switch (delivery.getType()) {
+          case BYTES:
+            BytesDelivery bd = (BytesDelivery)delivery;
+            System.out.println(bd.getData());
+            break;
+          case STRING:
+            StringDelivery sd = (StringDelivery)delivery;
+            System.out.println(sd.getData());
+            break;
+        }
+      }
+    }, null, null);
+  }
+  </code></pre>
+  <p>State machine that underpins the client:<br><img src="./doc-files/sm.gif" alt="Diagram of a state machine"></p>
+  <h2 id="getting-started">Getting started</h2>
+  <p>The client depends on the following jar files (and has been built and tested
+  using the indicated versions):</p>
+  <table>
+  <thead>
+  <tr>
+  <th>Dependency</th>
+  <th>Version  </th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td>Google Gson</td>
+  <td>2.2.4</td>
+  </tr>
+  <tr>
+  <td>Logback Classic</td>
+  <td>1.1.2</td>
+  </tr>
+  <tr>
+  <td>Logback Core</td>
+  <td>1.1.2</td>
+  </tr>
+  <tr>
+  <td>Apache Netty</td>
+  <td>4.0.21.Final</td>
+  </tr>
+  <tr>
+  <td>SLF4J</td>
+  <td>1.7.5</td>
+  </tr>
+  <tr>
+  <td>Stateless4J</td>
+  <td>2.5.0</td>
+  </tr>
+  </tbody>
   </table>
-  <p>
-  The client also includes a <code>pom.xml</code> that can be used to install it into a Maven repository and automatically
-  resolve these dependencies.  For example:
-  <pre>
-  mvn install:install-file -Dfile=mqlight-api-1.0-SNAPSHOT.jar -DpomFile=pom.xml
-  mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:1.0-SNAPSHOT
-  </pre>
-
-  <h2>Plug-points for extending the client</h2>
-  The client implements a number of its components in such a way as they can be replaced by alternative
-  implementations.
-  <p>
-  The following table describes the various plug-points provided by the client.  For more information about
-  an individual plug-point, please consult the Javadoc for the relevant interface.
-  <table border="1">
-  <tr><th>Interface</th><th>Description</th><th>Supplied implementations</th></tr>
+  <p>The client can be installed into a Maven repository and automatically resolve these dependencies. For example:</p>
+  <pre><code>mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-$version.jar
+  mvn dependency:get -Dartifact=com.ibm.mqlight.api:mqlight-api:$version
+  </code></pre><p>The client includes &#39;maven_install.sh&#39; (for Linux) and &#39;maven_install.cmd&#39; (for Windows) scripts to perform the
+  above maven install step, and additionally installs the samples.</p>
+  <h2 id="plug-points-for-extending-the-client">Plug-points for extending the client</h2>
+  <p>The client implements a number of its components in such a way as they can be
+  replaced by alternative implementations.</p>
+  <p>The following table describes the various plug-points provided by the client.
+  For more information about an individual plug-point, please consult the
+  Javadoc for the relevant interface.</p>
+  <table>
+  <thead>
   <tr>
-    <td>com.ibm.mqlight.api.callback.CallbackService</td>
-    <td>A plug point for the code that is run each time the client needs to call back into application code.</td>
-    <td>The client supplies two implementations.  The first is: com.ibm.mqlight.api.callback.impl.SameThreadCallbackService, which
-        calls back into application code using whatever thread calls in to the plug-point.  This introduces minimal
-        overhead on running callbacks - but is not suitable for callbacks that block.  The second implementation is: 
-        com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService which schedules callbacks into a threadpool.
-        The default is com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService.</td>
+  <th>Interface</th>
+  <th>Description</th>
+  <th>Supplied implementations</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td>com.ibm.mqlight.api.callback.CallbackService</td>
+  <td>A plug point for the code that is run each time the client needs to call back into application code.</td>
+  <td>The client supplies two implementations. The first is: com.ibm.mqlight.api.callback.impl.SameThreadCallbackService, which calls back into application code using whatever thread calls in to the plug-point. This introduces minimal overhead on running callbacks - but is not suitable for callbacks that block. The second implementation is: com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService which schedules callbacks into a threadpool. The default is com.ibm.mqlight.api.callback.impl.ThreadPoolCallbackService.</td>
   </tr>
   <tr>
-    <td>com.ibm.mqlight.api.endpoint.EndpointService</td>
-    <td>A plug point for determining the location of the MQ Light server (or service) to connect to.</td>
-    <td>The client supplies two implementations, which can be chosen between depending on the value of the <code>service</code>
-        parameter passed into the <code>create</code> method used to create the client.  The first implementation
-        is: com.ibm.mqlight.api.impl.endpoint.SingleEndpointService, which always returns the same endpoint details
-        and is useful when connecting to the stand-alone MQ Light server.  The second implementation is:
-        com.ibm.mqlight.api.impl.endpoint.BluemixEndpointService, which (as the name suggests) looks up instances
-        of the MQ Light service in the Bluemix environment.</td>
+  <td>com.ibm.mqlight.api.endpoint.EndpointService</td>
+  <td>A plug point for determining the location of the MQ Light server (or service) to connect to.</td>
+  <td>The client supplies two implementations, which can be chosen between depending on the value of the <code>service</code> parameter passed into the <code>create</code> method used to create the client. The first implementation is: com.ibm.mqlight.api.impl.endpoint.SingleEndpointService, which always returns the same endpoint details and is useful when connecting to the stand-alone MQ Light server. The second implementation is: com.ibm.mqlight.api.impl.endpoint.BluemixEndpointService, which (as the name suggests) looks up instances of the MQ Light service in the Bluemix environment.</td>
   </tr>
   <tr>
-    <td>com.ibm.mqlight.api.network.NetworkService</td>
-    <td>A plug point for interfacing with the network used between the MQ Light client and server.</td>
-    <td>The client supplies an Apache Netty-based implementation: com.ibm.mqlight.api.impl.network.NettyNetworkService</td>
+  <td>com.ibm.mqlight.api.network.NetworkService</td>
+  <td>A plug point for interfacing with the network used between the MQ Light client and server.</td>
+  <td>The client supplies an Apache Netty-based implementation: com.ibm.mqlight.api.impl.network.NettyNetworkService</td>
   </tr>
   <tr>
-    <td>com.ibm.mqlight.api.timer</td>
-    <td>A plug point for scheduling work to be done at some point in the future.  The client uses this to implement
-        inactivity timeouts for the AMQP protocol, and also a delay between repeated attempts to establish connectivity
-        to the MQ Light server.</td>
-    <td>The client supplies an implementation based on ScheduledThreadPoolExecutor: com.ibm.mqlight.api.impl.timer.TimerServiceImpl</td>
+  <td>com.ibm.mqlight.api.timer</td>
+  <td>A plug point for scheduling work to be done at some point in the future. The client uses this to implement inactivity timeouts for the AMQP protocol, and also a delay between repeated attempts to establish connectivity to the MQ Light server.</td>
+  <td>The client supplies an implementation based on ScheduledThreadPoolExecutor: com.ibm.mqlight.api.impl.timer.TimerServiceImpl</td>
   </tr>
+  </tbody>
   </table>
-  
-  <h2>Some notes on logging</h2>
-  The client logs using the SLF4J interfaces.  If it is used in a runtime where an implementation
-  of SLF4J has already been started, then it will use this for logging.  If it is used in a runtime
-  where Logback is used to implement SLF4J and the LogManager has not been started then it will
-  configure Logback itself.  Currently this involves enabling WARN and above logging unless the
-  MQLIGHT_JAVA_LOG environment variable is set (to any value) in which case DEBUG and above
-  logging is enabled using Logback's BasicConfigurator.
-  
-  <h2>Current limitations</h2>
+  <h2 id="some-notes-on-logging">Some notes on logging</h2>
+  <p>The client logs using the SLF4J interfaces. If it is used in a runtime where
+  an implementation of SLF4J has already been started, then it will use this for
+  logging. If it is used in a runtime where Logback is used to implement SLF4J
+  and the LogManager has not been started then it will configure Logback itself.
+  Currently this involves enabling WARN and above logging unless the
+  MQLIGHT_JAVA_LOG environment variable is set (to any value) in which case
+  DEBUG and above logging is enabled using Logback&#39;s BasicConfigurator.</p>
+  <h2 id="current-limitations">Current limitations</h2>
   <ul>
-    <li>The client does not provide the ability to send/receive JSON formatted messages.  This
-        affects interoperation with other MQ Light clients (e.g. Node.js)</li>
-    <li>Message properties only support string values.</li>
-    <li>No support for dispatching application callbacks into a pool of threads.  Callbacks
-        are run on whatever thread needs to call back into application code - which is not
-        a good fit for some workloads.</li>
+  <li>No support for dispatching application callbacks into a pool of threads.
+  Callbacks are run on whatever thread needs to call back into application
+  code - which is not a good fit for some workloads.</li>
   </ul>
  </body>
 </html>

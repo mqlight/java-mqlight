@@ -96,10 +96,6 @@ DEBUG and above logging is enabled using Logback's BasicConfigurator.
 
 ## Current limitations
 
-* The client does not provide the ability to send/receive JSON formatted
-  messages. This affects interoperation with other MQ Light clients (e.g.
-  Node.js)
-* Message properties only support string values.
 * No support for dispatching application callbacks into a pool of threads.
   Callbacks are run on whatever thread needs to call back into application
   code - which is not a good fit for some workloads.
