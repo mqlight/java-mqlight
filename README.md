@@ -1,3 +1,7 @@
+# IBM MQ Light Java
+
+[![Maven version][maven-img]][maven-url]
+
 ## Non-blocking API
 
 Example code for using the non-blocking client to send a message
@@ -99,4 +103,8 @@ DEBUG and above logging is enabled using Logback's BasicConfigurator.
 * No support for dispatching application callbacks into a pool of threads.
   Callbacks are run on whatever thread needs to call back into application
   code - which is not a good fit for some workloads.
+
+-- 
+[maven-url]: https://search.maven.org/#search%7Cga%7C1%7Cmqlight
+[maven-img]: https://img.shields.io/maven-central/v/com.ibm.mqlight/mqlight-api.svg
 
