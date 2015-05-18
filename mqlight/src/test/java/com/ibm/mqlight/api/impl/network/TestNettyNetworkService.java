@@ -57,6 +57,7 @@ import com.ibm.mqlight.api.endpoint.Endpoint;
 public class TestNettyNetworkService {
   
     private static final int EVENT_WAIT_TIMEOUT_SECONDS = 10000;
+    private static final int LISTENER_WAIT_TIMEOUT_SECONDS = 10000;
     
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
@@ -288,7 +289,7 @@ public class TestNettyNetworkService {
         channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
         assertEquals("Wrong number of channel events seen: " + channelEvents.toString(), 1, channelEvents.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
@@ -313,7 +314,7 @@ public class TestNettyNetworkService {
         channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
 
         assertTrue("Expected promise to be marked completed", promise.isComplete());
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
         assertEquals("Wrong number of channel events seen: " + channelEvents.toString(), 2, channelEvents.size());
         assertEquals("Expected connect event to be successful", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
@@ -343,7 +344,7 @@ public class TestNettyNetworkService {
             assertTrue("Expected event to throw ClientException", (events.getLast().context instanceof Exception));
             assertTrue(((Exception) events.getLast().context).getCause().toString().startsWith("java.security.cert.CertificateException"));
             testListener.stop();
-            assertTrue("Expected listener to end!", testListener.join(2500));
+            assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         }
 
         // JKS file
@@ -366,7 +367,7 @@ public class TestNettyNetworkService {
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
             testListener.stop();
-            assertTrue("Expected listener to end!", testListener.join(2500));
+            assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         }
 
         // PEM file
@@ -408,7 +409,7 @@ public class TestNettyNetworkService {
             assertNull("Expected event not to throw any Exception", (events.getLast().context));
             assertEquals("Expected next event to be a connect success", Event.Type.CONNECT_SUCCESS, events.getLast().type);
             testListener.stop();
-            assertTrue("Expected listener to end!", testListener.join(2500));
+            assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         }
     }
 
@@ -471,7 +472,7 @@ public class TestNettyNetworkService {
             Thread.sleep(50);
         }
         assertTrue("Expected close promise to be marked done", closePromise.isComplete());
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
 
         assertEquals("Expected to have received same amount of data as was sent", expectedBytes, testListener.getBytesRead());
     }
@@ -493,7 +494,7 @@ public class TestNettyNetworkService {
         assertNotNull("Expected connect promise to contain a channel", connectPromise.getChannel());
         assertEquals("Wrong number of connect events seen: " + connectEvents.toString(), 1, connectEvents.size());
 
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
 
         channelEvents.await(EVENT_WAIT_TIMEOUT_SECONDS);
         for (int i = 0; i < 20; ++i) {
@@ -546,7 +547,7 @@ public class TestNettyNetworkService {
         promise.getChannel().close(closePromise2);
         assertTrue("Expected close promise1 to be marked done", closePromise1.isComplete());
         assertTrue("Expected close promise1 to be marked done", closePromise2.isComplete());
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
 
         assertEquals("Expected to have received same amount of data as was sent", 0, testListener.getBytesRead());
     }
@@ -571,7 +572,7 @@ public class TestNettyNetworkService {
         promise.getChannel().close(null);
         promise.getChannel().close(null);
 
-        assertTrue("Expected listener to end!", testListener.join(2500));
+        assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertEquals("Expected to have received same amount of data as was sent", 0, testListener.getBytesRead());
     }
 }
