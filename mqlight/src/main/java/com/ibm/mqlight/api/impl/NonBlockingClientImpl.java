@@ -806,7 +806,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     }
                     UnsubscribedException se = new UnsubscribedException(errMsg);
                     iu.future.setFailure(se);
-                } else if (sd.pending.isEmpty()) {
+                } else if (sd.pending.isEmpty() && pendingDeliveries.isEmpty()) {
                     if (sd.state == SubData.State.ATTACHING) {
                         pendingWork.addLast(iu);
                     } else if (sd.state == SubData.State.DETATCHING) {

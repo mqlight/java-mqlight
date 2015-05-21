@@ -58,7 +58,9 @@ import com.ibm.mqlight.api.NotPermittedException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
+import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.SubscribedException;
+import com.ibm.mqlight.api.UnsubscribedException;
 import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.impl.SubscriptionTopic;
@@ -281,16 +283,23 @@ public class Engine extends ComponentImpl implements Handler {
             DeliveryResponse dr = (DeliveryResponse)message;
             Delivery delivery = dr.request.delivery;
             delivery.settle();
+            
             EngineConnection engineConnection = (EngineConnection)dr.request.protonConnection.getContext();
             EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(dr.request.topicPattern);
-            subData.settled++;
-            subData.unsettled--;
+            if (subData == null) {
+              if (dr.request.qos != QOS.AT_MOST_ONCE) {
+                throw new StateException("Client had unsubscribed from '" + dr.request.topicPattern + "' before delivery was confirmed");
+              }
+            } else {
+              subData.settled++;
+              subData.unsettled--;
 
-            double available = subData.maxLinkCredit - subData.unsettled;
-            if ((available / subData.settled) <= 1.25 ||
-                (subData.unsettled == 0 && subData.settled > 0)) {
+              double available = subData.maxLinkCredit - subData.unsettled;
+              if ((available / subData.settled) <= 1.25 ||
+                  (subData.unsettled == 0 && subData.settled > 0)) {
                 subData.receiver.flow(subData.settled);
                 subData.settled = 0;
+              }
             }
 
             writeToNetwork(engineConnection);
