@@ -200,6 +200,8 @@ public class NettyNetworkService implements NetworkService {
                             decrementUseCount();
                         }
                     });
+                } else {
+                    decrementUseCount();
                 }
             } else if (nwfuture != null) {
                 nwfuture.setSuccess(null);
