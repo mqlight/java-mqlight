@@ -160,7 +160,7 @@ public abstract class NonBlockingClient {
      * Sends a string message to a topic.
      * @param topic the topic to send the message to. Cannot be null.
      * @param data the string data to send to the topic. Cannot be null.
-     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     * @param properties a {@link Map} of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
      *                   <code>byte[]</code>, and <code>String</code>.
@@ -184,7 +184,7 @@ public abstract class NonBlockingClient {
      * Sends a <code>ByteBuffer</code> to a topic.
      * @param topic the topic to send the message to. Cannot be null.
      * @param data the byte buffer to send to the topic. Cannot be null.
-     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     * @param properties a {@link Map} of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
      *                   <code>byte[]</code>, and <code>String</code>.
@@ -210,7 +210,7 @@ public abstract class NonBlockingClient {
      * @param json the object to send as a JSON object.  The send method will convert this object to JSON using the
      *             Google Gson library to convert the object to JSON (essentially calling {@link Gson#toJson(Object)} to
      *             perform the conversion).
-     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     * @param properties a {@link Map} of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
      *                   <code>byte[]</code>, and <code>String</code>.
@@ -238,7 +238,7 @@ public abstract class NonBlockingClient {
      *             perform the conversion).
      * @param type provides type information about the <code>json</code> object.  This allows Java types that make use of
      *             Java Generics to be converted to JSON.
-     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     * @param properties a {@link Map} of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
      *                   <code>byte[]</code>, and <code>String</code>.
@@ -264,7 +264,7 @@ public abstract class NonBlockingClient {
      * @param topic the topic to send the message to. Cannot be null.
      * @param json a String which is assumed to contain JSON information.  No checking is performed on this string, it is
      *             simply transferred as the body of a message which the appropriate
-     * @param properties a Map of properties that will be carried alongside the message.  Keys must be non-null and values
+     * @param properties a {@link Map} of properties that will be carried alongside the message.  Keys must be non-null and values
      *                   must be one of the following types: <code>null</code>, <code>Boolean</code>, <code>Byte</code>,
      *                   <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>,
      *                   <code>byte[]</code>, and <code>String</code>.
