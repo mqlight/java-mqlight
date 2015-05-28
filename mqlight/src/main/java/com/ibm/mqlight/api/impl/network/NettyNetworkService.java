@@ -497,4 +497,28 @@ public class NettyNetworkService implements NetworkService {
 
         logger.exit(methodName);
     }
+
+    /**
+     * Waits for the underlying network service to terminate.
+     *
+     * @param timeout Maximum time to wait in seconds.
+     * @return {@code true} if the underlying network service has terminated, {@code false} if the underlying network
+     *         service is still active after waiting the specified time.
+     * @throws InterruptedException
+     */
+    public boolean awaitTermination(long timeout) throws InterruptedException {
+        final String methodName = "awaitTermination";
+        logger.entry(methodName);
+
+        final boolean terminated;
+        if (bootstrap != null) {
+            terminated = bootstrap.group().awaitTermination(timeout, TimeUnit.SECONDS);
+        } else {
+            terminated = true;
+        }
+
+        logger.exit(methodName, terminated);
+
+        return terminated;
+    }
 }

@@ -55,10 +55,11 @@ import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 
 public class TestNettyNetworkService {
-  
+
     private static final int EVENT_WAIT_TIMEOUT_SECONDS = 10000;
     private static final int LISTENER_WAIT_TIMEOUT_SECONDS = 10000;
-    
+    private static final int NETWORK_WAIT_TIMEOUT_SECONDS = 10000;
+
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
 
@@ -294,6 +295,8 @@ public class TestNettyNetworkService {
         assertEquals("Wrong number of channel events seen: " + channelEvents.toString(), 1, channelEvents.size());
         assertEquals("Expected first event to be a connect success", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
         assertEquals("Expected second event to be a close", Event.Type.CHANNEL_CLOSE, channelEvents.get(0).type);
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
     @Test
@@ -320,6 +323,8 @@ public class TestNettyNetworkService {
         assertEquals("Expected connect event to be successful", Event.Type.CONNECT_SUCCESS, connectEvents.get(0).type);
         assertEquals("Expected first channel event to be a channel error", Event.Type.CHANNEL_ERROR, channelEvents.get(0).type);
         assertEquals("Expected second channel event to be a close", Event.Type.CHANNEL_CLOSE, channelEvents.get(1).type);
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
     @Test
@@ -411,6 +416,8 @@ public class TestNettyNetworkService {
             testListener.stop();
             assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         }
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
     @Test
@@ -475,6 +482,8 @@ public class TestNettyNetworkService {
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
 
         assertEquals("Expected to have received same amount of data as was sent", expectedBytes, testListener.getBytesRead());
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
     @Test
@@ -517,6 +526,8 @@ public class TestNettyNetworkService {
             amount += ((ByteBuf)event.context).readableBytes();
         }
         assertEquals("Didn't receive the same amount of data as was written", testListener.getBytesWritten(), amount);
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
 
@@ -550,6 +561,8 @@ public class TestNettyNetworkService {
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
 
         assertEquals("Expected to have received same amount of data as was sent", 0, testListener.getBytesRead());
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 
     @Test
@@ -574,5 +587,7 @@ public class TestNettyNetworkService {
 
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertEquals("Expected to have received same amount of data as was sent", 0, testListener.getBytesRead());
+
+        assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
 }
