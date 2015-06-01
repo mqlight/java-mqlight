@@ -45,6 +45,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -356,8 +357,11 @@ public class NettyNetworkService implements NetworkService {
         }
 
     }
+    /** Pattern of protocols to disable */
+    final Pattern disabledProtocolPattern = Pattern.compile("(SSLv2|SSLv3).*");
+
     /** Pattern of cipher suites to disable */
-    final Pattern disablePattern = Pattern.compile(".*_(NULL|EXPORT|DES|RC4|MD5|PSK|SRP|CAMELLIA)_.*");
+    final Pattern disabledCipherPattern = Pattern.compile(".*_(NULL|EXPORT|DES|RC4|MD5|PSK|SRP|CAMELLIA)_.*");
 
     @Override
     public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise) {
@@ -380,7 +384,7 @@ public class NettyNetworkService implements NetworkService {
                                 trustManagerFactory.getTrustManagers(), null);
                     }
                 } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException | KeyManagementException e) {
-                    logger.data(methodName, e.toString());
+                    logger.data(this, methodName, e.toString());
                 }
             }
             // fallback to passing as .PEM file (or null, which loads default cacerts)
@@ -390,19 +394,33 @@ public class NettyNetworkService implements NetworkService {
 
             final SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
             sslEngine.setUseClientMode(true);
-            sslEngine.setEnabledProtocols(sslEngine.getSupportedProtocols());
+
+            final LinkedList<String> enabledProtocols = new LinkedList<String>() {
+              private static final long serialVersionUID = 7838479468739671083L;
+              {
+                for (String protocol : sslEngine.getSupportedProtocols()) {
+                  if (!disabledProtocolPattern.matcher(protocol).matches()) {
+                    add(protocol);
+                  }
+                }
+              }
+            };
+            sslEngine.setEnabledProtocols(enabledProtocols.toArray(new String[0]));
+            logger.data(this, methodName, "enabledProtocols", Arrays.toString(sslEngine.getEnabledProtocols()));
 
             final LinkedList<String> enabledCipherSuites = new LinkedList<String>() {
               private static final long serialVersionUID = 7838479468739671083L;
               {
                 for (String cipher : sslEngine.getSupportedCipherSuites()) {
-                  if (!disablePattern.matcher(cipher).matches()) {
+                  if (!disabledCipherPattern.matcher(cipher).matches()) {
                     add(cipher);
                   }
                 }
               }
             };
             sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[0]));
+            logger.data(this, methodName, "enabledCipherSuites", Arrays.toString(sslEngine.getEnabledCipherSuites()));
+            
             if (endpoint.getVerifyName()) {
                 SSLParameters sslParams = sslEngine.getSSLParameters();
                 sslParams.setEndpointIdentificationAlgorithm("HTTPS");
