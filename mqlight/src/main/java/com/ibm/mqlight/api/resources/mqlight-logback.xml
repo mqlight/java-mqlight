@@ -19,54 +19,31 @@
 
 -->
 <configuration>
-	<conversionRule conversionWord="pid"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.PIDConverter" />
+    <conversionRule conversionWord="pid"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.PIDConverter" />
 
-	<conversionRule conversionWord="tid"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.TIDConverter" />
+    <conversionRule conversionWord="tid"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.TIDConverter" />
 
-	<conversionRule conversionWord="objectid"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.ObjectIdConverter" />
-		
-	<conversionRule conversionWord="elevel"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.LevelConverter" />
-			
-	<conversionRule conversionWord="clientid"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.ClientIdConverter" />
-	
-	<conversionRule conversionWord="indent"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.IndentConverter" />
+    <conversionRule conversionWord="objectid"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.ObjectIdConverter" />
 
-	<conversionRule conversionWord="args"
-		converterClass="com.ibm.mqlight.api.impl.logging.logback.ArgsConverter" />
+    <conversionRule conversionWord="elevel"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.LevelConverter" />
 
-	<appender name="HEADER" class="ch.qos.logback.core.ConsoleAppender">
-	    <target>System.err</target>
-	    <filter class="com.ibm.mqlight.api.impl.logging.logback.HeaderFilter" />
-		<encoder>
-			<pattern>%msg%n</pattern>
-		</encoder>
-	</appender>
-									
-	<appender name="TRACE" class="ch.qos.logback.core.ConsoleAppender">
-	    <target>System.err</target>
-	    <filter class="com.ibm.mqlight.api.impl.logging.logback.TraceFilter" />
-		<encoder>
-			<pattern>%d{HH:mm:ss.SSS} %4.4tid %12.12clientid %9.9objectid %-69.69logger{69} %indent %msg%args%n</pattern>
-		</encoder>
-	</appender>
+    <conversionRule conversionWord="clientid"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.ClientIdConverter" />
 
-	<appender name="LOG" class="ch.qos.logback.core.ConsoleAppender">
-	    <target>System.out</target>
-	   	<filter class="com.ibm.mqlight.api.impl.logging.logback.LogFilter" />
-		<encoder>
- 		<pattern>%d{HH:mm:ss.SSS} %-6elevel [%clientid] %msg%n</pattern>
-		</encoder>
-	</appender>
-	
-	<root level="warn">
-		<appender-ref ref="HEADER" />
-		<appender-ref ref="TRACE" />
-		<appender-ref ref="LOG" />
-	</root>
+    <conversionRule conversionWord="indent"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.IndentConverter" />
+
+    <conversionRule conversionWord="args"
+        converterClass="com.ibm.mqlight.api.impl.logging.logback.ArgsConverter" />
+
+    <property scope="context" name="log.pattern"
+        value="%d{HH:mm:ss.SSS} %-6elevel [%clientid] %msg%n" />
+
+    <property scope="context" name="trace.pattern"
+        value="%d{HH:mm:ss.SSS} %4.4tid %12.12clientid %9.9objectid %-69.69logger{69} %indent %msg%args%n" />
+
 </configuration>

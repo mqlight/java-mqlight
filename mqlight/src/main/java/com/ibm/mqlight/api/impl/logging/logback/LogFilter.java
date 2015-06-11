@@ -24,13 +24,13 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 
 /**
- * A logback filter for selecting MQ Light events that are not trace or trace header events.
+ * A logback filter for selecting MQ Light events that are not trace.
  */
 public class LogFilter extends Filter<ILoggingEvent> {
   
   @Override
   public FilterReply decide(ILoggingEvent event) {
-    if (!TraceFilter.traceMarkerMap.containsKey(event.getMarker()) && !HeaderFilter.HEADER_MARKER.equals(event.getMarker())) {
+    if (!TraceFilter.traceMarkerMap.containsKey(event.getMarker())) {
       return FilterReply.ACCEPT;
     } else {
       return FilterReply.DENY;

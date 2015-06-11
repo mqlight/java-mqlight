@@ -19,8 +19,12 @@
 
 package com.ibm.mqlight.api.impl.logging.logback;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
@@ -28,15 +32,21 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.ILoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.OutputStreamAppender;
+import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
+import ch.qos.logback.core.rolling.RollingFileAppender;
+import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.util.StatusPrinter;
 
+import com.ibm.mqlight.api.ClientRuntimeException;
 import com.ibm.mqlight.api.impl.logging.Version;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
@@ -49,6 +59,9 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class LogbackLoggingImpl {
 
   protected static final Class<LogbackLoggingImpl> cclass = LogbackLoggingImpl.class;
+  
+  /** Output encoding for log and trace when output to a file. */
+  private static final String outputEncoding = System.getProperty("file.encoding", "UTF-8");
   
   private static final Logger logger = LoggerFactory.getLogger(cclass);
 
@@ -87,6 +100,9 @@ public class LogbackLoggingImpl {
       final ILoggerFactory loggerFactory = org.slf4j.LoggerFactory.getILoggerFactory();
       if (loggerFactory instanceof LoggerContext) {
         final LoggerContext context = (LoggerContext) loggerFactory;
+        // TODO could allow the following when context already started, but:
+        //      1. must not reset
+        //      2. Should not be defining a rootLogger, but instead a "com.ibm.mqlight.api" logger
         if (!context.isStarted()) {
           final ch.qos.logback.classic.Logger rootLogger = context.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
           
@@ -120,17 +136,30 @@ public class LogbackLoggingImpl {
               }
             }
             
-            // set log level to what MQLIGHT_JAVA_LOG is set to defaulting to INFO
+            // set log level to what MQLIGHT_JAVA_LOG is set to, defaulting to INFO
             rootLogger.setLevel(mqlightLogLevel);
+            // TODO could implement mqlightLogLevel to specify levels for different loggers (e.g. com.ibm.mqlight.api=all)
             
-            StatusPrinter.print(context);
+            // Determine where the log output is required to go, creating the appropriate appenders and adding to the root logger       
+            final LoggerOutput logOutput = getMQLightLogOutput();
+            final OutputStreamAppender<ILoggingEvent> logAppender = createAppender(context, new LogFilter(), logOutput, "log.pattern", "log");
+            rootLogger.addAppender(logAppender);
             
-            // Output trace header, when trace is enabled 
+            LoggerOutput traceOutput = getMQLightTraceOutput();
+            if (traceOutput.equals(logOutput)) traceOutput = logOutput;
+            final OutputStreamAppender<ILoggingEvent> traceAppender = createAppender(context, new TraceFilter(), traceOutput, "trace.pattern", "trace");
+            rootLogger.addAppender(traceAppender);
+            
+            // Output trace header to the trace output stream, when trace is enabled
             if (rootLogger.isTraceEnabled()) {
-              final org.slf4j.Logger headerLogger = org.slf4j.LoggerFactory.getLogger("");
-              writeHeaderInfo(headerLogger);
+              writeTraceHeaderInfo(traceOutput.getPrintStream());
               logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
             }
+            
+            // Output the logback setup information to the log output
+            StatusPrinter.setPrintStream(logOutput.getPrintStream());
+            StatusPrinter.print(context);
+            
           } else {
             // If the default logback configuration is set then update the level to WARN (as the default is DEBUG)
             if (ClassLoader.class.getResource("/logback.groovy") == null &&
@@ -142,6 +171,73 @@ public class LogbackLoggingImpl {
         }
       }
     }
+  }
+
+  /**
+   * Creates an {@link OutputStreamAppender} for the required filter, pattern and logger output.
+   * 
+   * @param context Logger context to associate the appender with. 
+   * @param filter Event log filter.
+   * @param logOutput Logger output information for the destination to write logger events to.
+   * @param patternProperty Logger context property that defines the pattern for formatting logger event output. 
+   * @param name The name of the appender.
+   * @return An {@link OutputStreamAppender} for the required parameters.
+   */
+  private static OutputStreamAppender<ILoggingEvent> createAppender(LoggerContext context, Filter<ILoggingEvent> filter, LoggerOutput logOutput, String patternProperty, String name) {
+    final PatternLayoutEncoder patternLayoutEncoder = createPatternLayoutEncoder(context, patternProperty);
+    final OutputStreamAppender<ILoggingEvent> appender;
+    if (logOutput.isConsole()) {
+      appender = new OutputStreamAppender<>();
+      appender.setContext(context);
+      appender.setEncoder(patternLayoutEncoder);
+      appender.setOutputStream(logOutput.getPrintStream());
+      appender.setName(name);
+      appender.addFilter(filter);
+      appender.start();
+    } else {
+      RollingFileAppender<ILoggingEvent> rAppender = new RollingFileAppender<>();
+      rAppender.setContext(context);
+      rAppender.setEncoder(patternLayoutEncoder);
+      rAppender.setFile(logOutput.getOutputName()+"."+logOutput.getOutputType());
+      rAppender.setName(name);
+      rAppender.addFilter(filter);
+      
+      final FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
+      rollingPolicy.setContext(context);
+      rollingPolicy.setParent(rAppender);
+      rollingPolicy.setFileNamePattern(logOutput.getOutputName()+"%i"+"."+logOutput.getOutputType());
+      rollingPolicy.setMinIndex(1);
+      rollingPolicy.setMaxIndex(logOutput.getFileCount());
+      rollingPolicy.start();
+
+      final SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new SizeBasedTriggeringPolicy<>();
+      triggeringPolicy.setContext(context);
+      triggeringPolicy.setMaxFileSize(logOutput.getFileLimit());
+      triggeringPolicy.start();
+
+      rAppender.setRollingPolicy(rollingPolicy);
+      rAppender.setTriggeringPolicy(triggeringPolicy);
+      rAppender.start();
+      
+      appender = rAppender;
+    }
+    return appender;
+  }
+
+  /**
+   * Creates a {@link PatternLayoutEncoder} for the pattern specified for the pattern property.
+   * 
+   * @param context Logger context to associate the pattern layout encoder with. 
+   * @param patternProperty Logger context property that contains the required pattern.
+   * @return A {@link PatternLayoutEncoder} for the required pattern.
+   */
+  private static PatternLayoutEncoder createPatternLayoutEncoder(LoggerContext context, String patternProperty) {
+    final String pattern = context.getProperty(patternProperty);
+    final PatternLayoutEncoder patternLayoutEncoder = new PatternLayoutEncoder();
+    patternLayoutEncoder.setContext(context);
+    patternLayoutEncoder.setPattern(pattern);
+    patternLayoutEncoder.start();
+    return patternLayoutEncoder;
   }
 
   private static Level getMQLightLogLevel() {
@@ -160,6 +256,143 @@ public class LogbackLoggingImpl {
   }
 
   /**
+   * Helper class to wrap a PrintStream for a logger, so that we can store additional information and test if two logger
+   * PrintStreams are for the same output destination.
+   */
+  private static class LoggerOutput {
+    private static final String defaultFileCount = "5";
+    private static final String defaultFileLimit= "20MB";
+    private final String outputName;
+    private final String outputType;
+    private final PrintStream printStream;
+    private final int fileCount;
+    private final String fileLimit;
+
+    public LoggerOutput(String outputName, String outputType, PrintStream printStream) {
+      this(outputName, outputType, printStream, defaultFileCount, defaultFileLimit);
+    }
+
+    public LoggerOutput(String outputName, String outputType, PrintStream printStream, String fileCount, String fileLimit) {
+      this.outputName = outputName;
+      this.outputType = outputType;
+      this.printStream = printStream;
+      
+      try {
+        this.fileCount = Integer.parseInt(fileCount == null || fileCount.trim().length() == 0 ? defaultFileCount : fileCount);
+      } catch (NumberFormatException e) {
+        final ClientRuntimeException exception =
+            new ClientRuntimeException("Invalid file count value \'"+fileCount+"\' specified");
+        throw exception;
+      }
+      this.fileLimit = fileLimit == null || fileLimit.trim().length() == 0 ? defaultFileLimit : fileLimit;
+    }
+    
+    public String getFileLimit() {
+      return fileLimit;
+    }
+
+    public int getFileCount() {
+      return fileCount;
+    }
+
+    public PrintStream getPrintStream() {
+      return printStream;
+    }
+
+    public boolean isConsole() {
+      return outputName.equals("stdout") || outputName.equals("stderr");
+    }
+    
+    public String getOutputName() {
+      return outputName;
+    }
+    
+    public String getOutputType() {
+      return outputType;
+    }
+     
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((outputName == null) ? 0 : outputName.hashCode());
+      result = prime * result + ((outputType == null) ? 0 : outputType.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
+      LoggerOutput other = (LoggerOutput) obj;
+      if (outputName == null) {
+        if (other.outputName != null) return false;
+      } else if (!outputName.equals(other.outputName)) return false;
+      if (outputType == null) {
+        if (other.outputType != null) return false;
+      } else if (!outputType.equals(other.outputType)) return false;
+      return true;
+    }
+  }
+  
+  /**
+   * Obtains the required logger output information, for the required log type, based on environment settings.
+   * <p>
+   * Environment variable: {@code MQLIGHT_JAVA_LOG_STREAM} can be defined to specify the logger output destination path.
+   * A value of {@code stdout} or {@code stderr} can be specified to define stdout or stderr, respectively.
+   * <p>
+   * Environment variable: {@code MQLIGHT_JAVA_LOG_FILE_COUNT} can be defined to specify the maximum number of archive log files to keep. If not specified then a default of 5 is used.
+   * <p>
+   * Environment variable: {@code MQLIGHT_JAVA_LOG_FILE_LIMIT} can be defined to specify the maximum size of the log file before it is renamed to a archive log file. If not specified then a default of 20MB is used.
+   * <p>
+   * When {@code MQLIGHT_JAVA_LOG_STREAM} specifies a file path the output log file path will be in the format:
+   * {@code MQLIGHT_JAVA_LOG_STREAM%i.type} where {@code %i} is blank for the active log file and ranging from 1 to the defined {@code MQLIGHT_JAVA_LOG_FILE_COUNT} for the archive log files.
+   * 
+   * @param defaultOutput The default output for the logger information.
+   * @param type The type of log output. This is used as the extension, when logging to file.
+   * @return A {@link LoggerOutput} containing the required logger information.
+   */
+  private static LoggerOutput getMQLightOutput(String defaultOutput, String type) {
+    String requiredOutput = System.getenv("MQLIGHT_JAVA_LOG_STREAM");
+    if (requiredOutput == null || requiredOutput.trim().length() == 0) requiredOutput = defaultOutput;
+    final LoggerOutput result;
+    if (requiredOutput.equals("stdout")) {
+      result = new LoggerOutput(requiredOutput, "", System.out);
+    } else if (requiredOutput.equals("stderr")) {
+      result = new LoggerOutput(requiredOutput, "", System.err);
+    } else {
+      final String logFileCount = System.getenv("MQLIGHT_JAVA_LOG_FILE_COUNT");
+      final String logFileLimit = System.getenv("MQLIGHT_JAVA_LOG_FILE_LIMIT");
+      PrintStream outputStream = null;
+      try {
+        outputStream = new PrintStream(new File(requiredOutput+"."+type), outputEncoding);
+      } catch (FileNotFoundException | UnsupportedEncodingException e) {
+        final ClientRuntimeException exception =
+            new ClientRuntimeException("Unable to log to file: \'" + requiredOutput+"."+type + "\': " + e.getLocalizedMessage());
+        throw exception;
+      }
+      result = new LoggerOutput(requiredOutput, type, outputStream, logFileCount, logFileLimit);
+    }
+
+    return result;
+  }
+  
+  /**
+   * @return Logger output information for event log messages.
+   */
+  private static LoggerOutput getMQLightLogOutput() {
+    return getMQLightOutput("stdout", "log");
+  }
+  
+  /**
+   * @return Logger output information for trace log messages.
+   */
+  private static LoggerOutput getMQLightTraceOutput() {
+    return getMQLightOutput("stderr", "trc");
+  }
+  
+  /**
    * *** For Unit testing purposes only ***
    * <p>
    * Sets the default MQ Light log level, when the MQLIGHT_JAVA_LOG environment variable has not been set.
@@ -169,23 +402,20 @@ public class LogbackLoggingImpl {
   static void setDefaultRequiredMQLightLogLevel(String value) {
     defaultRequiredMQLightLogLevel = value;
   }
-  
+
   /**
-   * Helper method to write header information to the log.
+   * Helper method to write trace header information to the specified {@link PrintStream}.
    * 
-   * @param logger
-   * @param mqlightLogLevel
+   * @param out
    */
-  private static void writeHeaderInfo(org.slf4j.Logger logger) {        
+  private static void writeTraceHeaderInfo(PrintStream out) {        
     final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz YYYY");
     
-    final Marker headerMarker = MarkerFactory.getMarker("HEADER");
+    out.println("Date: "+dateFormat.format(new Date()));
     
-    logger.info(headerMarker, "Date: "+dateFormat.format(new Date()));
+    out.println("\nProcess ID: "+pid);
     
-    logger.info(headerMarker, "\nProcess ID: "+pid);
-    
-    logger.info(headerMarker, "\nSystem properties:");
+    out.println("\nSystem properties:");
     final Properties sysProps = System.getProperties();
     int maxPropNameLength = 0;
     for (Entry<Object, Object> entry : sysProps.entrySet()) {
@@ -195,31 +425,33 @@ public class LogbackLoggingImpl {
     for (Entry<Object, Object> entry : sysProps.entrySet()) {
       final String prop = String.format(propNameStringFormat, entry.getKey());
       final String value = (String)entry.getValue();
-      logger.info(headerMarker, "|   "+prop+"  :-  "+value);      
+      out.println("|   "+prop+"  :-  "+value);      
     }
     
 
-    logger.info(headerMarker, "\nRuntime properties:");
-    logger.info(headerMarker, "Available processors: "+Runtime.getRuntime().availableProcessors());
-    logger.info(headerMarker, "Total memory in bytes (now): "+Runtime.getRuntime().totalMemory());
-    logger.info(headerMarker, "Free memory in bytes (now): "+Runtime.getRuntime().freeMemory());
-    logger.info(headerMarker, "Max memory in bytes: "+Runtime.getRuntime().maxMemory());
+    out.println("\nRuntime properties:");
+    out.println( "Available processors: "+Runtime.getRuntime().availableProcessors());
+    out.println("Total memory in bytes (now): "+Runtime.getRuntime().totalMemory());
+    out.println("Free memory in bytes (now): "+Runtime.getRuntime().freeMemory());
+    out.println("Max memory in bytes: "+Runtime.getRuntime().maxMemory());
 
-    logger.info(headerMarker, "\nStack trace of initiating call:");
+    out.println("\nStack trace of initiating call:");
     try {
       throw new Exception();
     } catch(Exception e) {
       for (StackTraceElement element : e.getStackTrace()) {
-        logger.info(headerMarker, "  "+element.getClassName()+"."+element.getMethodName()+"("+element.getFileName()+":"+element.getLineNumber()+")");
+        out.println("  "+element.getClassName()+"."+element.getMethodName()+"("+element.getFileName()+":"+element.getLineNumber()+")");
       }
     }
 
-    logger.info(headerMarker, "\nVersion: "+Version.getVersion());
+    out.println("\nVersion: "+Version.getVersion());
     
-    logger.info(headerMarker, "\nTimeStamp    TID  ClientId     ObjectId  Class                                                                                      Data");
-    logger.info(headerMarker, "======================================================================================================================================================================");
+    out.println("\nTimeStamp    TID  ClientId     ObjectId  Class                                                                                      Data");
+    out.println("======================================================================================================================================================================");
+    
+    out.flush();
   }
-
+  
   /**
    * Stops the logging.
    */

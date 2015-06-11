@@ -40,7 +40,6 @@ public class TestTraceFilter {
     assertEquals("Unexpected filter response", FilterReply.ACCEPT, filter.decide(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected filter response", FilterReply.ACCEPT, filter.decide(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected filter response", FilterReply.ACCEPT, filter.decide(new MockILoggingEvent(null, LogMarker.THROWING.getValue(), "message", new Object[] { null })));
-    assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent(null, HeaderFilter.HEADER_MARKER, "message", new Object[] { null })));
     assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent(null, LogMarker.INFO.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent(null, LogMarker.WARNING.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected filter response", FilterReply.DENY, filter.decide(new MockILoggingEvent(null, LogMarker.ERROR.getValue(), "message", new Object[] { null })));
