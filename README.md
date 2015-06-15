@@ -95,9 +95,39 @@ an implementation of SLF4J has already been started, then it will use this for
 logging. If it is used in a runtime where Logback is used to implement SLF4J
 and the LogManager has not been started then it will configure Logback itself.
 Currently this involves enabling WARN and above logging unless the
-MQLIGHT_JAVA_LOG environment variable is set (to any value) in which case
-DEBUG and above logging is enabled using Logback's BasicConfigurator.
+MQLIGHT_JAVA_LOG environment variable is set in which case the level it
+specifies will be enabled using Logback's BasicConfigurator. There are also
+the following environment variables that can be set to control the logging
+behavior when MQLIGHT_JAVA_LOG has been set:
 
+* MQLIGHT_JAVA_LOG_STREAM can be set to specify the log output. By default log
+  output up to and including the debug level goes to stdout, and trace level
+  goes to stderr. MQLIGHT_JAVA_LOG_STREAM can be set to a file path prefix to
+  direct log output to log files named in the following format:
+   - {file path prefix}%i.log - for log output up to and including the debug level.
+   - {file path prefix}%i.trc - for log output of the trace level.
+   
+  where %i is blank for the current log file and an index number, starting at
+  1, for archive log files.
+
+  A Logback RollingFileAppender with a FixedWindowRollingPolicy and
+  SizeBasedTriggeringPolicy is used to ensure the current log file does not
+  exceed a certain size (the default is 20 MB) and is rolled over to an archive
+  file to start a fresh log file. By default up to 5 archived log files are
+  kept, the oldest is deleted when required to make room for a new archive file.
+  
+  MQLIGHT_JAVA_LOG_STREAM can also be set to stdout or stderr to direct all log
+  output to stdout or stderr as required.
+
+* MQLIGHT_JAVA_LOG_FILE_COUNT can be set to specify the number of archive log
+  files that should be kept, when MQLIGHT_JAVA_LOG_STREAM is specified as a file
+  path prefix.
+
+* MQLIGHT_JAVA_LOG_FILE_LIMIT can be set to specify the maximum size of the log
+  files when MQLIGHT_JAVA_LOG_STREAM is specified as a file path prefix. The
+  value can be specified in bytes, kilobytes, megabytes, or gigabytes by
+  suffixing a numeric value with KB, MB, and GB respectively.
+  
 ## Current limitations
 
 * No support for dispatching application callbacks into a pool of threads.
