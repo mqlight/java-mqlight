@@ -22,7 +22,7 @@ import com.ibm.mqlight.api.endpoint.EndpointService;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
-abstract class EndpointServiceImpl implements EndpointService {
+public abstract class EndpointServiceImpl implements EndpointService {
     
   private static final Logger logger = LoggerFactory.getLogger(EndpointServiceImpl.class);
   
