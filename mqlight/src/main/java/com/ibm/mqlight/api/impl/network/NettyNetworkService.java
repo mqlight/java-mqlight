@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
@@ -76,6 +77,7 @@ public class NettyNetworkService implements NetworkService {
         LogbackLogging.setup();
     }
 
+    private static Object bootstrapSync = new Object();
     private static Bootstrap bootstrap;
 
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
@@ -85,7 +87,7 @@ public class NettyNetworkService implements NetworkService {
         private final SocketChannel channel;
         private NetworkListener listener = null;
         private final AtomicBoolean closed = new AtomicBoolean(false);
-
+                
         protected NettyInboundHandler(SocketChannel channel) {
             final String methodName = "<init>";
             logger.entry(this, methodName, channel);
@@ -335,7 +337,7 @@ public class NettyNetworkService implements NetworkService {
             final String methodName = "operationComplete";
             logger.entry(this, methodName, cFuture);
 
-            if (cFuture.isSuccess()) {
+           if (cFuture.isSuccess()) {
                 NettyInboundHandler handler = (NettyInboundHandler)cFuture.channel().pipeline().last();
                 handler.setListener(listener);
                 promise.setSuccess(handler);
@@ -427,9 +429,38 @@ public class NettyNetworkService implements NetworkService {
                 sslEngine.setSSLParameters(sslParams);
             }
 
-            final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine);
-            final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
-            f.addListener(new ConnectListener(endpoint, f, promise, listener));
+            // The listener must be added to the ChannelFuture before the bootstrap channel initialisation completes (i.e.
+            // before the NettyInboundHandler is added to the channel pipeline) otherwise the listener may not be able to 
+            // see the NettyInboundHandler, when its operationComplete() method is called (there is a small window where
+            // the socket connection fails just after initChannel has complete but before ConnectListener is added, with
+            // the ConnectListener.operationComplete() being called as though the connection was successful)
+            // Hence we synchronise here and within the ChannelInitializer.initChannel() method.
+            synchronized (bootstrapSync) {
+                final ChannelHandler handler;
+                if (endpoint.useSsl()) {
+                    handler = new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            synchronized (bootstrapSync) {
+                                ch.pipeline().addFirst(new SslHandler(sslEngine));
+                                ch.pipeline().addLast(new NettyInboundHandler(ch));
+                            }
+                        }
+                    };
+                } else {
+                    handler = new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            synchronized (bootstrapSync) {
+                                ch.pipeline().addLast(new NettyInboundHandler(ch));
+                            }
+                       }
+                    };
+                }
+                final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine, handler);
+                final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
+                f.addListener(new ConnectListener(endpoint, f, promise, listener));
+            }
 
         } catch (SSLException e) {
             if (e.getCause() == null) {
@@ -453,11 +484,12 @@ public class NettyNetworkService implements NetworkService {
      *            will be required
      * @param sslEngine
      *            an {@link SSLEngine} if one should be used to secure the channel
+     * @param handler a {@link ChannelHandler} to use for serving the requests.
      * @return a netty {@link Bootstrap} object suitable for obtaining a
      *         {@link Channel} from
      */
     private static synchronized Bootstrap getBootstrap(final boolean secure,
-            final SSLEngine sslEngine) {
+            final SSLEngine sslEngine, final ChannelHandler handler) {
         final String methodName = "getBootstrap";
         logger.entry(methodName, secure, sslEngine);
 
@@ -469,24 +501,13 @@ public class NettyNetworkService implements NetworkService {
             bootstrap.channel(NioSocketChannel.class);
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000);
-            bootstrap.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new NettyInboundHandler(ch));
-                }
-            });
+            bootstrap.handler(handler);
         }
 
         final Bootstrap result;
         if (secure) {
           result = bootstrap.clone();
-          result.handler(new ChannelInitializer<SocketChannel>() {
-              @Override
-              public void initChannel(SocketChannel ch) throws Exception {
-                  ch.pipeline().addFirst(new SslHandler(sslEngine));
-                  ch.pipeline().addLast(new NettyInboundHandler(ch));
-              }
-          });
+          result.handler(handler);
         } else {
           result = bootstrap;
         }
