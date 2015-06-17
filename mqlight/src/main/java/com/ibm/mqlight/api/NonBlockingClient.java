@@ -102,7 +102,7 @@ public abstract class NonBlockingClient {
     }
 
     /**
-     * Creates a new instance of the <code>NonBlockingClient</code> in started state.  The client
+     * Creates a new instance of the <code>NonBlockingClient</code> in starting state.  The client
      * will use the set of plugable services, provided as arguments to this method.
      * @param endpointService used to lookup the location of the MQ Light server.
      * @param callbackService used to run each call back into application code.
@@ -128,7 +128,7 @@ public abstract class NonBlockingClient {
     }
 
     /**
-     * Creates a new instance of the <code>NonBlockingClient</code> in started state.  This is equivalent to calling:
+     * Creates a new instance of the <code>NonBlockingClient</code> in starting state.  This is equivalent to calling:
      * <code>create(service, ClientOptions.create, listener, context);</code>
      * @see NonBlockingClient#create(String, ClientOptions, NonBlockingClientListener, Object)
      */
