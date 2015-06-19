@@ -21,19 +21,50 @@ package com.ibm.mqlight.api.impl.logging.logback;
 
 import org.slf4j.Marker;
 
-import com.ibm.mqlight.api.impl.logging.LogMarker;
-
 import ch.qos.logback.classic.pattern.ClassicConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 
+import com.ibm.mqlight.api.ClientRuntimeException;
+import com.ibm.mqlight.api.impl.logging.LogMarker;
+
 /**
  * A logback converter to support a method arguments customer conversion specifier.
+ * <p>
+ * By default only the first 1024 bytes of an argument will be written out. This can be changed by defining environment varaible
+ * MQLIGHT_JAVA_LOG_TRACE_ARG_MAX_BYTES, to specify a different value. 
  * <p>
  * Note that this assumes that whenever the event has one of the trace markers (defined in {@link TraceFilter}) then the first argument for the event specifies the object id, so
  * this is skipped over.
  */
 public class ArgsConverter extends ClassicConverter {
   
+  /**
+   * Default the maximum length of an argument written to the log to 1024 bytes, allowing an environment variable to
+   * be set to specify a different value.
+   */
+  private static final String ARG_MAX_BYTES_ENVVAR = "MQLIGHT_JAVA_LOG_TRACE_ARG_MAX_BYTES";
+  private final static int MAX_ARG_LENGTH;
+  static {
+    int max = 1024;
+    final String maxArgLengthStr = System.getProperty(ARG_MAX_BYTES_ENVVAR);
+    if (maxArgLengthStr != null) {
+      try {
+        max = Integer.parseInt(maxArgLengthStr);
+        if (max < 0) {
+           final ClientRuntimeException exception =
+               new ClientRuntimeException("Invalid "+ARG_MAX_BYTES_ENVVAR+" setting. Value must be a positive integer.");
+          throw exception;
+        }
+      } catch(NumberFormatException e) {
+        final ClientRuntimeException exception =
+              new ClientRuntimeException("Invalid "+ARG_MAX_BYTES_ENVVAR+" setting. Value must be a positive integer.");
+        throw exception;
+      }
+    }
+      
+    MAX_ARG_LENGTH = max;
+  }
+    
   @Override
   public String convert(ILoggingEvent event) {
     final Marker marker = event.getMarker();
@@ -44,11 +75,15 @@ public class ArgsConverter extends ClassicConverter {
       if (marker == LogMarker.EXIT.getValue()) {
         if (args.length > offset) {
           sb.append(" returns");
-          sb.append(" [" + args[offset] + "]");
+          String arg = args[offset] == null ? null : args[offset].toString();
+          if (arg != null && arg.length() > MAX_ARG_LENGTH) arg = arg.substring(0,  MAX_ARG_LENGTH)+"...";
+          sb.append(" [" + arg + "]");
         }
       } else {
         for (int i = offset; i < args.length; i++) {
-          sb.append(" [" + args[i] + "]");
+          String arg = args[i] == null ? null : args[i].toString();
+          if (arg != null && arg.length() > MAX_ARG_LENGTH) arg = arg.substring(0,  MAX_ARG_LENGTH)+"...";
+          sb.append(" [" + arg + "]");
         }
       }
     }
