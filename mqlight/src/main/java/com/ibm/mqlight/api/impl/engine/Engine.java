@@ -189,7 +189,6 @@ public class Engine extends ComponentImpl implements Handler {
                     break;
                 }
                 if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
-                    sr.topic.equals(link.getName());
                     linkSender = (Sender)link;
                     break;
                 }
