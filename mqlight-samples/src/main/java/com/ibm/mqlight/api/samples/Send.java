@@ -112,7 +112,7 @@ public class Send {
             System.out.println(context);
             boolean scheduleAgain = true;
             if (messageIndex == messages.length) {
-                if (--repeat <= 0) {
+                if (--repeat == 0) {
                     scheduleAgain = false;
                     client.stop(null,  null);
                 } else {
