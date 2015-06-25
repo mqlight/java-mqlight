@@ -36,8 +36,6 @@ public class TimerServiceImpl implements TimerService {
 
     static {
         executor = new ScheduledThreadPoolExecutor(1);
-        executor.setKeepAliveTime(500, TimeUnit.MILLISECONDS);
-        executor.allowCoreThreadTimeOut(true);
         executor.setRemoveOnCancelPolicy(true);
     }
 
