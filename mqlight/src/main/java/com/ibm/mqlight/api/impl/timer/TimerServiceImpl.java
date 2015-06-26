@@ -32,12 +32,13 @@ public class TimerServiceImpl implements TimerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TimerServiceImpl.class);
 
+    private static final int idleKeepAliveTimeMs = 500;
     private static final ScheduledThreadPoolExecutor executor;
+    private int timerCount = 0;
 
     static {
-        executor = new ScheduledThreadPoolExecutor(1);
-        executor.setKeepAliveTime(500, TimeUnit.MILLISECONDS);
-        executor.allowCoreThreadTimeOut(true);
+        executor = new ScheduledThreadPoolExecutor(0);
+        executor.setKeepAliveTime(idleKeepAliveTimeMs, TimeUnit.MILLISECONDS);
         executor.setRemoveOnCancelPolicy(true);
     }
 
@@ -48,13 +49,18 @@ public class TimerServiceImpl implements TimerService {
 
         private static final Logger logger = LoggerFactory.getLogger(Timer.class);
 
+        private final TimerServiceImpl service;
         private final Promise<Void> promise;
         private final ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer;
         private ScheduledFuture<?> future;
-        private Timer(Promise<Void> promise, ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer) {
-            final String methodName = "<init>";
-            logger.entry(this, methodName, promise, promiseToTimer);
 
+        private Timer(TimerServiceImpl service,
+                      Promise<Void> promise, 
+                      ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer) {
+            final String methodName = "<init>";
+            logger.entry(this, methodName, service, promise, promiseToTimer);
+
+            this.service = service;
             this.promise = promise;
             this.promiseToTimer = promiseToTimer;
 
@@ -67,6 +73,7 @@ public class TimerServiceImpl implements TimerService {
 
             promiseToTimer.remove(promise);
             promise.setSuccess(null);
+            service.decrementUsage();
 
             logger.exit(this, methodName);
         }
@@ -77,7 +84,8 @@ public class TimerServiceImpl implements TimerService {
         final String methodName = "schedule";
         logger.entry(this, methodName, delay, promise);
 
-        final Timer timer = new Timer(promise, promiseToTimer);
+        final Timer timer = new Timer(this, promise, promiseToTimer);
+        incrementUsage();
         final ScheduledFuture<?> sf = executor.schedule(timer, delay, TimeUnit.MILLISECONDS);
         timer.future = sf;
         promiseToTimer.put(promise, timer);
@@ -95,10 +103,22 @@ public class TimerServiceImpl implements TimerService {
             if (timer.future.cancel(false)) {
                 promiseToTimer.remove(promise);
                 promise.setFailure(null);
+                decrementUsage();
             }
         }
 
         logger.exit(this, methodName);
     }
 
+    private synchronized void decrementUsage() {
+        if (--timerCount == 0) {
+            executor.setKeepAliveTime(idleKeepAliveTimeMs, TimeUnit.MILLISECONDS);
+        }
+    }
+    
+    private synchronized void incrementUsage() {
+        if (++timerCount == 1) {
+            executor.setKeepAliveTime(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
+    }
 }
