@@ -142,7 +142,7 @@ public class Send {
               .expect("-i", "--id", String.class, null)
               .expect(null, "--message-ttl", Integer.class, null)
               .expect("-d", "--delay", Double.class, 0.0)
-              .expect("-r", "--repeat", Integer.class, 0)
+              .expect("-r", "--repeat", Integer.class, 1)
               .expect(null, "--sequence", Boolean.class, null)
               .expect("-f", "--file", String.class, null);
         ArgumentParser.Results tmpArgs = null;;
