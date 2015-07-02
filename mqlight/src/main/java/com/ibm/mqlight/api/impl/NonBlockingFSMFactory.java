@@ -159,6 +159,8 @@ class NonBlockingFSMFactory {
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.Retrying1B)
               .permit(NonBlockingClientTrigger.STOP,  NonBlockingClientState.StoppingR1A)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, startTimerAction)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, eventRetryingAction)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, startTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, eventRetryingAction);
 
@@ -170,7 +172,8 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, NonBlockingClientState.Retrying1A)
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying1A)
               .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, requestEndpointAction)
-              .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction);
+              .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, requestEndpointAction);
 
         config.configure(NonBlockingClientState.Retrying1C)
               .ignore(NonBlockingClientTrigger.START)
@@ -187,10 +190,9 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2C)
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.Retrying2B)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingB)
-              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, requestEndpointAction)
-              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, eventRetryingAction)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, breakInboundLinksAction);
 
         config.configure(NonBlockingClientState.Retrying2B)
@@ -213,8 +215,8 @@ class NonBlockingFSMFactory {
         config.configure(NonBlockingClientState.Retrying2D)
               .ignore(NonBlockingClientTrigger.START)
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2A)
-              .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.Retrying2A)
               .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
+              .permit(NonBlockingClientTrigger.TIMER_RESP_POP, NonBlockingClientState.Retrying2A)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, startTimerAction)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_EXHAUSTED, eventRetryingAction);
 
@@ -242,6 +244,7 @@ class NonBlockingFSMFactory {
               .onEntryFrom(NonBlockingClientTrigger.INBOUND_WORK_COMPLETE, eventStartingAction)
               .onEntryFrom(NonBlockingClientTrigger.START, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.START, eventStartingAction)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, requestEndpointAction)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction);
 
         config.configure(NonBlockingClientState.StartingB)
@@ -249,7 +252,7 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StartingA)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.Started)
-              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.Retrying2A)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.StartingA)
               .permit(NonBlockingClientTrigger.STOP,  NonBlockingClientState.StoppingSC)
               .onEntryFrom(NonBlockingClientTrigger.EP_RESP_OK, openConnectionAction);
 
