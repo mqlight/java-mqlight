@@ -18,25 +18,6 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.JdkSslContext;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.util.concurrent.GenericFutureListener;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -68,6 +49,24 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkListener;
 import com.ibm.mqlight.api.network.NetworkService;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.JdkSslContext;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.util.concurrent.GenericFutureListener;
 
 public class NettyNetworkService implements NetworkService {
 
@@ -87,7 +86,7 @@ public class NettyNetworkService implements NetworkService {
         private final SocketChannel channel;
         private NetworkListener listener = null;
         private final AtomicBoolean closed = new AtomicBoolean(false);
-                
+
         protected NettyInboundHandler(SocketChannel channel) {
             final String methodName = "<init>";
             logger.entry(this, methodName, channel);
@@ -275,6 +274,20 @@ public class NettyNetworkService implements NetworkService {
           logger.exit(this, methodName);
         }
 
+        private ByteBuf copyBuffer(ByteBufAllocator alloc, ByteBuffer buffer) {
+            int length = buffer.remaining();
+            int position = buffer.position();
+            ByteBuf buf = alloc.directBuffer(length);
+
+            try {
+                buf.writeBytes(buffer);
+            } finally {
+                buffer.position(position);
+            }
+
+            return buf;
+        }
+
         private void doWrite(ByteBuffer buffer, Promise<Boolean> promise) {
             final String methodName = "doWrite";
             logger.entry(this, methodName, buffer, promise);
@@ -283,17 +296,17 @@ public class NettyNetworkService implements NetworkService {
             synchronized(pendingWrites) {
                 if (!writeInProgress && channel.isWritable()) {
                     if (pendingWrites.isEmpty()) {
-                        // Ideally here we should be able to use Unpooled.wrappedBuffer, to save copying. But network
-                        // writes can become deferred under load, hence we must make a copy of the buffer to protect the
-                        // data (as the caller may need to reuse the buffer when we return)
-                        toProcess = new WriteRequest(Unpooled.copiedBuffer(buffer), promise);
+                        // always copy the buffer since netty wants a direct buffer anyhow, this
+                        // will also avoid issues when network
+                        // writes can become deferred under load
+                        toProcess = new WriteRequest(copyBuffer(channel.alloc(), buffer), promise);
                     } else {
-                        pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
+                        pendingWrites.addLast(new WriteRequest(copyBuffer(channel.alloc(), buffer), promise));
                         toProcess = pendingWrites.removeFirst();
                     }
                     writeInProgress = true;
                 } else {
-                    pendingWrites.addLast(new WriteRequest(Unpooled.copiedBuffer(buffer), promise));
+                    pendingWrites.addLast(new WriteRequest(copyBuffer(channel.alloc(), buffer), promise));
                 }
             }
 
@@ -422,7 +435,7 @@ public class NettyNetworkService implements NetworkService {
             };
             sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[0]));
             logger.data(this, methodName, "enabledCipherSuites", Arrays.toString(sslEngine.getEnabledCipherSuites()));
-            
+
             if (endpoint.getVerifyName()) {
                 SSLParameters sslParams = sslEngine.getSSLParameters();
                 sslParams.setEndpointIdentificationAlgorithm("HTTPS");
@@ -430,7 +443,7 @@ public class NettyNetworkService implements NetworkService {
             }
 
             // The listener must be added to the ChannelFuture before the bootstrap channel initialisation completes (i.e.
-            // before the NettyInboundHandler is added to the channel pipeline) otherwise the listener may not be able to 
+            // before the NettyInboundHandler is added to the channel pipeline) otherwise the listener may not be able to
             // see the NettyInboundHandler, when its operationComplete() method is called (there is a small window where
             // the socket connection fails just after initChannel has complete but before ConnectListener is added, with
             // the ConnectListener.operationComplete() being called as though the connection was successful)
