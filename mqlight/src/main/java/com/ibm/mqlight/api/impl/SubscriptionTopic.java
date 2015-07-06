@@ -27,6 +27,7 @@ public class SubscriptionTopic {
   private static final Logger logger = LoggerFactory.getLogger(NettyNetworkService.class);
   
   private final String topic;
+  private final boolean shared;
   
   public SubscriptionTopic(String topicPattern, String shareName) {
     final String methodName = "<init>";
@@ -35,6 +36,7 @@ public class SubscriptionTopic {
     String subTopic;
     if (shareName == null || "".equals(shareName)) {
         subTopic = "private:" + topicPattern;
+        shared = false;
     } else {
         if (shareName.contains(":")) {
           final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
@@ -42,6 +44,7 @@ public class SubscriptionTopic {
           throw exception;
         }
         subTopic = "share:" + shareName + ":" + topicPattern;
+        shared = true;
     }
     topic = subTopic;
     
@@ -52,11 +55,16 @@ public class SubscriptionTopic {
     final String methodName = "<init>";
     logger.entry(this, methodName, topic);
     this.topic = topic;
+    shared = false;
     logger.exit(this, methodName);
   }
 
   public String getTopic() {
     return topic;
+  }
+  
+  public boolean isShared() {
+    return shared;
   }
 
   public String[] split() {

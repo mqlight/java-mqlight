@@ -250,6 +250,10 @@ public class Engine extends ComponentImpl implements Handler {
                     linkReceiver.setSenderSettleMode(SenderSettleMode.SETTLED);
                     linkReceiver.setReceiverSettleMode(ReceiverSettleMode.FIRST);
                 }
+                
+                if (sr.topic.isShared()) {
+                  source.setCapabilities(Symbol.valueOf("shared"));
+                }
 
                 linkReceiver.open();
                 linkReceiver.flow(sr.initialCredit);
