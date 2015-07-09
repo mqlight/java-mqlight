@@ -60,7 +60,6 @@ import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.ReplacedException;
 import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.SubscribedException;
-import com.ibm.mqlight.api.UnsubscribedException;
 import com.ibm.mqlight.api.impl.ComponentImpl;
 import com.ibm.mqlight.api.impl.Message;
 import com.ibm.mqlight.api.impl.SubscriptionTopic;
@@ -315,11 +314,15 @@ public class Engine extends ComponentImpl implements Handler {
             if (engineConnection != null) {
                 engineConnection.bytesWritten += wr.amount;
                 engineConnection.notifyInflightQos0(false);
+                
+                // If all buffered network data has been sent and the last send request could not be sent immediately
+                // then send a drain event to inform the client that it is ok to send more messages
+                if (wr.drained && !engineConnection.drained) {
+                    engineConnection.drained = true;
+                    engineConnection.requestor.tell(new DrainNotification(), this); 
+                }
                 if (engineConnection.transport.pending() > 0) {
                     writeToNetwork(engineConnection);
-                } else if (!engineConnection.drained){
-                    engineConnection.drained = true;
-                    engineConnection.requestor.tell(new DrainNotification(), this);
                 }
             }
         } else if (message instanceof DataRead) {
