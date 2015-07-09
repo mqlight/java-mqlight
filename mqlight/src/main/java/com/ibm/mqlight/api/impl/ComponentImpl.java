@@ -20,6 +20,7 @@ package com.ibm.mqlight.api.impl;
 
 import java.util.LinkedList;
 
+import com.ibm.mqlight.api.logging.FFDCProbeId;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -68,7 +69,11 @@ public abstract class ComponentImpl implements Component {
                 else message = queue.removeFirst();
             }
             synchronized(componentMonitor) {
+              try {
                 onReceive(message);
+              } catch (Throwable e) {
+                logger.ffdc(methodName, FFDCProbeId.PROBE_001, e);
+              }
             }
         }
         

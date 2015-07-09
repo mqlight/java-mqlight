@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -167,57 +168,60 @@ public class Engine extends ComponentImpl implements Handler {
             writeToNetwork(engineConnection);
         } else if (message instanceof SendRequest) {
             SendRequest sr = (SendRequest)message;
-            EngineConnection engineConnection = sr.connection;
+            try {
+                EngineConnection engineConnection = sr.connection;
 
-            // Look to see if there is already a suitable sending link, and open one if there is not...
-            Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
-                                                          EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
-            Sender linkSender;
-            boolean linkOpened = false;
-            while(true) {
-                if (link == null) {
-                    linkSender = sr.connection.session.sender(sr.topic);
-                    Source source = new Source();
-                    Target target = new Target();
-                    source.setAddress(sr.topic);
-                    target.setAddress(sr.topic);
-                    linkSender.setSource(source);
-                    linkSender.setTarget(target);
-                    linkSender.open();
-                    linkOpened = true;
-                    break;
+                // Look to see if there is already a suitable sending link, and open one if there is not...
+                Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
+                                                              EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
+                Sender linkSender;
+                boolean linkOpened = false;
+                while(true) {
+                    if (link == null) {
+                        linkSender = sr.connection.session.sender(sr.topic);
+                        Source source = new Source();
+                        Target target = new Target();
+                        source.setAddress(sr.topic);
+                        target.setAddress(sr.topic);
+                        linkSender.setSource(source);
+                        linkSender.setTarget(target);
+                        linkSender.open();
+                        linkOpened = true;
+                        break;
+                    }
+                    if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
+                        linkSender = (Sender)link;
+                        break;
+                    }
+                    link = link.next(EnumSet.of(EndpointState.ACTIVE),
+                                     EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
                 }
-                if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
-                    linkSender = (Sender)link;
-                    break;
+                Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
+
+                linkSender.send(sr.buf.array(), 0, sr.length);
+
+                if (sr.qos == QOS.AT_MOST_ONCE) {
+                    d.settle();
+                } else {
+                    engineConnection.inProgressOutboundDeliveries.put(d, sr);
                 }
-                link = link.next(EnumSet.of(EndpointState.ACTIVE),
-                                            EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
+                linkSender.advance();
+                engineConnection.drained = false;
+                int delta = engineConnection.transport.head().remaining();
+                // If the link was also opened as part of processing this request then increase the
+                // amount of data expected (as the linkSender.send() won't count against the amount of
+                // data in transport.head() unless there is link credit - which there won't be until
+                // the server responds to the link open).
+                if (linkOpened) {
+                    delta += sr.length;
+                }
+                if (sr.qos == QOS.AT_MOST_ONCE) {
+                    engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
+                }
+                writeToNetwork(engineConnection);
+            } finally {
+                sr.buf.release();
             }
-            Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
-
-            linkSender.send(sr.buf.array(), 0, sr.length);
-            sr.buf.release();
-
-            if (sr.qos == QOS.AT_MOST_ONCE) {
-                d.settle();
-            } else {
-                engineConnection.inProgressOutboundDeliveries.put(d, sr);
-            }
-            linkSender.advance();
-            engineConnection.drained = false;
-            int delta = engineConnection.transport.head().remaining();
-            // If the link was also opened as part of processing this request then increase the
-            // amount of data expected (as the linkSender.send() won't count against the amount of
-            // data in transport.head() unless there is link credit - which there won't be until
-            // the server responds to the link open).
-            if (linkOpened) {
-                delta += sr.length;
-            }
-            if (sr.qos == QOS.AT_MOST_ONCE) {
-                engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
-            }
-            writeToNetwork(engineConnection);
         } else if (message instanceof SubscribeRequest) {
             SubscribeRequest sr = (SubscribeRequest) message;
             EngineConnection engineConnection = sr.connection;
@@ -327,24 +331,27 @@ public class Engine extends ComponentImpl implements Handler {
             }
         } else if (message instanceof DataRead) {
             // Message from the network telling us that data has been read...
-            DataRead dr = (DataRead)message;
-            EngineConnection engineConnection = (EngineConnection)dr.channel.getContext();
-            if (!engineConnection.closed) {
-                final ByteBuffer buffer = dr.buffer.nioBuffer();
-                while (buffer.remaining() > 0) {
-                    int origLimit = buffer.limit();
-                    ByteBuffer tail = engineConnection.transport.tail();
-                    int amount = Math.min(tail.remaining(), buffer.remaining());
-                    buffer.limit(buffer.position() + amount);
-                    tail.put(buffer);
-                    buffer.limit(origLimit);
-                    engineConnection.transport.process();
-                    process(engineConnection.collector);
-                }
-                dr.buffer.release();
+            DataRead dr = (DataRead) message;
+            try {
+                EngineConnection engineConnection = (EngineConnection) dr.channel.getContext();
+                if (!engineConnection.closed) {
+                    final ByteBuffer buffer = dr.buffer.nioBuffer();
+                    while (buffer.remaining() > 0) {
+                        int origLimit = buffer.limit();
+                        ByteBuffer tail = engineConnection.transport.tail();
+                        int amount = Math.min(tail.remaining(), buffer.remaining());
+                        buffer.limit(buffer.position() + amount);
+                        tail.put(buffer);
+                        buffer.limit(origLimit);
+                        engineConnection.transport.process();
+                        process(engineConnection.collector);
+                    }
 
-                // Write any data from Proton to the network.
-                writeToNetwork(engineConnection);
+                    // Write any data from Proton to the network.
+                    writeToNetwork(engineConnection);
+                }
+            } finally {
+                dr.buffer.release();
             }
         } else if (message instanceof DisconnectResponse) {
             // Message from network telling us that it has completed our disconnect request.
