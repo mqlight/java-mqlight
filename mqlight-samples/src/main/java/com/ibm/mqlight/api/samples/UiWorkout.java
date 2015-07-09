@@ -130,11 +130,10 @@ public class UiWorkout {
                     client.subscribe(dest[0], subOpts, new DestinationAdapter<Void>() {}, new CompletionListener<Void>() {
                         @Override
                         public void onSuccess(final NonBlockingClient client, Void context) {
-                            System.out.printf("Receiving messages from topic pattern %s", dest[0]);
                             if (dest[1] == null) {
-                                System.out.println();
+                                System.out.printf("Receiving messages from topic pattern %s\n", dest[0]);
                             } else {
-                                System.out.printf(" and share %s\n", dest[1]);
+                                System.out.printf("Receiving messages from topic pattern %s and share %s\n", dest[0], dest[1]);
                             }
 
                             scheduledExecutor.schedule(new Runnable() {
