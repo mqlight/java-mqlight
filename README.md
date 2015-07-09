@@ -127,6 +127,11 @@ behavior when MQLIGHT_JAVA_LOG has been set:
   files when MQLIGHT_JAVA_LOG_STREAM is specified as a file path prefix. The
   value can be specified in bytes, kilobytes, megabytes, or gigabytes by
   suffixing a numeric value with KB, MB, and GB respectively.
+
+* MQLIGHT_JAVA_LOG_TRACE_ARG_MAX_BYTES can be set to specify the maximum number
+  of bytes output for each argument, truncating any over length arguments from
+  the right.  By default the maximum number of bytes output for each argument
+  is 1024.
   
 ## Current limitations
 
