@@ -44,7 +44,6 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class BluemixEndpointService extends EndpointServiceImpl {
-
     private static final Logger logger = LoggerFactory.getLogger(BluemixEndpointService.class);
       
     static {
@@ -97,6 +96,10 @@ public class BluemixEndpointService extends EndpointServiceImpl {
 
     protected String getVcapServices() {
         return System.getenv("VCAP_SERVICES");
+    }
+
+    protected String getConnectionUriKey() {
+        return (System.getenv("MQLIGHT_JAVA_BLUEMIX_DISABLE_TLS") == null) ? "connectionLookupURI" : "nonTLSConnectionLookupURI";
     }
 
     protected String hitUri(String httpUri) throws IOException {
@@ -221,7 +224,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                                     JsonObject mqlight = entry.getValue().getAsJsonArray().get(0).getAsJsonObject();
                                     JsonObject credentials = mqlight.get("credentials").getAsJsonObject();
                                     state.user = credentials.get("username").getAsString();
-                                    state.lookupUri = credentials.get("connectionLookupURI").getAsString();
+                                    state.lookupUri = credentials.get(getConnectionUriKey()).getAsString();
                                     state.password = credentials.get("password").getAsString();
                                     break;
                                 }
