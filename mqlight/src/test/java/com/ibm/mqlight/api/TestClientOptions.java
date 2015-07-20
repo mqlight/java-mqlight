@@ -26,7 +26,12 @@ public class TestClientOptions {
 
     @Test
     public void clientIdLength() {
-        ClientOptions.builder().setId("012345678901234567890123456789012345678901234567").build();  // 48-char
+        final StringBuilder sb = new StringBuilder();
+        for (int i=0; i<256; i++) sb.append(i % 10);
+        final String maxLengthClientId = sb.toString();
+        sb.append("a");
+        final String overLengthClientId = sb.toString();
+        ClientOptions.builder().setId(maxLengthClientId).build();  // 256-char
         ClientOptions.builder().setId("0").build();
         ClientOptions.builder().setId(null).build();
 
@@ -38,8 +43,8 @@ public class TestClientOptions {
         }
 
         try {
-            ClientOptions.builder().setId("0123456789012345678901234567890123456789012345678").build();
-            throw new AssertionFailedError("Expected a 49 character length ID to be rejected");
+            ClientOptions.builder().setId(overLengthClientId).build();
+            throw new AssertionFailedError("Expected a 257 character length ID to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected
         }

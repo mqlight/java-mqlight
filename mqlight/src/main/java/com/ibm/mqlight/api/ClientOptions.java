@@ -123,7 +123,7 @@ public class ClientOptions {
          *           MQ Light server at a given point in time.  If another instance of the same client connects, then
          *           the previously connected instance will be disconnected. This is reported, to the first client,
          *           as a ReplacedException, and the client transitioning into stopped state.
-         *           When set, the id must be a minimum of 1 character and a maximum of 48 characters in length.
+         *           When set, the id must be a minimum of 1 character and a maximum of 256 characters in length.
          *           The id can only contain alphanumeric characters, and any of the following characters:
          *           percent sign (%), slash (/), period (.), underscore (_).
          * @return the same instance of <code>ClientOptionsBuilder</code> that this method was invoked on.
@@ -134,8 +134,8 @@ public class ClientOptions {
             logger.entry(this, methodName, id);
           
             if (id != null) {
-                if (id.length() > 48) {
-                  final IllegalArgumentException exception = new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 48.");
+                if (id.length() > 256) {
+                  final IllegalArgumentException exception = new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 256.");
                   logger.throwing(this,  methodName, exception);
                   throw exception;
                 } else if (id.length() < 1) {
