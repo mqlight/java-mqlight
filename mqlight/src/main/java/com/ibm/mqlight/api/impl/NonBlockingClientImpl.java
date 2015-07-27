@@ -675,7 +675,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             OpenResponse or = (OpenResponse)message;
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
-                if (or.exception instanceof com.ibm.mqlight.api.SecurityException) {
+                if (or.exception instanceof com.ibm.mqlight.api.ReplacedException
+                        || or.exception instanceof com.ibm.mqlight.api.SecurityException) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_RETRY);
