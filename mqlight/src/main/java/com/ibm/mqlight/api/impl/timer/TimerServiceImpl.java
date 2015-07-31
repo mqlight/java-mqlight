@@ -19,8 +19,10 @@
 package com.ibm.mqlight.api.impl.timer;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.ibm.mqlight.api.Promise;
@@ -35,9 +37,19 @@ public class TimerServiceImpl implements TimerService {
     private static final int idleKeepAliveTimeMs = 500;
     private static final ScheduledThreadPoolExecutor executor;
     private int timerCount = 0;
+    
+    static class TimerServiceThreadFactory implements ThreadFactory {
+      final ThreadFactory factory = Executors.defaultThreadFactory();
+      @Override
+      public Thread newThread(Runnable r) {
+        final Thread t = factory.newThread(r);
+        t.setName(TimerServiceImpl.class.getSimpleName() + "-" + t.getName());
+        return t;
+      }
+    }
 
     static {
-        executor = new ScheduledThreadPoolExecutor(0);
+        executor = new ScheduledThreadPoolExecutor(0, new TimerServiceThreadFactory());
         executor.setKeepAliveTime(idleKeepAliveTimeMs, TimeUnit.MILLISECONDS);
         executor.setRemoveOnCancelPolicy(true);
     }
