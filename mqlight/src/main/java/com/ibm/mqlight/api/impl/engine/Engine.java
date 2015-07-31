@@ -37,6 +37,7 @@ import org.apache.qpid.proton.amqp.messaging.Released;
 import org.apache.qpid.proton.amqp.messaging.Source;
 import org.apache.qpid.proton.amqp.messaging.Target;
 import org.apache.qpid.proton.amqp.messaging.TerminusExpiryPolicy;
+import org.apache.qpid.proton.amqp.transport.AmqpError;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
@@ -544,7 +545,10 @@ public class Engine extends ComponentImpl implements Handler {
         if (errorCondition != null && errorCondition.getCondition() != null) {
             if (errorCondition.getDescription().toString().contains("_Takeover")) {
                 result = new ReplacedException(errorCondition.getDescription());
-            } else if (errorCondition.getDescription().toString().contains("_InvalidSourceTimeout")) {
+            } else if (errorCondition.getCondition().equals(AmqpError.PRECONDITION_FAILED)
+                    || errorCondition.getCondition().equals(AmqpError.NOT_ALLOWED)
+                    || errorCondition.getCondition().equals(AmqpError.NOT_IMPLEMENTED)
+                    || errorCondition.getDescription().toString().contains("_InvalidSourceTimeout")) {
                 result = new NotPermittedException(errorCondition.getDescription());
             }
 
@@ -588,11 +592,16 @@ public class Engine extends ComponentImpl implements Handler {
         if (link instanceof Receiver) {
             if (eventType == Event.Type.LINK_REMOTE_OPEN) {
                 // Receiver link open has been ack'ed by server.
-                if (link.getLocalState() == EndpointState.ACTIVE &&
-                        link.getRemoteState() == EndpointState.ACTIVE) {
-                    EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                    EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
-                    sd.subscriber.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic(link.getName())), this);
+                if (link.getLocalState() == EndpointState.ACTIVE) {
+                    if (link.getRemoteState() == EndpointState.ACTIVE) {
+                        EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+                        EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
+                        sd.subscriber.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic(link.getName())), this);
+                    } else if (link.getRemoteState() == EndpointState.CLOSED) {
+                        // link was immediately closed remotely after being ack'ed?
+                        ClientException clientException = getClientException(link.getRemoteCondition());
+                        logger.data(this, methodName, event, clientException, this);
+                    }
                 }
             } else if (eventType == Event.Type.LINK_REMOTE_CLOSE
                     || eventType == Event.Type.LINK_REMOTE_DETACH) {
