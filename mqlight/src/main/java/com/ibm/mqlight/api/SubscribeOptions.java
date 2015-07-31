@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api;
 
+import java.util.concurrent.TimeUnit;
+
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -201,32 +203,64 @@ public class SubscribeOptions {
         }
 
         /**
-         * A time-to-live value, in milliseconds, that is applied to the destination that the client
-         * is subscribed to. This value will replace any previous value, if the destination already
-         * exists. Time to live starts counting down when there are no instances of a client subscribed
-         * to a destination. It is reset each time a new instance of the client subscribes to the
-         * destination. If time to live counts down to zero then MQ Light will delete the destination
-         * by discarding any messages held at the destination and not accruing any new messages.
-         * @param ttl a time to live value in milliseconds, the default being 0 - meaning the destination
-         *            will be deleted as soon as there are no clients subscribed to it.
-         *            This must be a positive value, and a maximum of 4294967295 (0xFFFFFFFF)
+         * A time-to-live value, in milliseconds, that is applied to the destination that the client is subscribed to. This
+         * value will replace any previous value, if the destination already exists. Time to live starts counting down when
+         * there are no instances of a client subscribed to a destination. It is reset each time a new instance of the client
+         * subscribes to the destination. If time to live counts down to zero then MQ Light will delete the destination by
+         * discarding any messages held at the destination and not accruing any new messages.
+         * 
+         * @param ttl
+         *            a time to live value in milliseconds, the default being 0 - meaning the destination will be deleted as
+         *            soon as there are no clients subscribed to it. This must be a positive value, and when converted to
+         *            seconds it must be a maximum of 4294967295 (0xFFFFFFFF)
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
-         * @throws IllegalArgumentException if an invalid <code>ttl</code> value is specified.
+         * @throws IllegalArgumentException
+         *             if an invalid <code>ttl</code> value is specified.
          */
         public SubscribeOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
             final String methodName = "setTtl";
             logger.entry(this, methodName, ttl);
-            if (ttl < 0 || ttl > 4294967295L) {
-              final IllegalArgumentException exception = new IllegalArgumentException("ttl value " + ttl + " is invalid, must be an unsigned 32-bit value");
-              logger.throwing(this,  methodName, exception);
-              throw exception;
+            
+            setTtl(ttl, TimeUnit.MILLISECONDS);
+
+            logger.exit(this, methodName, this);
+            return this;
+        }
+        
+        /**
+         * A time-to-live value that is applied to the destination that the client is subscribed to. This value will replace any
+         * previous value, if the destination already exists. Time to live starts counting down when there are no instances of a
+         * client subscribed to a destination. It is reset each time a new instance of the client subscribes to the destination.
+         * If time to live counts down to zero then MQ Light will delete the destination by discarding any messages held at the
+         * destination and not accruing any new messages.
+         * 
+         * @param ttl
+         *            a time to live value in the given {@link TimeUnit}, the default being 0 - meaning the destination will be
+         *            deleted as soon as there are no clients subscribed to it. This must be a positive value, and a maximum of
+         *            42949672950 (0xFFFFFFFF) once it has been converted to {@link TimeUnit#SECONDS}
+         * @param the
+         *            {@link TimeUnit} of the given {@code ttl} argument
+         * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
+         * @throws IllegalArgumentException
+         *             if an invalid <code>ttl</code> value is specified.
+         */
+        public SubscribeOptionsBuilder setTtl(long ttl, TimeUnit unit) throws IllegalArgumentException {
+            final String methodName = "setTtl";
+            logger.entry(this, methodName, ttl);
+            final long ttlSeconds = TimeUnit.SECONDS.convert(ttl, unit);
+            if (ttl < 0 || ttlSeconds < 0 || ttlSeconds > 4294967295L) {
+                final IllegalArgumentException exception = new IllegalArgumentException(
+                        "ttl value " + ttl + " " + unit.toString().toLowerCase()
+                        + " is invalid, must be an unsigned 32-bit value when converted to seconds");
+                logger.throwing(this, methodName, exception);
+                throw exception;
             }
             this.ttl = ttl;
             
             logger.exit(this, methodName, this);
             
             return this;
-        }
+        }        
 
         /**
          * @return an instance of SubscribeOptions based on the current settings of

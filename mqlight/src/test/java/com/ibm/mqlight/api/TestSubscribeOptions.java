@@ -20,6 +20,8 @@ package com.ibm.mqlight.api;
 
 import junit.framework.AssertionFailedError;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 public class TestSubscribeOptions {
@@ -65,6 +67,10 @@ public class TestSubscribeOptions {
     public void ttlValues() {
         SubscribeOptions.builder().setTtl(0);
         SubscribeOptions.builder().setTtl(4294967295L);
+        SubscribeOptions.builder().setTtl(4294967296L);
+        SubscribeOptions.builder().setTtl(4294967295L*1000L);
+        SubscribeOptions.builder().setTtl(365, TimeUnit.DAYS);
+        SubscribeOptions.builder().setTtl(365*136, TimeUnit.DAYS);
         try {
             SubscribeOptions.builder().setTtl(-1);
             throw new AssertionFailedError("Should have failed on -1");
@@ -72,10 +78,34 @@ public class TestSubscribeOptions {
             // Expected
         }
         try {
-            SubscribeOptions.builder().setTtl(4294967296L);
-            throw new AssertionFailedError("Should have failed on 4294967296L");
+            SubscribeOptions.builder().setTtl(-1, TimeUnit.MILLISECONDS);
+            throw new AssertionFailedError("Should have failed on -1 milliseconds");
         } catch(IllegalArgumentException e) {
             // Expected
+        }
+        try {
+            SubscribeOptions.builder().setTtl(-1, TimeUnit.SECONDS);
+            throw new AssertionFailedError("Should have failed on -1 seconds");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }        
+        try {
+            SubscribeOptions.builder().setTtl(-1, TimeUnit.MINUTES);
+            throw new AssertionFailedError("Should have failed on -1 minutes");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        try {
+            SubscribeOptions.builder().setTtl(4294967296L*1000L);
+            throw new AssertionFailedError("Should have failed on 4294967296000 milliseconds");
+        } catch(IllegalArgumentException e) {
+            // Expected
+        }
+        try {
+            SubscribeOptions.builder().setTtl(365*137, TimeUnit.DAYS);
+            throw new AssertionFailedError("Should have failed on 137 years");
+        } catch (IllegalArgumentException e) {
+        	// Expected
         }
     }
 }
