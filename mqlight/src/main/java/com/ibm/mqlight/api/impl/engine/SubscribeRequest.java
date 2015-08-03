@@ -27,9 +27,9 @@ public class SubscribeRequest extends Message {
     public final SubscriptionTopic topic;
     public final QOS qos;
     public final int initialCredit;
-    public final int ttl;
+    public final long ttl;
     
-    public SubscribeRequest(EngineConnection connection, SubscriptionTopic topic, QOS qos, int initialCredit, int ttl) {
+    public SubscribeRequest(EngineConnection connection, SubscriptionTopic topic, QOS qos, int initialCredit, long ttl) {
         this.connection = connection;
         this.topic = topic;
         this.qos = qos;

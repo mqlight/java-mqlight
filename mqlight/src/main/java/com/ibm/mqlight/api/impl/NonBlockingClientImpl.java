@@ -159,12 +159,12 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         private final QOS qos;
         private final int credit;
         private final boolean autoConfirm;
-        private final int ttl;
+        private final long ttl;
 
         InternalSubscribe<?> inProgressSubscribe;
         InternalUnsubscribe<?> inProgressUnsubscribe;
 
-        public SubData(DestinationListenerWrapper<?> listener, QOS qos, int credit, boolean autoConfirm, int ttl) {
+        public SubData(DestinationListenerWrapper<?> listener, QOS qos, int credit, boolean autoConfirm, long ttl) {
             this.listener = listener;
             this.qos = qos;
             this.credit = credit;
@@ -557,7 +557,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final SubscriptionTopic subTopic = new SubscriptionTopic(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is =
-                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, (int) Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
+                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
         tell(is, this);
 
         try {

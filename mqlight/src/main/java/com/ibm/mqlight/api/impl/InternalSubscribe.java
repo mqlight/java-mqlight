@@ -33,10 +33,10 @@ class InternalSubscribe<T> extends Message implements QueueableWork {
     final QOS qos;
     final int credit;
     final boolean autoConfirm;
-    final int ttl;
+    final long ttl;
     final DestinationListenerWrapper<T> destListener;
 
-    InternalSubscribe(NonBlockingClientImpl client, SubscriptionTopic topic, QOS qos, int credit, boolean autoConfirm, int ttl,
+    InternalSubscribe(NonBlockingClientImpl client, SubscriptionTopic topic, QOS qos, int credit, boolean autoConfirm, long ttl,
                       GsonBuilder gsonBuilder, DestinationListener<T> destListener, T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, topic, qos, credit, autoConfirm, ttl, gsonBuilder, destListener, context);

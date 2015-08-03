@@ -240,9 +240,9 @@ public class Engine extends ComponentImpl implements Handler {
 
                 if (sr.ttl > 0) {
                     source.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
-                    source.setTimeout(new UnsignedInteger(sr.ttl));
+                    source.setTimeout(UnsignedInteger.valueOf(sr.ttl));
                     target.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
-                    target.setTimeout(new UnsignedInteger(sr.ttl));
+                    target.setTimeout(UnsignedInteger.valueOf(sr.ttl));
                 }
 
                 linkReceiver.setSource(source);
