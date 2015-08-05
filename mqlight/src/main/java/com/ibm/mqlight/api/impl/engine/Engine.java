@@ -18,12 +18,9 @@
  */
 package com.ibm.mqlight.api.impl.engine;
 
-import io.netty.buffer.ByteBuf;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +50,9 @@ import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.apache.qpid.proton.engine.Transport;
+import org.apache.qpid.proton.engine.impl.ProtocolTracer;
+import org.apache.qpid.proton.engine.impl.TransportImpl;
+import org.apache.qpid.proton.framing.TransportFrame;
 
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.NetworkException;
@@ -83,9 +83,31 @@ import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
+import io.netty.buffer.ByteBuf;
+
 public class Engine extends ComponentImpl implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
+    
+    static class EngineProtocolTracer implements ProtocolTracer {
+        private static final Logger logger = LoggerFactory.getLogger(EngineProtocolTracer.class);
+
+        final String clientId;
+
+        public EngineProtocolTracer(String clientId) {
+            this.clientId = clientId;
+        }
+
+        @Override
+        public void receivedFrame(TransportFrame transportFrame) {
+            logger.data("receivedFrame", (Object) clientId, transportFrame);
+        }
+
+        @Override
+        public void sentFrame(TransportFrame transportFrame) {
+            logger.data("sentFrame", (Object) clientId, transportFrame);
+        }
+    }
 
     private final NetworkService network;
     private final TimerService timer;
@@ -130,6 +152,8 @@ public class Engine extends ComponentImpl implements Handler {
             } else {
                 Connection protonConnection = Proton.connection();
                 Transport transport = Proton.transport();
+                ProtocolTracer protocolTracer = new EngineProtocolTracer(or.clientId);
+                ((TransportImpl) transport).setProtocolTracer(protocolTracer);
                 transport.setIdleTimeout(or.endpoint.getIdleTimeout());
                 transport.bind(protonConnection);
                 Collector collector = Proton.collector();
