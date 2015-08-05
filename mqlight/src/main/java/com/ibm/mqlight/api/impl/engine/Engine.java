@@ -667,18 +667,21 @@ public class Engine extends ComponentImpl implements Handler {
 
         if (event.getSession().getRemoteState() == EndpointState.ACTIVE) {
             if (event.getSession().getLocalState() == EndpointState.ACTIVE) {
-                // First session has opened on the connection
-                EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                OpenRequest req = engineConnection.openRequest;
-                engineConnection.openRequest = null;
-                engineConnection.requestor.tell(new OpenResponse(req, engineConnection), this);
+                final EngineConnection engineConnection =
+                        (EngineConnection) event.getConnection().getContext();
+                if (!engineConnection.closed) {
+                    // First session has opened on the connection
+                    OpenRequest req = engineConnection.openRequest;
+                    engineConnection.openRequest = null;
+                    engineConnection.requestor.tell(new OpenResponse(req, engineConnection), this);
+                }
             } else {
                 // The remote end is trying to establish a new session with us, which is not allowed. I don't think this is a usual case,
                 // but could occur with a badly written remote end (i.e. sends an initial AMQP open immediately followed by a begin)
-                final Connection engineConnection = event.getConnection();
-                engineConnection.setCondition(new ErrorCondition(Symbol.getSymbol("mqlight:session-remote-open-rejected"),
+                final Connection protonConnection = event.getConnection();
+                protonConnection.setCondition(new ErrorCondition(Symbol.getSymbol("mqlight:session-remote-open-rejected"),
                                                                  "MQ Light client is unable to accept an open session request"));
-                engineConnection.close();
+                protonConnection.close();
             }
         }
 
