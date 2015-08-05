@@ -115,8 +115,68 @@ public class TestLogbackLoggingImpl {
       System.setErr(savedErr);
     }
   }
+
+  @Test
+  public void testBadTrace() throws IOException {
+    
+    LogbackLoggingImpl.stop(); // Ensures logging is stopped (in case a previous test enabled it)
+    
+    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    final PrintStream ps = new PrintStream(baos, true);
+    final PrintStream savedErr = System.err;
+    String traceData = null;
+    try {
+      System.setErr(ps);
+      LogbackLoggingImpl.setDefaultRequiredMQLightLogLevel("badLevel");
+      LogbackLoggingImpl.setup();
+      
+      System.err.flush();
+      traceData = baos.toString();
+      assertFalse("missing header properties", traceData.contains("System properties:"));
+      assertFalse("unexpected trace line", traceData.contains("test trace data"));
+      assertTrue("missing error trace line", traceData.contains("ERROR: MQ Light log level 'badLevel'"));
+      logger.data(this, "testAllTrace", "test trace data");
+      System.err.flush();
+      traceData = baos.toString();
+      assertFalse("unexpected trace line", traceData.contains("test trace data"));
+    } finally {
+      LogbackLoggingImpl.stop();
+      System.setErr(savedErr);
+    }
+  }
   
-  // TODO add test for error condition when the mqlight-logback.xml resource is missing
+  @Test
+  public void testBadLogbackConfigResource() throws IOException {
+    
+    LogbackLoggingImpl.stop(); // Ensures logging is stopped (in case a previous test enabled it)
+    
+    final String defaultLogbackConfigResource = LogbackLoggingImpl.getLogbackConfigResource();
+    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    final PrintStream ps = new PrintStream(baos, true);
+    final PrintStream savedErr = System.err;
+    String traceData = null;
+    try {
+      System.setErr(ps);
+      LogbackLoggingImpl.setDefaultRequiredMQLightLogLevel("warn");
+      LogbackLoggingImpl.setLogbackConfigResource(defaultLogbackConfigResource+"oops");
+      LogbackLoggingImpl.setup();
+      
+      System.err.flush();
+      traceData = baos.toString();
+      assertFalse("missing header properties", traceData.contains("System properties:"));
+      assertFalse("unexpected trace line", traceData.contains("test trace data"));
+      assertTrue("missing error message", traceData.contains("ERROR: MQ Light '"+LogbackLoggingImpl.getLogbackConfigResource()+"' is missing."));
+      logger.data(this, "testAllTrace", "test trace data");
+      System.err.flush();
+      traceData = baos.toString();
+      assertFalse("unexpected trace line", traceData.contains("test trace data"));
+    } finally {
+      LogbackLoggingImpl.stop();
+      System.setErr(savedErr);
+      LogbackLoggingImpl.setLogbackConfigResource(defaultLogbackConfigResource);
+    }
+  }
+  
   // TODO add tests for when a custom log environment has been setup, to ensure it is preserve
   
 }

@@ -80,6 +80,11 @@ public class LogbackLoggingImpl {
    * Note that this is to support unit testing.
    */
   private static String defaultRequiredMQLightLogLevel = null;
+
+  /**
+   * The MQ Light logback configuration resource.
+   */
+  private static String logbackConfigResource = "/com/ibm/mqlight/api/resources/mqlight-logback.xml";
   
   /**
    * Sets up logging. Can be called multiple times with no side-effect on all but the first invocation. Should be invoked from any class that an application writer might invoke
@@ -112,12 +117,11 @@ public class LogbackLoggingImpl {
           // When the MQ Light log level is set, configure the logback trace for MQ Light
           // Note that this replaces any existing logback settings
           if (mqlightLogLevel != null) {
-            final String logbackConfigResource = "/com/ibm/mqlight/api/resources/mqlight-logback.xml";
             InputStream logbackConfigResourceStream = null;
             try {
               logbackConfigResourceStream = ClassLoader.class.getResourceAsStream(logbackConfigResource);
               if (logbackConfigResourceStream == null) {
-                rootLogger.error("ERROR: MQ Light "+logbackConfigResource+" is missing.");
+                System.err.println("ERROR: MQ Light '"+logbackConfigResource+"' is missing.");
               } else {
                 JoranConfigurator configurator = new JoranConfigurator();
                 configurator.setContext(context);
@@ -243,12 +247,12 @@ public class LogbackLoggingImpl {
   private static Level getMQLightLogLevel() {
     // Obtain the MQ Light log level from the MQLIGHT_JAVA_LOG environment variable
     String requiredMQLightLogLevel = System.getenv("MQLIGHT_JAVA_LOG");
-    if (requiredMQLightLogLevel == null) requiredMQLightLogLevel = defaultRequiredMQLightLogLevel;
+    if (requiredMQLightLogLevel == null || requiredMQLightLogLevel.length() == 0) requiredMQLightLogLevel = defaultRequiredMQLightLogLevel;
     Level mqlightLogLevel = null;
     if (requiredMQLightLogLevel != null) {
-      mqlightLogLevel = Level.toLevel(requiredMQLightLogLevel);
+      mqlightLogLevel = Level.toLevel(requiredMQLightLogLevel, null);
       if (mqlightLogLevel == null) {
-        logger.error("ERROR: MQ Light log level '"+requiredMQLightLogLevel+"' is invalid");
+        System.err.println("ERROR: MQ Light log level '"+requiredMQLightLogLevel+"' is invalid");
       }
     }
     
@@ -403,6 +407,28 @@ public class LogbackLoggingImpl {
     defaultRequiredMQLightLogLevel = value;
   }
 
+  /**
+   * *** For Unit testing purposes only ***
+   * <p>
+   * Sets the logback configuration resource.
+   * 
+   * @param value The required logback configuration resource, as a {@link String}.
+   */
+  static void setLogbackConfigResource(String value) {
+    logbackConfigResource = value;
+  }
+
+  /**
+   * *** For Unit testing purposes only ***
+   * <p>
+   * Gets the logback configuration resource.
+   * 
+   * @return The logback configuration resource, as a {@link String}.
+   */
+  static String getLogbackConfigResource() {
+    return logbackConfigResource;
+  }
+  
   /**
    * Helper method to write trace header information to the specified {@link PrintStream}.
    * 
