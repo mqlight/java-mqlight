@@ -10,7 +10,7 @@ Example code for using the non-blocking client to send a message
 NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter() {
   public void onStarted(NonBlockingClient client, Void context) {
     SendOptions opts = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE).build();
-    client.send("/public", "Hello World!", null, opts, new CompletionListener() {
+    client.send("/public", "Hello World!", null, opts, new CompletionListener<Void>() {
       public void onSuccess(NonBlockingClient client, Void context) {
         client.stop(null, null);
       }
@@ -26,23 +26,21 @@ NonBlockingClient.create("amqp://localhost", new NonBlockingClientAdapter() {
 Example code for receiving messages published to the '/public' topic.
 
 ```java
-public static void main(String[] args) {
-  NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
-  client.subscribe("/public", new DestinationAdapter() {
-    public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
-      switch (delivery.getType()) {
-        case BYTES:
-          BytesDelivery bd = (BytesDelivery)delivery;
-          System.out.println(bd.getData());
-          break;
-        case STRING:
-          StringDelivery sd = (StringDelivery)delivery;
-          System.out.println(sd.getData());
-          break;
-      }
+NonBlockingClient client = NonBlockingClient.create("amqp://localhost", null, null);
+client.subscribe("/public", new DestinationAdapter() {
+  public void onMessage(NonBlockingClient client, Void context, Delivery delivery) {
+    switch (delivery.getType()) {
+      case BYTES:
+        BytesDelivery bd = (BytesDelivery)delivery;
+        System.out.println(bd.getData());
+        break;
+      case STRING:
+        StringDelivery sd = (StringDelivery)delivery;
+        System.out.println(sd.getData());
+        break;
     }
-  }, null, null);
-}
+  }
+}, null, null);
 ```
 
 State machine that underpins the client:  
