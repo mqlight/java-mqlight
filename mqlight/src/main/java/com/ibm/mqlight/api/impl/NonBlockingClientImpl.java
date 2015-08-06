@@ -127,7 +127,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     private Endpoint currentEndpoint = null;
     private EngineConnection currentConnection = null;
-    private final HashMap<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
+    private final Map<SendRequest, InternalSend<?>> outstandingSends = new HashMap<>();
 
     private final NonBlockingClientListenerWrapper<?> clientListener;
 
@@ -867,6 +867,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 pendingDeliveries.add(dr);
             }
             subData.listener.onDelivery(callbackService, dr, subData.qos, subData.autoConfirm);
+        } else if (message instanceof DeliveryResponse) {
+            // delivery settlement has been actioned client-side
+            final DeliveryRequest dr = ((DeliveryResponse) message).request;
+            final boolean success = (dr.qos == QOS.AT_MOST_ONCE || pendingDeliveries.remove(dr));
+            if (!success) {
+                logger.data("Unexpected DeliveryResponse received {} from {} ", dr, message.getSender());
+            }
         } else if (message instanceof DisconnectNotification) {
             remakingInboundLinks = false;
             DisconnectNotification dn = (DisconnectNotification)message;
@@ -1263,18 +1270,17 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     /**
-     * Pass a {@link DeliveryResponse} back to the engine which will settle the delivery
-     * (in the AT_LEAST_ONCE case) and flow deliveryCount++ and link-credit to the remote end
+     * Pass a {@link DeliveryResponse} back to the engine which will settle the delivery (in the
+     * AT_LEAST_ONCE case) and flow deliveryCount++ and link-credit to the remote end
      *
-     * @param request
-     *            the {@link DeliveryRequest} to process.
+     * @param request the {@link DeliveryRequest} to process.
      * @return true == it might have worked, false == it really didn't work!
      */
     protected boolean doDelivery(DeliveryRequest request) {
         final String methodName = "doDelivery";
         logger.entry(this, methodName, request);
 
-        final boolean result = (request.qos == QOS.AT_MOST_ONCE || pendingDeliveries.remove(request));
+        final boolean result = (request.qos == QOS.AT_MOST_ONCE || pendingDeliveries.contains(request));
         if (result) {
             engine.tell(new DeliveryResponse(request), this);
         }

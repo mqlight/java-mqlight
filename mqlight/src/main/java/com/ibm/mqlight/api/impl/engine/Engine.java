@@ -334,6 +334,9 @@ public class Engine extends ComponentImpl implements Handler {
             }
 
             writeToNetwork(engineConnection);
+            
+            // send the DeliveryResponse back to indicate settlement has been actioned
+            engineConnection.requestor.tell(message, this);
 
         } else if (message instanceof WriteResponse) {
             // Message from network telling us that a write operation has completed...
