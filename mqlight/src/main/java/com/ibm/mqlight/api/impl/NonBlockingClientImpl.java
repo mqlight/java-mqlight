@@ -874,6 +874,16 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (!success) {
                 logger.data("Unexpected DeliveryResponse received {} from {} ", dr, message.getSender());
             }
+            
+            // if we've now cleared the backlog of pending deliveries, requeue any pending work for the sub
+            if (pendingDeliveries.isEmpty()) {
+                final SubData sd =
+                        subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
+                while (sd != null && !sd.pending.isEmpty()) {
+                    Message m = (Message) sd.pending.removeFirst();
+                    tell(m, m.getSender()); // Put this back into the queue of events
+                }
+            }
         } else if (message instanceof DisconnectNotification) {
             remakingInboundLinks = false;
             DisconnectNotification dn = (DisconnectNotification)message;
