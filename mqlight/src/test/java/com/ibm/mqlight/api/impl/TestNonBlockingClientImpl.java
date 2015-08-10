@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.AssertionFailedError;
 
@@ -1085,5 +1087,43 @@ public class TestNonBlockingClientImpl {
         assertEquals("Message 5: topic doesn't match", "amqp:///" + expectedTopic, msg.getAddress());
         assertEquals("Message 5: content type set incorrectly", "application/json", msg.getContentType());
         assertEquals("Message 5: body doesn't match", expectedRawJson, ((AmqpValue)msg.getBody()).getValue());
+    }
+    
+    /**
+     * Ensure that breakInboundLinks completes when requests have been added to sd.pending  
+     * 
+     * @throws InterruptedException
+     */
+    @Test(timeout=5000)
+    public void testBreakInboundLinks() throws InterruptedException {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        EngineConnection engineConnection = new EngineConnection();
+        NonBlockingClientImpl client = openCommon(engine, listener);
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+        assertEquals(ClientState.STARTED, client.getState());
+        final Semaphore done = new Semaphore(0);
+        client.subscribe("/kittens", new DestinationAdapter<Void>() {}, new CompletionListener<Void>() {
+            @Override
+            public void onSuccess(NonBlockingClient client, Void context) {
+                done.release();
+            }
+
+            @Override
+            public void onError(NonBlockingClient client, Void context,
+                    Exception exception) {
+                done.release();
+            }
+            
+        }, null);
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null)), engine);
+        assertTrue("Client failed to subscribe within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));
+        // add an entry to pendingDeliveries so that the next InternalUnsubscribe is added to sd.pending
+        client.tell(new DeliveryRequest(null, QOS.AT_LEAST_ONCE, "/kittens", null, null), engine);
+        client.unsubscribe("/kittens", null, null);
+        Thread.sleep(100L);
+        // expect breakInboundLinks to complete quickly
+        client.breakInboundLinks();
     }
 }
