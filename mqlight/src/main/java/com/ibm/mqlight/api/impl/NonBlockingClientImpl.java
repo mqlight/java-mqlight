@@ -1259,9 +1259,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         outstandingSends.clear();
 
         for (Map.Entry<SubscriptionTopic, SubData>entry : subscribedDestinations.entrySet()) {
-            SubData subData = entry.getValue();
-            while(!subData.pending.isEmpty()) {
-                pendingWork.addLast(subData.pending.getFirst());
+            final SubData subData = entry.getValue();
+            while (!subData.pending.isEmpty()) {
+                pendingWork.addLast(subData.pending.removeFirst());
             }
             subData.state = SubData.State.BROKEN;
         }
