@@ -193,60 +193,58 @@ public class Engine extends ComponentImpl implements Handler {
             writeToNetwork(engineConnection);
         } else if (message instanceof SendRequest) {
             SendRequest sr = (SendRequest)message;
-            try {
-                EngineConnection engineConnection = sr.connection;
+       
+            EngineConnection engineConnection = sr.connection;
 
-                // Look to see if there is already a suitable sending link, and open one if there is not...
-                Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
-                                                              EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
-                Sender linkSender;
-                boolean linkOpened = false;
-                while(true) {
-                    if (link == null) {
-                        linkSender = sr.connection.session.sender(sr.topic);
-                        Source source = new Source();
-                        Target target = new Target();
-                        source.setAddress(sr.topic);
-                        target.setAddress(sr.topic);
-                        linkSender.setSource(source);
-                        linkSender.setTarget(target);
-                        linkSender.open();
-                        linkOpened = true;
-                        break;
-                    }
-                    if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
-                        linkSender = (Sender)link;
-                        break;
-                    }
-                    link = link.next(EnumSet.of(EndpointState.ACTIVE),
-                                     EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
-                }
-                Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
-
-                linkSender.send(sr.buf.array(), 0, sr.length);
-
-                if (sr.qos == QOS.AT_MOST_ONCE) {
-                    d.settle();
-                } else {
-                    engineConnection.inProgressOutboundDeliveries.put(d, sr);
-                }
-                linkSender.advance();
-                engineConnection.drained = false;
-                int delta = engineConnection.transport.head().remaining();
-                // If the link was also opened as part of processing this request then increase the
-                // amount of data expected (as the linkSender.send() won't count against the amount of
-                // data in transport.head() unless there is link credit - which there won't be until
-                // the server responds to the link open).
-                if (linkOpened) {
-                    delta += sr.length;
-                }
-                if (sr.qos == QOS.AT_MOST_ONCE) {
-                    engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
-                }
-                writeToNetwork(engineConnection);
-            } finally {
-                sr.buf.release();
+            // Look to see if there is already a suitable sending link, and open one if there is not...
+            Link link = sr.connection.connection.linkHead(EnumSet.of(EndpointState.ACTIVE),
+                EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
+            Sender linkSender;
+            boolean linkOpened = false;
+            while(true) {
+              if (link == null) {
+                linkSender = sr.connection.session.sender(sr.topic);
+                Source source = new Source();
+                Target target = new Target();
+                source.setAddress(sr.topic);
+                target.setAddress(sr.topic);
+                linkSender.setSource(source);
+                linkSender.setTarget(target);
+                linkSender.open();
+                linkOpened = true;
+                break;
+              }
+              if ((link instanceof Sender) && sr.topic.equals(link.getName())) {
+                linkSender = (Sender)link;
+                break;
+              }
+              link = link.next(EnumSet.of(EndpointState.ACTIVE),
+                  EnumSet.of(EndpointState.ACTIVE, EndpointState.UNINITIALIZED));
             }
+            Delivery d = linkSender.delivery(String.valueOf(engineConnection.deliveryTag++).getBytes(Charset.forName("UTF-8")));
+
+            linkSender.send(sr.buf.array(), 0, sr.length);
+
+            if (sr.qos == QOS.AT_MOST_ONCE) {
+              d.settle();
+            } else {
+              engineConnection.inProgressOutboundDeliveries.put(d, sr);
+            }
+            linkSender.advance();
+            engineConnection.drained = false;
+            int delta = engineConnection.transport.head().remaining();
+            // If the link was also opened as part of processing this request then increase the
+            // amount of data expected (as the linkSender.send() won't count against the amount of
+            // data in transport.head() unless there is link credit - which there won't be until
+            // the server responds to the link open).
+            if (linkOpened) {
+              delta += sr.length;
+            }
+            if (sr.qos == QOS.AT_MOST_ONCE) {
+              engineConnection.addInflightQos0(delta, new SendResponse(sr, null), sr.getSender(), this);
+            }
+            writeToNetwork(engineConnection);
+
         } else if (message instanceof SubscribeRequest) {
             SubscribeRequest sr = (SubscribeRequest) message;
             EngineConnection engineConnection = sr.connection;

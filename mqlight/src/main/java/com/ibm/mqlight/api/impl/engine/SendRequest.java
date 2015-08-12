@@ -36,5 +36,8 @@ public class SendRequest extends Message {
         this.length = length;
         this.qos = qos;
     }
-
+    
+    public void releaseBuf() {
+      buf.release();
+    }
 }

@@ -700,6 +700,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         } else if (message instanceof SendResponse) {
             SendResponse sr = (SendResponse)message;
+            sr.request.releaseBuf();
             InternalSend<?> is = outstandingSends.remove(sr.request);
             if (is != null) {
                 if (sr.cause == null) {
