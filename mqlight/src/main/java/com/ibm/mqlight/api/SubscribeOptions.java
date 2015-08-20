@@ -238,7 +238,7 @@ public class SubscribeOptions {
          *            a time to live value in the given {@link TimeUnit}, the default being 0 - meaning the destination will be
          *            deleted as soon as there are no clients subscribed to it. This must be a positive value, and a maximum of
          *            42949672950 (0xFFFFFFFF) once it has been converted to {@link TimeUnit#SECONDS}
-         * @param the
+         * @param unit
          *            {@link TimeUnit} of the given {@code ttl} argument
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          * @throws IllegalArgumentException

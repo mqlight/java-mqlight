@@ -34,7 +34,7 @@ public interface NetworkListener {
      *               altered by the implementation of {@link NetworkService} once
      *               this method has been invoked.
      *               <p>
-     *               Once the buffer is finished with the {@link buffer#release()}
+     *               Once the buffer is finished with the {@link ByteBuf#release()}
      *               method must be called to return the buffer to the pool, otherwise
      *               a memory leak will eventually be reported by the
      *               {@link io.netty.util.ResourceLeakDetector}.
