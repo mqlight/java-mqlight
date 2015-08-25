@@ -618,14 +618,15 @@ public class Engine extends ComponentImpl implements Handler {
             if (eventType == Event.Type.LINK_REMOTE_OPEN) {
                 // Receiver link open has been ack'ed by server.
                 if (link.getLocalState() == EndpointState.ACTIVE) {
+                  final EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
+                  final EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
                     if (link.getRemoteState() == EndpointState.ACTIVE) {
-                        EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
-                        EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(link.getName());
                         sd.subscriber.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic(link.getName())), this);
                     } else if (link.getRemoteState() == EndpointState.CLOSED) {
                         // link was immediately closed remotely after being ack'ed?
-                        ClientException clientException = getClientException(link.getRemoteCondition());
+                        final ClientException clientException = getClientException(link.getRemoteCondition());
                         logger.data(this, methodName, event, clientException, this);
+                        sd.subscriber.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic(link.getName()), clientException), this);
                     }
                 }
             } else if (eventType == Event.Type.LINK_REMOTE_CLOSE

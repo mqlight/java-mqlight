@@ -766,32 +766,41 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof SubscribeResponse) {
             SubscribeResponse sr = (SubscribeResponse)message;
             SubData sd = subscribedDestinations.get(sr.topic);
-            if (sr.error != null) logger.ffdc(methodName, FFDCProbeId.PROBE_007, sr.error , sr, this);
-            if (sd != null) {
-                if (sd.inProgressSubscribe != null) {
-                    sd.inProgressSubscribe.future.setSuccess(null);
-                    sd.inProgressSubscribe = null;
-                }
-                sd.state = SubData.State.ESTABLISHED;
-                // Replay any pending operations on the subscription
-                while(!sd.pending.isEmpty()) {
-                    Message m = (Message) sd.pending.removeFirst();
-                    tell(m, m.getSender());
-                }
+            if (sr.error == null) {
+                if (sd != null) {
+                    if (sd.inProgressSubscribe != null) {
+                        sd.inProgressSubscribe.future.setSuccess(null);
+                        sd.inProgressSubscribe = null;
+                    }
+                    sd.state = SubData.State.ESTABLISHED;
+                //  Replay any pending operations on the subscription
+                    while(!sd.pending.isEmpty()) {
+                        Message m = (Message) sd.pending.removeFirst();
+                        tell(m, m.getSender());
+                    }
 
-                // If the client is in the process of re-making its in-bound links - see if this process is now complete...
-                if (remakingInboundLinks) {
-                    boolean allRemade = true;
-                    for (SubData data : subscribedDestinations.values()) {
-                        if (data.state != SubData.State.ESTABLISHED) {
-                            allRemade = false;
-                            break;
+                    // If the client is in the process of re-making its in-bound links - see if this process is now complete...
+                    if (remakingInboundLinks) {
+                        boolean allRemade = true;
+                        for (SubData data : subscribedDestinations.values()) {
+                            if (data.state != SubData.State.ESTABLISHED) {
+                                allRemade = false;
+                                break;
+                            }
+                        }
+                        if (allRemade) {
+                            remakingInboundLinks = false;
+                            stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
                         }
                     }
-                    if (allRemade) {
-                        remakingInboundLinks = false;
-                        stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
+                }
+            } else {
+                if (sd != null) {
+                    if (sd.inProgressSubscribe != null) {
+                        sd.inProgressSubscribe.future.setFailure(sr.error);
+                        sd.inProgressSubscribe = null;
                     }
+                    subscribedDestinations.remove(sr.topic);
                 }
             }
         } else if (message instanceof InternalUnsubscribe) {
@@ -836,29 +845,32 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             // unsubscribe request (in the case that the server closes the link)
             UnsubscribeResponse ur = (UnsubscribeResponse)message;
             SubData sd = subscribedDestinations.remove(ur.topic);
-            String[] parts = ur.topic.split();
-            sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
-            if (sd.inProgressUnsubscribe != null) {
-                sd.inProgressUnsubscribe.future.setSuccess(null);
-                sd.inProgressUnsubscribe = null;
-            }
-            while(!sd.pending.isEmpty()) {
-                Message m = (Message) sd.pending.removeFirst();
-                tell(m, m.getSender());  // Put this back into the queue of events
-            }
-
-            // If the client is in the process of re-making its in-bound links - see if this process is now complete...
-            if (remakingInboundLinks) {
-                boolean allRemade = true;
-                for (SubData data : subscribedDestinations.values()) {
-                    if (data.state != SubData.State.ESTABLISHED) {
-                        allRemade = false;
-                        break;
-                    }
+            if (sd != null) {
+                String[] parts = ur.topic.split();
+                sd.listener.onUnsubscribed(callbackService, parts[0], parts[1], ur.error);
+                if (sd.inProgressUnsubscribe != null) {
+                    sd.inProgressUnsubscribe.future.setSuccess(null);
+                    sd.inProgressUnsubscribe = null;
                 }
-                if (allRemade) {
-                    remakingInboundLinks = false;
-                    stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
+                while (!sd.pending.isEmpty()) {
+                    Message m = (Message) sd.pending.removeFirst();
+                    tell(m, m.getSender()); // Put this back into the queue of events
+                }
+
+                // If the client is in the process of re-making its in-bound links - see if this process is now
+                // complete...
+                if (remakingInboundLinks) {
+                    boolean allRemade = true;
+                    for (SubData data : subscribedDestinations.values()) {
+                        if (data.state != SubData.State.ESTABLISHED) {
+                            allRemade = false;
+                            break;
+                        }
+                    }
+                    if (allRemade) {
+                        remakingInboundLinks = false;
+                        stateMachine.fire(NonBlockingClientTrigger.SUBS_REMADE);
+                    }
                 }
             }
         } else if (message instanceof DeliveryRequest) {
