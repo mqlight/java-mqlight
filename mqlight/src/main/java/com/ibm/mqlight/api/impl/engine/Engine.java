@@ -83,8 +83,6 @@ import com.ibm.mqlight.api.network.NetworkChannel;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
 
-import io.netty.buffer.ByteBuf;
-
 public class Engine extends ComponentImpl implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
@@ -859,12 +857,11 @@ public class Engine extends ComponentImpl implements Handler {
           byte[] data = new byte[amount];
           receiver.recv(data, 0, amount);
           receiver.advance();
-          ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
 
           EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(event.getLink().getName());
           subData.unsettled++;
           QOS qos = delivery.remotelySettled() ? QOS.AT_MOST_ONCE : QOS.AT_LEAST_ONCE;
-          subData.subscriber.tell(new DeliveryRequest(buf, qos, event.getLink().getName(), delivery, event.getConnection()), this);
+          subData.subscriber.tell(new DeliveryRequest(data, qos, event.getLink().getName(), delivery, event.getConnection()), this);
       }
 
       logger.exit(this, methodName);

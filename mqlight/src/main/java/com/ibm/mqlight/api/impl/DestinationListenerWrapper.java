@@ -95,9 +95,13 @@ class DestinationListenerWrapper<T> {
             public void run() {
                 final String methodName = "run";
                 logger.entry(this, methodName);
-                byte[] data = new byte[deliveryRequest.buf.array().length];
-                System.arraycopy(deliveryRequest.buf.array(), 0, data, 0, deliveryRequest.buf.array().length);
-                deliveryRequest.buf.release();
+
+                // take ownership of the message data and release it from the DeliveryRequest, this
+                // will avoids retaining the message data until the DeliveryRequest completes
+                // settlement.  This buffer will be retained if an error occurs parsing, otherwise
+                // it will be be naturally garbage collected after this method exits
+                byte[] data = deliveryRequest.buf;
+                deliveryRequest.buf = null;
 
                 MalformedDelivery.MalformedReason malformedReason = null;
                 String malformedDescription = null;
@@ -114,6 +118,7 @@ class DestinationListenerWrapper<T> {
                 } catch(BufferOverflowException | BufferUnderflowException | DecodeException e) {
                     malformedReason = MalformedDelivery.MalformedReason.PAYLOADNOTAMQP;
                     malformedDescription = "The message could not be decoded because the message data is not a valid AMQP message";
+
                     payloadBytes = data;
                 }
 
@@ -134,6 +139,7 @@ class DestinationListenerWrapper<T> {
                     } else {
                         malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
                         malformedDescription = "The message payload uses an AMQP format that the MQ Light client cannot process";
+
                         payloadBytes = data;
                     }
 

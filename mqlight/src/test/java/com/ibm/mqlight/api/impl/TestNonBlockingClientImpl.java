@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import io.netty.buffer.ByteBuf;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -488,9 +487,8 @@ public class TestNonBlockingClientImpl {
 
         assertEquals("Expected a single message to have been sent to the mock engine component", 1, client.getMessages().size());
         InternalSend<?> send = (InternalSend<?>)client.getMessages().get(0);
-        byte[] data = new byte[send.length];
-        System.arraycopy(send.buf.array(), 0, data, 0, send.length);
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(data);
+        byte[] msgData = new byte[send.length];
+        System.arraycopy(send.buf.array(), 0, msgData, 0, send.length);
 
         DeliveryRequest dr = new DeliveryRequest(msgData, QOS.AT_MOST_ONCE, "/kittens", null, null);
         TestDestinationListener destinationListener = new TestDestinationListener();
