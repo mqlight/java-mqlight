@@ -77,7 +77,7 @@ public class NettyNetworkService implements NetworkService {
         LogbackLogging.setup();
     }
 
-    private static Object bootstrapSync = new Object();
+    private static final Object bootstrapSync = new Object();
     private static Bootstrap bootstrap;
 
     static class NettyInboundHandler extends ChannelInboundHandlerAdapter implements NetworkChannel {
@@ -233,7 +233,7 @@ public class NettyNetworkService implements NetworkService {
         }
 
 
-        LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
+        final LinkedList<WriteRequest> pendingWrites = new LinkedList<>();
         boolean writeInProgress = false;
 
         private void processWriteRequest(WriteRequest toProcess) {
@@ -245,7 +245,7 @@ public class NettyNetworkService implements NetworkService {
             f.addListener(new GenericFutureListener<ChannelFuture>() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    boolean havePendingWrites = false;
+                    boolean havePendingWrites;
                     synchronized(pendingWrites) {
                         writeInProgress = false;
                         havePendingWrites = !pendingWrites.isEmpty();
@@ -421,7 +421,7 @@ public class NettyNetworkService implements NetworkService {
                 }
               }
             };
-            sslEngine.setEnabledProtocols(enabledProtocols.toArray(new String[0]));
+            sslEngine.setEnabledProtocols(enabledProtocols.toArray(new String[enabledProtocols.size()]));
             logger.data(this, methodName, "enabledProtocols", Arrays.toString(sslEngine.getEnabledProtocols()));
 
             final LinkedList<String> enabledCipherSuites = new LinkedList<String>() {
@@ -434,7 +434,7 @@ public class NettyNetworkService implements NetworkService {
                 }
               }
             };
-            sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[0]));
+            sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[enabledCipherSuites.size()]));
             logger.data(this, methodName, "enabledCipherSuites", Arrays.toString(sslEngine.getEnabledCipherSuites()));
 
             if (endpoint.getVerifyName()) {
