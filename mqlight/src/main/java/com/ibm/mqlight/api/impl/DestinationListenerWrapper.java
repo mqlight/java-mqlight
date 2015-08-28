@@ -42,6 +42,7 @@ import com.ibm.mqlight.api.impl.callback.CallbackPromiseImpl;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
+import io.netty.buffer.ByteBuf;
 
 class DestinationListenerWrapper<T> {
 
@@ -95,9 +96,6 @@ class DestinationListenerWrapper<T> {
             public void run() {
                 final String methodName = "run";
                 logger.entry(this, methodName);
-                byte[] data = new byte[deliveryRequest.buf.array().length];
-                System.arraycopy(deliveryRequest.buf.array(), 0, data, 0, deliveryRequest.buf.array().length);
-                deliveryRequest.buf.release();
 
                 MalformedDelivery.MalformedReason malformedReason = null;
                 String malformedDescription = null;
@@ -110,11 +108,12 @@ class DestinationListenerWrapper<T> {
 
                 org.apache.qpid.proton.message.Message msg = Proton.message();
                 try {
-                    msg.decode(data, 0, data.length);
+                    msg.decode(deliveryRequest.buf.nioBuffer());
                 } catch(BufferOverflowException | BufferUnderflowException | DecodeException e) {
                     malformedReason = MalformedDelivery.MalformedReason.PAYLOADNOTAMQP;
                     malformedDescription = "The message could not be decoded because the message data is not a valid AMQP message";
-                    payloadBytes = data;
+
+                    payloadBytes = copyWrappyByteBuf(deliveryRequest.buf);
                 }
 
                 Map<String, Object> properties = new HashMap<String, Object>();
@@ -134,7 +133,8 @@ class DestinationListenerWrapper<T> {
                     } else {
                         malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
                         malformedDescription = "The message payload uses an AMQP format that the MQ Light client cannot process";
-                        payloadBytes = data;
+
+                        payloadBytes = copyWrappyByteBuf(deliveryRequest.buf);
                     }
 
                     if ((msg.getApplicationProperties() != null) && (msg.getApplicationProperties().getValue() != null)) {
@@ -157,6 +157,9 @@ class DestinationListenerWrapper<T> {
                         }
                     }
                 }
+
+                // all done parsing the delivery request data, release the buffer
+                deliveryRequest.buf.release();
 
                 String parts[] = new SubscriptionTopic(deliveryRequest.topicPattern).split();
                 String shareName = parts[1];
@@ -237,6 +240,12 @@ class DestinationListenerWrapper<T> {
                 }
 
                 logger.exit(this, methodName);
+            }
+
+            private byte[] copyWrappyByteBuf(ByteBuf buf) {
+                byte[] data = new byte[deliveryRequest.buf.array().length];
+                System.arraycopy(deliveryRequest.buf.array(), 0, data, 0, deliveryRequest.buf.array().length);
+                return data;
             }
         }, client, new CallbackPromiseImpl(client, true));
 
