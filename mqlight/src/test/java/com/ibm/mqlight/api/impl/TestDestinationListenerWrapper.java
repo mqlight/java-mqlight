@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import io.netty.buffer.ByteBuf;
 
 import java.nio.BufferOverflowException;
 import java.util.ArrayList;
@@ -202,7 +201,7 @@ public class TestDestinationListenerWrapper {
         String expectedTopicPattern = "/#";
         long expectedTtl = 12345;
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(createSerializedProtonMessage(new AmqpValue(new Binary(expectedData)), expectedTopic, expectedTtl, null, null, null));
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(new Binary(expectedData)), expectedTopic, expectedTtl, null, null, null);
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
@@ -235,7 +234,7 @@ public class TestDestinationListenerWrapper {
         String expectedTopicPattern = "/#";
         long expectedTtl = 12345;
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, null, null));
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, null, null);
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
@@ -261,7 +260,7 @@ public class TestDestinationListenerWrapper {
         MockCallbackService callbackService = new MockCallbackService();
 
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer("I bet this isn't a valid AMQP message".getBytes());
+        byte[] msgData = "I bet this isn't a valid AMQP message".getBytes();
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:/malformed", null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
@@ -282,7 +281,7 @@ public class TestDestinationListenerWrapper {
         String expectedTopicPattern = "/#";
         long expectedTtl = 12345;
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(createSerializedProtonMessage(new AmqpValue(new Integer(7)), expectedTopic, expectedTtl, null, null, null));
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(new Integer(7)), expectedTopic, expectedTtl, null, null, null);
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
@@ -312,7 +311,7 @@ public class TestDestinationListenerWrapper {
         annotations.put(Symbol.getSymbol("x-opt-message-malformed-description"), expectedMalformedDescription);
         annotations.put(Symbol.getSymbol("x-opt-message-malformed-MQMD.Format"), expectedMQMDFormat);
         annotations.put(Symbol.getSymbol("x-opt-message-malformed-MQMD.CodedCharSetId"), expectedMQMDCCSID);
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, annotations, null));
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, annotations, null);
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
@@ -367,7 +366,7 @@ public class TestDestinationListenerWrapper {
         String expectedTopicPattern = "/#";
         long expectedTtl = 12345;
         QOS expectedQos = QOS.AT_LEAST_ONCE;
-        ByteBuf msgData = io.netty.buffer.Unpooled.wrappedBuffer(createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, null, "application/json"));
+        byte[] msgData = createSerializedProtonMessage(new AmqpValue(expectedData), expectedTopic, expectedTtl, null, null, "application/json");
 
         DeliveryRequest request = new DeliveryRequest(msgData, expectedQos, "private:" + expectedTopicPattern, null, null);
         DestinationListenerWrapper<Object> wrapper = new DestinationListenerWrapper<Object>(expectedClient, new GsonBuilder(), listener, expectedContext);
