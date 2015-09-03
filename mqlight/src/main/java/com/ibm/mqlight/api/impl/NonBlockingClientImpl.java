@@ -141,8 +141,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
     long retryDelay = 0;
 
-    private final Set<DeliveryRequest> pendingDeliveries = Collections.synchronizedSet(new HashSet<DeliveryRequest>());
-
     // topic pattern -> information about subscribed destination
     private final HashMap<SubscriptionTopic, SubData> subscribedDestinations = new HashMap<>();
 
@@ -155,6 +153,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
         State state = State.ATTACHING;
         private final LinkedList<QueueableWork> pending = new LinkedList<>();
+        private final Set<DeliveryRequest> pendingDeliveries = new HashSet<DeliveryRequest>();
         final DestinationListenerWrapper<?> listener;
         private final QOS qos;
         private final int credit;
@@ -170,6 +169,15 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             this.credit = credit;
             this.autoConfirm = autoConfirm;
             this.ttl = ttl;
+        }
+        
+        @Override
+        public String toString() {
+            return "SubData [state=" + state + ", pending=" + pending + ", pendingDeliveries="
+                    + pendingDeliveries + ", listener=" + listener + ", qos=" + qos + ", credit="
+                    + credit + ", autoConfirm=" + autoConfirm + ", ttl=" + ttl
+                    + ", inProgressSubscribe=" + inProgressSubscribe + ", inProgressUnsubscribe="
+                    + inProgressUnsubscribe + "]";
         }
     }
 
@@ -366,25 +374,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         return result;
     }
-
-    private static final Map<String, String> immutable = new HashMap<String, String>() {
-        // we need to do URI encoding, so we have a set of immutable characters that should not be encoded
-        // these are '/' and the RFC 2396 unreserved characters ("-", "_", ".", "!", "~", "*", "'", "(" and ")")
-        // and we also have the additional encoding of '+' to '%20' that URLEncoder doesn't seem to do
-        private static final long serialVersionUID = -6961093296676437685L;
-        {
-            put("%2F", "/");
-            put("%2D", "-");
-            put("%5F", "_");
-            put("%2E", ".");
-            put("%21", "!");
-            put("%7E", "~");
-            put("%2A", "*");
-            put("%27", "'");
-            put("%28", "(");
-            put("%29", ")");
-        }
-    };
 
     protected static boolean isValidPropertyValue(Object value) {
         final String methodName = "isValidPropertyValue";
@@ -817,7 +806,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     }
                     UnsubscribedException se = new UnsubscribedException(errMsg);
                     iu.future.setFailure(se);
-                } else if (sd.pending.isEmpty() && pendingDeliveries.isEmpty()) {
+                } else if (sd.pending.isEmpty() && sd.pendingDeliveries.isEmpty()) {
                     if (sd.state == SubData.State.ATTACHING) {
                         pendingWork.addLast(iu);
                     } else if (sd.state == SubData.State.DETATCHING) {
@@ -875,26 +864,29 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             }
         } else if (message instanceof DeliveryRequest) {
             DeliveryRequest dr = (DeliveryRequest)message;
-            final SubData subData = subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
+            final SubData sd = subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
             if (dr.qos == QOS.AT_LEAST_ONCE) {
-                pendingDeliveries.add(dr);
+                sd.pendingDeliveries.add(dr);
             }
-            subData.listener.onDelivery(callbackService, dr, subData.qos, subData.autoConfirm);
+            sd.listener.onDelivery(callbackService, dr, sd.qos, sd.autoConfirm);
         } else if (message instanceof DeliveryResponse) {
             // delivery settlement has been actioned client-side
             final DeliveryRequest dr = ((DeliveryResponse) message).request;
-            final boolean success = (dr.qos == QOS.AT_MOST_ONCE || pendingDeliveries.remove(dr));
-            if (!success) {
-                logger.data("Unexpected DeliveryResponse received {} from {} ", dr, message.getSender());
-            }
+            final SubData sd =
+                    subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
             
-            // if we've now cleared the backlog of pending deliveries, requeue any pending work for the sub
-            if (pendingDeliveries.isEmpty()) {
-                final SubData sd =
-                        subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
-                while (sd != null && !sd.pending.isEmpty()) {
-                    Message m = (Message) sd.pending.removeFirst();
-                    tell(m, m.getSender()); // Put this back into the queue of events
+            if (sd != null) {
+                final boolean success = (dr.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.remove(dr));
+                if (!success) {
+                    logger.data("Unexpected DeliveryResponse received {} from {} ", dr, message.getSender());
+                }
+
+                // if we've now cleared the backlog of pending deliveries, requeue any pending work for the sub
+                if (sd.pendingDeliveries.isEmpty()) {
+                    while (!sd.pending.isEmpty()) {
+                        Message m = (Message) sd.pending.removeFirst();
+                        tell(m, m.getSender()); // Put this back into the queue of events
+                    }
                 }
             }
         } else if (message instanceof DisconnectNotification) {
@@ -970,7 +962,10 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "closeConnection";
         logger.entry(this, methodName);
 
-        pendingDeliveries.clear();
+        for (Map.Entry<SubscriptionTopic, SubData> entry : subscribedDestinations.entrySet()) {
+            final SubData sd = entry.getValue();
+            sd.pendingDeliveries.clear();
+        }
         engine.tell(new CloseRequest(currentConnection), this);
 
         logger.exit(this, methodName);
@@ -1039,8 +1034,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "cleanup";
         logger.entry(this, methodName);
 
-        pendingDeliveries.clear();
-
         // Fire a drain notification if required.
         undrainedSends = 0;
         if (pendingDrain) {
@@ -1063,6 +1056,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 subData.inProgressUnsubscribe.future.setFailure(new StoppedException("Cannot unsubscribe because the client is in stopped state"));
                 subData.inProgressUnsubscribe = null;
             }
+            subData.pendingDeliveries.clear();
             while (!subData.pending.isEmpty()) {
                 pendingWork.addLast(subData.pending.removeFirst());
             }
@@ -1263,8 +1257,6 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "breakInboundLinks";
         logger.entry(this, methodName);
 
-        pendingDeliveries.clear();
-
         undrainedSends = 0;
         if (pendingDrain) {
             pendingDrain = false;
@@ -1283,6 +1275,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         for (Map.Entry<SubscriptionTopic, SubData>entry : subscribedDestinations.entrySet()) {
             final SubData subData = entry.getValue();
+            subData.pendingDeliveries.clear();
             while (!subData.pending.isEmpty()) {
                 pendingWork.addLast(subData.pending.removeFirst());
             }
@@ -1303,7 +1296,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "doDelivery";
         logger.entry(this, methodName, request);
 
-        final boolean result = (request.qos == QOS.AT_MOST_ONCE || pendingDeliveries.contains(request));
+        final SubData sd =
+                subscribedDestinations.get(new SubscriptionTopic(request.topicPattern));
+        final boolean result = (request.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.contains(request));
         if (result) {
             engine.tell(new DeliveryResponse(request), this);
         }
