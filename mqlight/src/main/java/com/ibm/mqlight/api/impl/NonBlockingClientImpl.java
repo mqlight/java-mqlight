@@ -865,10 +865,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         } else if (message instanceof DeliveryRequest) {
             DeliveryRequest dr = (DeliveryRequest)message;
             final SubData sd = subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
-            if (dr.qos == QOS.AT_LEAST_ONCE) {
-                sd.pendingDeliveries.add(dr);
+            if (sd == null) {
+                logger.data(methodName, "DeliveryRequest: subscribedDestination not found for " + dr.topicPattern);
+            } else {
+                if (dr.qos == QOS.AT_LEAST_ONCE) {
+                    sd.pendingDeliveries.add(dr);
+                }
+                sd.listener.onDelivery(callbackService, dr, sd.qos, sd.autoConfirm);
             }
-            sd.listener.onDelivery(callbackService, dr, sd.qos, sd.autoConfirm);
         } else if (message instanceof DeliveryResponse) {
             // delivery settlement has been actioned client-side
             final DeliveryRequest dr = ((DeliveryResponse) message).request;
@@ -1298,9 +1302,14 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
 
         final SubData sd =
                 subscribedDestinations.get(new SubscriptionTopic(request.topicPattern));
-        final boolean result = (request.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.contains(request));
-        if (result) {
-            engine.tell(new DeliveryResponse(request), this);
+        boolean result = false;
+        if (sd == null) {
+            logger.data(methodName, "subscribedDestination not found for " + request.topicPattern);
+        } else {
+            result = (request.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.contains(request));
+            if (result) {
+                engine.tell(new DeliveryResponse(request), this);
+            }
         }
 
         logger.exit(this, methodName, result);
