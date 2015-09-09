@@ -452,7 +452,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
 
         final ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
-        InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length);
+        InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length, sendOptions.getRetainLink());
         ++undrainedSends;
         tell(is, this);
 
@@ -678,7 +678,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             InternalSend<?> is = (InternalSend<?>)message;
             NonBlockingClientState state = stateMachine.getState();
             if (NonBlockingClientState.acceptingWorkStates.contains(state)) {
-                SendRequest sr = new SendRequest(currentConnection, is.topic, is.buf, is.length, is.qos);
+                SendRequest sr = new SendRequest(currentConnection, is.topic, is.buf, is.length, is.qos, is.retainLink);
                 outstandingSends.put(sr, is);
                 engine.tell(sr, this);
             } else if (NonBlockingClientState.queueingWorkStates.contains(state)) {

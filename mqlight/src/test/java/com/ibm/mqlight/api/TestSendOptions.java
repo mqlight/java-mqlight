@@ -71,3 +71,15 @@ public class TestSendOptions {
         }
     }
 }
+
+    @Test
+    public void retainLinkValues() {
+        SendOptions defaultRetainLinkOpts = SendOptions.builder().build();
+        assertEquals(true, defaultRetainLinkOpts.getRetainLink());
+
+        SendOptions explicitRetainLinkFalseOpts = SendOptions.builder().setRetainLink(false).build();
+        assertEquals(false, explicitRetainLinkFalseOpts.getRetainLink());
+
+        SendOptions explicitRetainLinkTrueOpts = SendOptions.builder().setRetainLink(true).build();
+        assertEquals(true, explicitRetainLinkTrueOpts.getRetainLink());
+    }

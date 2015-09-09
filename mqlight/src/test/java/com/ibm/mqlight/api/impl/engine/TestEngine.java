@@ -226,7 +226,7 @@ public class TestEngine {
         engine.tell(expectedOpenRequest, component);
         OpenResponse openResponse = (OpenResponse)component.getMessages().get(0);
 
-        engine.tell(new SendRequest(openResponse.connection, "topic1", wrappedBuffer(new byte[]{1, 2, 3}), 3, QOS.AT_MOST_ONCE), component);
+        engine.tell(new SendRequest(openResponse.connection, "topic1", wrappedBuffer(new byte[]{1, 2, 3}), 3, QOS.AT_MOST_ONCE, true), component);
         assertEquals("Expected two more messages to have been sent to component", 3, component.getMessages().size());
         assertTrue("Expected message 2 to be of type DrainNotification", component.getMessages().get(1) instanceof DrainNotification);
         assertTrue("Expected message 3 to be of type SendResponse", component.getMessages().get(2) instanceof SendResponse);
