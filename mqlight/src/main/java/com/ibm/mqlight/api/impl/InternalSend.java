@@ -32,8 +32,10 @@ class InternalSend<T> extends Message implements QueueableWork {
     final QOS qos;
     final ByteBuf buf;
     final int length;
+    final boolean retainLink;
     final CompletionFuture<T> future;
-    InternalSend(NonBlockingClientImpl client, String topic, QOS qos, ByteBuf buf, int length) {
+
+    InternalSend(NonBlockingClientImpl client, String topic, QOS qos, ByteBuf buf, int length, boolean retainLink) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, topic, qos, buf, length);
 
@@ -42,6 +44,7 @@ class InternalSend<T> extends Message implements QueueableWork {
         this.qos = qos;
         this.buf = buf;
         this.length = length;
+        this.retainLink = retainLink;
 
         logger.exit(this, methodName);
     }

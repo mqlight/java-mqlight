@@ -29,12 +29,15 @@ public class SendRequest extends Message {
     protected final ByteBuf buf;
     protected final int length;
     protected final QOS qos;
-    public SendRequest(EngineConnection connection, String topic, ByteBuf buf, int length, QOS qos) {
+    protected final boolean retainLink;
+
+    public SendRequest(EngineConnection connection, String topic, ByteBuf buf, int length, QOS qos, boolean retainLink) {
         this.connection = connection;
         this.topic = topic;
         this.buf = buf;
         this.length = length;
         this.qos = qos;
+        this.retainLink = retainLink;
     }
     
     public void releaseBuf() {

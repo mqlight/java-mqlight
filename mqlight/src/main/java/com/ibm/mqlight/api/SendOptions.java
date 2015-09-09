@@ -36,13 +36,15 @@ public class SendOptions {
 
     private final QOS qos;
     private final long ttl;
+    private final boolean retainLink;
 
-    private SendOptions(QOS qos, long ttl) {
+    private SendOptions(QOS qos, long ttl, boolean retainLink) {
         final String methodName = "<init>";
         logger.entry(this, methodName, qos, ttl);
 
         this.qos = qos;
         this.ttl = ttl;
+        this.retainLink = retainLink;
 
         logger.exit(this, methodName);
     }
@@ -55,11 +57,21 @@ public class SendOptions {
         return ttl;
     }
 
+    public final boolean getRetainLink() {
+        return retainLink;
+    }
+
     @Override
     public String toString() {
-        return super.toString()
-                + " [qos=" + qos
-                + ", ttl=" + ttl + "]";
+        StringBuilder sb = new StringBuilder(super.toString());
+        sb.append(" [qos=")
+          .append(qos)
+          .append(", ttl=")
+          .append(ttl)
+          .append(", retainLink=")
+          .append(retainLink)
+          .append("]");
+        return sb.toString();
     }
 
     /**
@@ -76,6 +88,7 @@ public class SendOptions {
     public static class SendOptionsBuilder {
         private QOS qos = QOS.AT_MOST_ONCE;
         private long ttl = 0;
+        private boolean retainLink = true;
 
         private SendOptionsBuilder() {}
 
@@ -127,11 +140,30 @@ public class SendOptions {
         }
 
         /**
+         * Set the retainLink option.  True by default this value will determine if the AMQP Link should
+         * be retained by the connection so that it can be re-used for subsequent messages.  When a client
+         * will not send further messages to a given topic this value can be set to false to automatically
+         * close the Link after sending this message.
+         * @param retainLink true if the Link should be retained, false to close after message send.
+         * @return the instance of <code>SendOptionsBuilder</code> that this method was
+         *         called on.
+         */
+        public SendOptionsBuilder setRetainLink(boolean retainLink) {
+            final String methodName = "setRetainLink";
+            logger.entry(this, methodName, retainLink);
+
+            this.retainLink = retainLink;
+
+            logger.exit(this, methodName, this);
+
+            return this;
+        }
+        /**
          * @return an instance of SendOptions based on the current settings of
          *         this builder.
          */
         public SendOptions build() {
-            return new SendOptions(qos, ttl);
+            return new SendOptions(qos, ttl, retainLink);
         }
     }
 

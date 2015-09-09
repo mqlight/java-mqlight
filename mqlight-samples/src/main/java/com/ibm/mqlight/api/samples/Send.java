@@ -95,6 +95,7 @@ public class Send {
             if (args.containsKey("--message-ttl")) {
                 optsBuilder.setTtl((Integer)args.get("--message-ttl") * 1000);
             }
+            optsBuilder.setRetainLink(repeat > 1);
             opts = optsBuilder.build();
         }
 
@@ -145,7 +146,7 @@ public class Send {
               .expect("-r", "--repeat", Integer.class, 1)
               .expect(null, "--sequence", Boolean.class, null)
               .expect("-f", "--file", String.class, null);
-        ArgumentParser.Results tmpArgs = null;;
+        ArgumentParser.Results tmpArgs = null;
         try {
             tmpArgs = parser.parse(cmdline);
         } catch(IllegalArgumentException e) {
@@ -180,6 +181,7 @@ public class Send {
                 if (args.parsed.containsKey("--message-ttl")) {
                     optsBuilder.setTtl((Integer)args.parsed.get("--message-ttl") * 1000);
                 }
+                optsBuilder.setRetainLink(false);
                 SendOptions opts = optsBuilder.build();
 
                 if (args.parsed.containsKey("-f")) {

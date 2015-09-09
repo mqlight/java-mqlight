@@ -229,6 +229,9 @@ public class Engine extends ComponentImpl implements Handler {
 
             if (sr.qos == QOS.AT_MOST_ONCE) {
               d.settle();
+              if (!sr.retainLink) {
+                linkSender.close();
+              }
             } else {
               engineConnection.inProgressOutboundDeliveries.put(d, sr);
             }
@@ -853,6 +856,9 @@ public class Engine extends ComponentImpl implements Handler {
               exception = new Exception("Message was released");
           } else if (delivery.getRemoteState() instanceof Modified) {
               exception = new Exception("Message was modified");
+          }
+          if (!sr.retainLink) {
+              event.getLink().close();
           }
           sr.getSender().tell(new SendResponse(sr, exception), this);
       } else if (delivery.isReadable() && !delivery.isPartial()) {    // Assuming link instanceof Receiver...
