@@ -31,18 +31,18 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 
 /**
- * A logback filter for selecting MQ Light trace type events. These are events that have been marked as entry, exit, data or throwing. 
+ * A logback filter for selecting MQ Light trace type events. These are events that have been marked as entry, exit, data or throwing.
  */
 public class TraceFilter extends Filter<ILoggingEvent> {
 
-  static Map<Marker, String> traceMarkerMap = new HashMap<Marker, String>();
+  static Map<Marker, String> traceMarkerMap = new HashMap<>();
   static {
     traceMarkerMap.put(LogMarker.ENTRY.getValue(), "{");
     traceMarkerMap.put(LogMarker.EXIT.getValue(), "}");
     traceMarkerMap.put(LogMarker.DATA.getValue(), "d");
     traceMarkerMap.put(LogMarker.THROWING.getValue(), "!");
   }
-  
+
   @Override
   public FilterReply decide(ILoggingEvent event) {
     if (traceMarkerMap.containsKey(event.getMarker())) {

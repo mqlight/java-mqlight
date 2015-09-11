@@ -41,7 +41,7 @@ public interface TimerService {
      * @param delay a delay in milliseconds
      * @param promise a promise object to be completed after the delay period
      */
-    public void schedule(long delay, Promise<Void> promise);
+    void schedule(long delay, Promise<Void> promise);
 
     /**
      * Cancels a previously scheduled promise (e.g. one that has previously been passed to
@@ -58,5 +58,5 @@ public interface TimerService {
      *
      * @param promise the promise to cancel
      */
-    public void cancel(Promise<Void> promise);
+    void cancel(Promise<Void> promise);
 }

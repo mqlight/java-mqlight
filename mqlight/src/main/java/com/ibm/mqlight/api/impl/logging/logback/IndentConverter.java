@@ -39,8 +39,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
  * required anyway, hence indentation is not required by the service team.
  */
 public class IndentConverter extends ClassicConverter {
-  
-  private static Map<Marker, String> markerMap = new HashMap<Marker, String>();
+
+  private static Map<Marker, String> markerMap = new HashMap<>();
   static {
     markerMap.put(LogMarker.INFO.getValue(),     "i");
     markerMap.put(LogMarker.WARNING.getValue(),  "w");
@@ -52,7 +52,7 @@ public class IndentConverter extends ClassicConverter {
     markerMap.put(LogMarker.DATA.getValue(),     "d");
     markerMap.put(LogMarker.THROWING.getValue(), "!");
   }
-  
+
   @Override
   public String convert(ILoggingEvent event) {
     final Marker marker = event.getMarker();

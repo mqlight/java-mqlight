@@ -32,13 +32,13 @@ public class TestClientIdConverter {
   @Test
   public void testConvertWithClientIdNotSet() {
     MDC.clear();
-    
+
     final ClientIdConverter converter = new ClientIdConverter();
-    
+
     assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object [] {})));
-    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object [] {})));
-    
+    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
+    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message")));
+
     MockILoggingEvent event = new MockILoggingEvent();
     event.setNullMDC(true);
     assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent()));
@@ -48,30 +48,30 @@ public class TestClientIdConverter {
   public void testConvertWithClientIdSetToNull() {
     MDC.put(Logger.CLIENTID_KEY, null);
     final ClientIdConverter converter = new ClientIdConverter();
-    
+
     assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object [] {})));
-    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object [] {})));
+    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
+    assertEquals("Unexpected convertion", "*", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message")));
   }
 
   @Test
   public void testConvertWithClientIdSetBlank() {
     MDC.put(Logger.CLIENTID_KEY, "");
     final ClientIdConverter converter = new ClientIdConverter();
-    
+
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object [] {})));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object [] {})));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message")));
   }
-  
+
   @Test
   public void testConvertWithClientIdSet() {
     MDC.put(Logger.CLIENTID_KEY, "id");
     final ClientIdConverter converter = new ClientIdConverter();
-    
+
     assertEquals("Unexpected convertion", "id", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "id", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object [] {})));
-    assertEquals("Unexpected convertion", "id", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object [] {})));
+    assertEquals("Unexpected convertion", "id", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
+    assertEquals("Unexpected convertion", "id", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message")));
   }
-  
+
 }

@@ -46,7 +46,7 @@ public class TestLoggerImpl {
     public ReloadClassLoader(String loadFailClassName) {
       this.loadFailClassName = loadFailClassName;
     }
-    
+
     @Override
     public Class<?> loadClass(String className) throws ClassNotFoundException {
       if (className.startsWith("com.ibm.mqlight")) {
@@ -78,19 +78,19 @@ public class TestLoggerImpl {
       }
     }
   }
-  
+
   @Test
   public void testLoadError() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
     final ReloadClassLoader loader = new ReloadClassLoader(LoggerFactory.LOGGER_FACTORY_IMPL_CLASS_NAME);
     try {
       Class<?> loggerFactory = loader.loadClass("com.ibm.mqlight.api.logging.LoggerFactory");
-      Method method = loggerFactory.getMethod("getLogger", new Class<?> [] { Class.class });
-      method.invoke(null, new Object [] { getClass() });
+      Method method = loggerFactory.getMethod("getLogger", Class.class);
+      method.invoke(null, getClass());
       fail("expected and exception to be thrown");
     } catch (Error e) {
     }
   }
-  
+
   @Test
   public void testClientId() {
 
@@ -98,7 +98,7 @@ public class TestLoggerImpl {
     final Logger testLogger = LoggerFactory.getLogger(logger);
     testLogger.setClientId("TestClientId");
     final String clientId = MDC.get(Logger.CLIENTID_KEY);
-    
+
     assertEquals("Expected client id to be set", "TestClientId", clientId);
   }
 
@@ -114,14 +114,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected message", "test info message", event.message);
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected args", 0, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testWarning() {
 
@@ -134,14 +134,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected message", "test warning message", event.message);
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected args", 0, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-   
+
   @Test
   public void testError() {
 
@@ -154,7 +154,7 @@ public class TestLoggerImpl {
     assertEquals("Unexpected message", "test error message", event.message);
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected args", 0, event.args.length);
-    
+
     Exception testException = new Exception("error exception");
     testLogger.error("test error message2", testException);
     event = logger.getEvent();
@@ -163,14 +163,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected message", "test error message2", event.message);
     assertEquals("Unexpected throwable", testException, event.throwable);
     assertEquals("Unexpected args", 0, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testEntry() {
 
@@ -185,7 +185,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertNull("Unexpected object", event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     testLogger.entry(this, methodName);
     event = logger.getEvent();
     assertEquals("Unexpected type", "trace", event.type);
@@ -194,7 +194,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     Integer arg1 = 123;
     String arg2 = "abc";
     testLogger.entry(methodName, arg1, arg2);
@@ -207,7 +207,7 @@ public class TestLoggerImpl {
     assertEquals("Unexpected arg1", arg1, event.args[1]);
     assertEquals("Unexpected arg2", arg2, event.args[2]);
     assertEquals("Unexpected args", 3, event.args.length);
-    
+
     arg1 = 567;
     arg2 = "jgf";
     ProcessBuilder arg3 = new ProcessBuilder();
@@ -222,14 +222,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected arg2", arg2, event.args[2]);
     assertEquals("Unexpected arg2", arg3, event.args[3]);
     assertEquals("Unexpected args", 4, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testExit() {
 
@@ -244,7 +244,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertNull("Unexpected object", event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     testLogger.exit(this, methodName);
     event = logger.getEvent();
     assertEquals("Unexpected type", "trace", event.type);
@@ -253,7 +253,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     Integer result1 = 123;
     testLogger.exit(methodName, result1);
     event = logger.getEvent();
@@ -264,7 +264,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected object", event.args[0]);
     assertEquals("Unexpected arg1", result1, event.args[1]);
     assertEquals("Unexpected args", 2, event.args.length);
-    
+
     ProcessBuilder result2 = new ProcessBuilder();
     testLogger.exit(this, methodName, result2);
     event = logger.getEvent();
@@ -275,14 +275,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected arg1", result2, event.args[1]);
     assertEquals("Unexpected args", 2, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testData() {
 
@@ -297,7 +297,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertNull("Unexpected object", event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     testLogger.data(this, methodName);
     event = logger.getEvent();
     assertEquals("Unexpected type", "trace", event.type);
@@ -306,7 +306,7 @@ public class TestLoggerImpl {
     assertNull("Unexpected throwable", event.throwable);
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     Integer arg1 = 123;
     String arg2 = "abc";
     testLogger.data(methodName, arg1, arg2);
@@ -319,7 +319,7 @@ public class TestLoggerImpl {
     assertEquals("Unexpected arg1", arg1, event.args[1]);
     assertEquals("Unexpected arg2", arg2, event.args[2]);
     assertEquals("Unexpected args", 3, event.args.length);
-    
+
     arg1 = 567;
     arg2 = "jgf";
     ProcessBuilder arg3 = new ProcessBuilder();
@@ -334,14 +334,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected arg2", arg2, event.args[2]);
     assertEquals("Unexpected arg2", arg3, event.args[3]);
     assertEquals("Unexpected args", 4, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testThrowing() {
 
@@ -357,7 +357,7 @@ public class TestLoggerImpl {
     assertEquals("Unexpected throwable", testException, event.throwable);
     assertNull("Unexpected object", event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     // Note that the test below shows up potentially unexpected behaviour as the testException gets treated as a regular argument (i.e. the underlying called org.slf4j.Logger.trace
     // method is not one with a Throwable argument (the MockEvent test class has logic to deal with this behaviour)
     testLogger.throwing(this, "testThrowingMethod", testException);
@@ -368,14 +368,14 @@ public class TestLoggerImpl {
     assertEquals("Unexpected throwable", testException, event.throwable);
     assertEquals("Unexpected object", this, event.args[0]);
     assertEquals("Unexpected args", 1, event.args.length);
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
-  
+
   @Test
   public void testFFDC() {
 
@@ -384,7 +384,7 @@ public class TestLoggerImpl {
     final String methodName = "testFFDCMethod";
     final Exception exception = new Exception("TestExceptionForFFDC");
     testLogger.ffdc(this, methodName, FFDCProbeId.PROBE_007, exception, "data1", "data2");
-    
+
     MockEvent event = logger.getEvent();
     System.out.println(event.message);
     assertEquals("Unexpected type", "error", event.type);
@@ -400,12 +400,12 @@ public class TestLoggerImpl {
     System.out.println(event.message);
     assertEquals("Unexpected type", "info", event.type);
     assertTrue("Unexpected message", event.message.startsWith("Javacore diagnostic information"));
-    
+
     try {
       event = logger.getEvent();
       fail("Unexpected event: "+event);
     } catch(NoSuchElementException e) {
     }
   }
- 
+
 }

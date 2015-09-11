@@ -74,11 +74,11 @@ public enum FFDCProbeId {
   PROBE_049("FFDC_049");
 
   private final String id;
-  
-  private FFDCProbeId(String id) {
+
+  FFDCProbeId(String id) {
     this.id = id;
   }
-  
+
   public String toString() {
     return id;
   }

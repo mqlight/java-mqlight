@@ -32,9 +32,9 @@ public class TestTimerService {
 
     private class MockPromise implements Promise<Void> {
         private AtomicBoolean complete = new AtomicBoolean(false);
-        private AtomicBoolean setFailureCalled = new AtomicBoolean(false);;
-        private AtomicBoolean setSuccessCalled = new AtomicBoolean(false);;
-        
+        private AtomicBoolean setFailureCalled = new AtomicBoolean(false);
+        private AtomicBoolean setSuccessCalled = new AtomicBoolean(false);
+
         @Override
         public void setFailure(Exception exception) throws IllegalStateException {
             if (complete.getAndSet(true)) throw new IllegalStateException();
@@ -51,7 +51,7 @@ public class TestTimerService {
         public boolean isComplete() {
             return complete.get();
         }
-        
+
     }
 
     @Test
@@ -66,20 +66,20 @@ public class TestTimerService {
             Thread.sleep(50);
         }
         long t2 = System.currentTimeMillis();
-        
+
         assertTrue("Promise should have completed by now!", promise.isComplete());
         long elapsed = t2 - t1;
         if (elapsed < 150) throw new AssertionFailedError("Promise completed too quickly in " + elapsed +"ms (expected 250ms)");
         assertFalse("Promise should not have been marked as failed", promise.setFailureCalled.get());
     }
-    
+
     @Test
     public void cancel() throws InterruptedException {
         TimerService timer = new TimerServiceImpl();
         MockPromise promise = new MockPromise();
         timer.schedule(250, promise);
         timer.cancel(promise);
-        
+
         long t1 = System.currentTimeMillis();
         for (int i = 0; i < 10; ++i) {
             if (promise.isComplete()) break;
@@ -91,7 +91,7 @@ public class TestTimerService {
         if (elapsed > 150) throw new AssertionFailedError("Promise completed too slowly in " + elapsed +"ms (expected < 150ms)");
         assertFalse("Promise should not have been marked as successful", promise.setSuccessCalled.get());
     }
-    
+
     @Test
     public void cancelCompleted() throws InterruptedException {
         TimerService timer = new TimerServiceImpl();
@@ -103,7 +103,7 @@ public class TestTimerService {
             Thread.sleep(50);
         }
         assertTrue("Promise should have completed by now!", promise.isComplete());
-        
+
         timer.cancel(promise);   // Should have no ill effects...
     }
 }

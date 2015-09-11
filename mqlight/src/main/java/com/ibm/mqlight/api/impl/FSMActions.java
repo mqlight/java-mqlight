@@ -20,56 +20,56 @@ package com.ibm.mqlight.api.impl;
 
 public interface FSMActions {
 
-    public void startTimer();
-    
-    public void openConnection();
-    
-    public void closeConnection();
-    
-    public void cancelTimer();
-    
-    public void requestEndpoint();
-    
+    void startTimer();
+
+    void openConnection();
+
+    void closeConnection();
+
+    void cancelTimer();
+
+    void requestEndpoint();
+
     /**
      * This action remakes the client's subscriptions.
      * <p>
      * The action is invoked whenever a connection is recovered.
      */
-    public void remakeInboundLinks();
-    
-    public void blessEndpoint();
-    
+    void remakeInboundLinks();
+
+    void blessEndpoint();
+
     /**
      * This action performs the cleanup operations such as flushing/failing any pending sends or subscribes.
      * <p>
      * The action can be invoked when a client is stopping.
      */
-    public void cleanup();
-    
-    public void failPendingStops();
-    
-    public void succeedPendingStops();
-    
-    public void failPendingStarts();
-    
-    public void succeedPendingStarts();
-    
+    void cleanup();
+
+    void failPendingStops();
+
+    void succeedPendingStops();
+
+    void failPendingStarts();
+
+    void succeedPendingStarts();
+
     // All of these relate to external state machine transitions
-    public void eventStarting();
-    public void eventUserStopping();
-    public void eventSystemStopping();
-    public void eventStopped();
-    public void eventStarted();
-    public void eventRetrying();
-    public void eventRestarted();
+    void eventStarting();
+    void eventUserStopping();
+    void eventSystemStopping();
+    void eventStopped();
+    void eventStarted();
+    void eventRetrying();
+    void eventRestarted();
 
     /**
      * This action breaks any pending sends and subscription requests from the client
      * <p>
      * The action is invoked whenever a network error occurs and the client is not stopping.
      */
-    public void breakInboundLinks();
-    
-    public void processQueuedActions();
+    void breakInboundLinks();
+
+    void processQueuedActions();
 
 }

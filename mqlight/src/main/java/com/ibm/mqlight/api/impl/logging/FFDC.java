@@ -32,13 +32,13 @@ class FFDC {
 
   /** Character sequence to use as the line separator */
   private static final String lineSeparator = System.getProperty("line.separator");
-  
+
   /**
    * Captures FFDC information.
-   * 
+   *
    * @param logger Logger for identifying caller, and for outputting FFDC information to.
    * @param methodName Name of the calling method.
-   * @param probeId A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
+   * @param probe A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
    *          class.
    * @param throwable The throwable that triggered capturing of FFDC information. This can be null if there is no obvious throwable cause.
    * @param data Arbitrary data that is captured into the FFDC record.
@@ -49,7 +49,7 @@ class FFDC {
 
   /**
    * Captures FFDC information.
-   * 
+   *
    * @param logger Logger for identifying caller, and for outputting FFDC information to.
    * @param callingObject Object requesting the FFDC.
    * @param methodName Name of the calling method.
@@ -62,16 +62,16 @@ class FFDC {
     long ffdcTimestamp = System.currentTimeMillis();
     final String className = logger.getName();
     final StringBuilder sb = new StringBuilder();
-    
+
     sb.append("Level:      ");
     sb.append(Version.getVersion());
     sb.append(lineSeparator);
-    
+
     final SimpleDateFormat recordFormatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss:SSS z");
     sb.append("Time:       ");
     sb.append(recordFormatter.format(ffdcTimestamp));
     sb.append(lineSeparator);
-            
+
     Thread currentThread = Thread.currentThread();
     sb.append("Thread:     ");
     sb.append(currentThread.getId());
@@ -79,33 +79,33 @@ class FFDC {
     sb.append(currentThread.getName());
     sb.append(")");
     sb.append(lineSeparator);
-            
+
     if (className != null) {
       sb.append("Class:      ");
       sb.append(className);
       sb.append(lineSeparator);
     }
-            
+
     if (callingObject != null) {
       sb.append("Instance:   ");
       sb.append(Integer.toHexString(System.identityHashCode(callingObject)));
       sb.append(lineSeparator);
     }
-            
+
     if (methodName != null) {
       sb.append("Method:     ");
       sb.append(methodName);
       sb.append(lineSeparator);
     }
-            
+
     sb.append("Probe:      ");
     sb.append(probeId == null ? "null" : probeId);
     sb.append(lineSeparator);
-    
+
     sb.append("Cause:      ");
     sb.append(throwable == null ? "null" : throwable.toString());
     sb.append(lineSeparator);
-    
+
     try {
       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
       PrintStream stream = new PrintStream(byteOut, false, "UTF-8");
@@ -121,7 +121,7 @@ class FFDC {
     } catch (UnsupportedEncodingException e) {
       logger.error("Failed to generate FFDC call stack. Reason: ", e.getLocalizedMessage());
     }
-    
+
     if (data != null) {
       for (int i = 0; i < data.length; ++i) {
         Object item = data[i];
@@ -132,13 +132,13 @@ class FFDC {
         sb.append(lineSeparator);
       }
     }
-    
+
     for (Thread thread : Thread.getAllStackTraces().keySet()) {
       sb.append(getThreadInfo(thread));
     }
-        
+
     logger.error(LogMarker.FFDC.getValue(), sb.toString());
-    
+
     // Additionally output a javacore (to capture the full information to file)
     try {
       final String javacoreFilePath = Javacore.generateJavaCore();
@@ -150,7 +150,7 @@ class FFDC {
 
   /**
    * Gets and formats the specified thread's information.
-   * 
+   *
    * @param thread The thread to obtain the information from.
    * @return A formatted string for the thread information.
    */
@@ -182,7 +182,7 @@ class FFDC {
           sb.append(":");
           sb.append(element.getLineNumber());
         } else {
-          sb.append(element.getFileName());        
+          sb.append(element.getFileName());
         }
         sb.append(")");
         sb.append(lineSeparator);
@@ -193,5 +193,5 @@ class FFDC {
     return sb.toString();
   }
 
-  
+
 }

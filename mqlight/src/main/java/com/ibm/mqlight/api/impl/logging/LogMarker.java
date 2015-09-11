@@ -34,13 +34,13 @@ public enum LogMarker {
   EXIT           ("exit"),
   DATA           ("data"),
   THROWING       ("throwing");
-  
+
   private final Marker marker;
-  
-  private LogMarker(String markerLabel) {
+
+  LogMarker(String markerLabel) {
     marker = MarkerFactory.getMarker(markerLabel);
   }
-  
+
   public Marker getValue() {
     return marker;
   }

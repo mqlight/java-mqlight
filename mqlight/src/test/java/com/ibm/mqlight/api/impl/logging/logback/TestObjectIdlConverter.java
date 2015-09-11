@@ -34,10 +34,10 @@ public class TestObjectIdlConverter {
 
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent()));
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", (Object[]) null)));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", new Object[] {})));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message")));
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", new Object[] { null })));
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ERROR.getValue(), "message", new Object[] { null })));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] {})));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
     assertEquals("Unexpected convertion", "static", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected convertion", "static", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { null })));
     assertEquals("Unexpected convertion", "static", converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { null })));
@@ -45,11 +45,11 @@ public class TestObjectIdlConverter {
 
     final String obj = new String("id");
     final String objId = Integer.toHexString(System.identityHashCode(obj));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", new Object[] { obj })));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.WARNING.getValue(), "message", new Object[] { obj })));
-    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { obj })));
-    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { obj })));
-    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { obj })));
-    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.THROWING.getValue(), "message", new Object[] { obj })));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", obj)));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.WARNING.getValue(), "message", obj)));
+    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", obj)));
+    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", obj)));
+    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", obj)));
+    assertEquals("Unexpected convertion", "@"+objId, converter.convert(new MockILoggingEvent(null, LogMarker.THROWING.getValue(), "message", obj)));
   }
 }

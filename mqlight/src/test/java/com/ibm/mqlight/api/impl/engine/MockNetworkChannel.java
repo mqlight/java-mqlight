@@ -43,7 +43,7 @@ public class MockNetworkChannel implements NetworkChannel {
     private final Transport transport;
     private final Collector collector;
     private Object context = null;
-    
+
     public MockNetworkChannel(NetworkListener listener, Handler handler) {
         this.listener = listener;
         this.handler = handler;
@@ -56,10 +56,10 @@ public class MockNetworkChannel implements NetworkChannel {
         transport.bind(connection);
         Sasl sasl = transport.sasl();
         sasl.server();
-        sasl.setMechanisms(new String[]{"ANONYMOUS"});
+        sasl.setMechanisms("ANONYMOUS");
         sasl.done(Sasl.SaslOutcome.PN_SASL_OK);
     }
-    
+
     @Override
     public void close(Promise<Void> promise) {
         if (promise != null) promise.setSuccess(null);
@@ -79,7 +79,7 @@ public class MockNetworkChannel implements NetworkChannel {
                 event.dispatch(handler);
                 collector.pop();
             }
-            
+
         }
         process();
     }
@@ -96,7 +96,7 @@ public class MockNetworkChannel implements NetworkChannel {
             listener.onRead(this, buf);
         }
     }
-    
+
     @Override
     public void setContext(Object context) {
         this.context = context;

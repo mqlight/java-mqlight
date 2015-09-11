@@ -86,7 +86,7 @@ import com.ibm.mqlight.api.timer.TimerService;
 public class Engine extends ComponentImpl implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(Engine.class);
-    
+
     static class EngineProtocolTracer implements ProtocolTracer {
         private static final Logger logger = LoggerFactory.getLogger(EngineProtocolTracer.class);
 
@@ -161,7 +161,7 @@ public class Engine extends ComponentImpl implements Handler {
                 Sasl sasl = transport.sasl();
                 sasl.client();
                 if (or.endpoint.getUser() == null) {
-                    sasl.setMechanisms(new String[]{"ANONYMOUS"});
+                    sasl.setMechanisms("ANONYMOUS");
                 } else {
                     sasl.plain(or.endpoint.getUser(), or.endpoint.getPassword());
                 }
@@ -191,7 +191,7 @@ public class Engine extends ComponentImpl implements Handler {
             writeToNetwork(engineConnection);
         } else if (message instanceof SendRequest) {
             SendRequest sr = (SendRequest)message;
-       
+
             EngineConnection engineConnection = sr.connection;
 
             // Look to see if there is already a suitable sending link, and open one if there is not...
@@ -274,7 +274,7 @@ public class Engine extends ComponentImpl implements Handler {
                     linkReceiver.setSenderSettleMode(SenderSettleMode.SETTLED);
                     linkReceiver.setReceiverSettleMode(ReceiverSettleMode.FIRST);
                 }
-                
+
                 if (sr.topic.isShared()) {
                   source.setCapabilities(Symbol.valueOf("shared"));
                 }
@@ -310,7 +310,7 @@ public class Engine extends ComponentImpl implements Handler {
             DeliveryResponse dr = (DeliveryResponse)message;
             Delivery delivery = dr.request.delivery;
             delivery.settle();
-            
+
             EngineConnection engineConnection = (EngineConnection)dr.request.protonConnection.getContext();
             EngineConnection.SubscriptionData subData = engineConnection.subscriptionData.get(dr.request.topicPattern);
             if (subData == null) {
@@ -330,7 +330,7 @@ public class Engine extends ComponentImpl implements Handler {
             }
 
             writeToNetwork(engineConnection);
-            
+
             // send the DeliveryResponse back to indicate settlement has been actioned
             engineConnection.requestor.tell(message, this);
 
@@ -342,12 +342,12 @@ public class Engine extends ComponentImpl implements Handler {
             if (engineConnection != null) {
                 engineConnection.bytesWritten += wr.amount;
                 engineConnection.notifyInflightQos0(false);
-                
+
                 // If all buffered network data has been sent and the last send request could not be sent immediately
                 // then send a drain event to inform the client that it is ok to send more messages
                 if (wr.drained && !engineConnection.drained) {
                     engineConnection.drained = true;
-                    engineConnection.requestor.tell(new DrainNotification(), this); 
+                    engineConnection.requestor.tell(new DrainNotification(), this);
                 }
                 if (engineConnection.transport.pending() > 0) {
                     writeToNetwork(engineConnection);
@@ -566,12 +566,12 @@ public class Engine extends ComponentImpl implements Handler {
         ClientException result = null;
 
         if (errorCondition != null && errorCondition.getCondition() != null) {
-            if (errorCondition.getDescription().toString().contains("_Takeover")) {
+            if (errorCondition.getDescription().contains("_Takeover")) {
                 result = new ReplacedException(errorCondition.getDescription());
             } else if (errorCondition.getCondition().equals(AmqpError.PRECONDITION_FAILED)
                     || errorCondition.getCondition().equals(AmqpError.NOT_ALLOWED)
                     || errorCondition.getCondition().equals(AmqpError.NOT_IMPLEMENTED)
-                    || errorCondition.getDescription().toString().contains("_InvalidSourceTimeout")) {
+                    || errorCondition.getDescription().contains("_InvalidSourceTimeout")) {
                 result = new NotPermittedException(errorCondition.getDescription());
             }
 
@@ -845,7 +845,7 @@ public class Engine extends ComponentImpl implements Handler {
               } else {
                   exception = new Exception(error.getDescription());
               }
-          } else if (delivery.getRemoteState() instanceof Released) {;
+          } else if (delivery.getRemoteState() instanceof Released) {
               exception = new Exception("Message was released");
           } else if (delivery.getRemoteState() instanceof Modified) {
               exception = new Exception("Message was modified");

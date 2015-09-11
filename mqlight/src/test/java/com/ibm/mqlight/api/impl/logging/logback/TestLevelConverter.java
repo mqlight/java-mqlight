@@ -34,9 +34,9 @@ public class TestLevelConverter {
     final LevelConverter converter = new LevelConverter();
 
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message", new Object[] {})));
-    assertEquals("Unexpected convertion", "INFO", converter.convert(new MockILoggingEvent(Level.INFO, null, "message", new Object[] {})));
-    assertEquals("Unexpected convertion", "mark", converter.convert(new MockILoggingEvent(null, MarkerFactory.getMarker("mark"), "message", new Object[] {})));
-    assertEquals("Unexpected convertion", "mark", converter.convert(new MockILoggingEvent(Level.INFO, MarkerFactory.getMarker("mark"), "message", new Object[] {})));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, null, "message")));
+    assertEquals("Unexpected convertion", "INFO", converter.convert(new MockILoggingEvent(Level.INFO, null, "message")));
+    assertEquals("Unexpected convertion", "mark", converter.convert(new MockILoggingEvent(null, MarkerFactory.getMarker("mark"), "message")));
+    assertEquals("Unexpected convertion", "mark", converter.convert(new MockILoggingEvent(Level.INFO, MarkerFactory.getMarker("mark"), "message")));
   }
 }

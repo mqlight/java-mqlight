@@ -25,9 +25,9 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
 class InternalSubscribe<T> extends Message implements QueueableWork {
-  
+
     private static final Logger logger = LoggerFactory.getLogger(InternalSubscribe.class);
-  
+
     final CompletionFuture<T> future;
     final SubscriptionTopic topic;
     final QOS qos;
@@ -40,15 +40,15 @@ class InternalSubscribe<T> extends Message implements QueueableWork {
                       GsonBuilder gsonBuilder, DestinationListener<T> destListener, T context) {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, topic, qos, credit, autoConfirm, ttl, gsonBuilder, destListener, context);
-      
+
         future = new CompletionFuture<>(client);
         this.topic = topic;
         this.qos = qos;
         this.credit = credit;
         this.autoConfirm = autoConfirm;
         this.ttl = ttl;
-        this.destListener = new DestinationListenerWrapper<T>(client, gsonBuilder, destListener, context);
-        
+        this.destListener = new DestinationListenerWrapper<>(client, gsonBuilder, destListener, context);
+
         logger.exit(this, methodName);
     }
 }

@@ -455,7 +455,7 @@ class NonBlockingFSMFactory {
 
     private static void generateDotFile(OutputStream dotFile) {
         System.out.println("digraph G {");
-        final HashSet<String> invokedMethods = new HashSet<String>();
+        final HashSet<String> invokedMethods = new HashSet<>();
         InvocationHandler handler = new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args)
@@ -473,7 +473,7 @@ class NonBlockingFSMFactory {
             StateRepresentation<NonBlockingClientState, NonBlockingClientTrigger> rep = smConfig.getRepresentation(state);
 
             for (NonBlockingClientTrigger trigger : rep.getPermittedTriggers()) {
-                StateMachine<NonBlockingClientState, NonBlockingClientTrigger> sm = new StateMachine<NonBlockingClientState, NonBlockingClientTrigger>(rep.getUnderlyingState(), smConfig);
+                StateMachine<NonBlockingClientState, NonBlockingClientTrigger> sm = new StateMachine<>(rep.getUnderlyingState(), smConfig);
                 sm.fire(trigger);
                 System.out.print("\t" + rep.getUnderlyingState() + " -> " + sm.getState() + "[ label = \"" + trigger);
                 if (!invokedMethods.isEmpty()) {

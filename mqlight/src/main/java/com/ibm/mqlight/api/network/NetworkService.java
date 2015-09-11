@@ -42,5 +42,5 @@ public interface NetworkService {
      *                {@link Promise#setSuccess(Object)} is passed an implementation of
      *                {@link NetworkChannel} that can be used to send data over the network connection.
      */
-    public void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise);
+    void connect(Endpoint endpoint, NetworkListener listener, Promise<NetworkChannel> promise);
 }

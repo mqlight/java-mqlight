@@ -122,7 +122,7 @@ class DestinationListenerWrapper<T> {
                     payloadBytes = data;
                 }
 
-                Map<String, Object> properties = new HashMap<String, Object>();
+                Map<String, Object> properties = new HashMap<>();
                 if (malformedReason == null) {
                     Object msgBodyValue = ((AmqpValue)msg.getBody()).getValue();
                     if (msgBodyValue instanceof Binary) {
@@ -180,10 +180,9 @@ class DestinationListenerWrapper<T> {
 
                     if (msg.getDeliveryAnnotations() != null) {
                         Map<Symbol, Object> annotations = msg.getDeliveryAnnotations().getValue();
-                        String condition = null;
                         if (annotations.containsKey(malformedConditionSymbol) &&
                             annotations.get(malformedConditionSymbol) instanceof Symbol) {
-                            condition = ((Symbol)annotations.get(malformedConditionSymbol)).toString();
+                            String condition = annotations.get(malformedConditionSymbol).toString();
                             if (condition.equals("FORMATNOMAPPING")) {
                                 malformedReason = MalformedDelivery.MalformedReason.FORMATNOMAPPING;
                             } else if (condition.equals("JMSNOMAPPING")) {

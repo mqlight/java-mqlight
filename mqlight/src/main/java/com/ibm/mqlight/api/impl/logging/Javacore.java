@@ -43,7 +43,7 @@ class Javacore {
   /** The directory where javacore files are expected to be generated. */
   private static String javacoreDirectoryPath;
   static {
-    
+
     // Determine if an alternative javcore directory is configured. Only applicable to IBM JREs.
     // Note z/OS currently not supported by MQ Light, but check included here for completeness
     final String alternativeJavacoreDirectoryPath;
@@ -71,7 +71,7 @@ class Javacore {
     // Set up the methods to use for taking javacores
     try {
       final Class<?> dumpClass = Class.forName("com.ibm.jvm.Dump");
-      javaDumpMethod = dumpClass.getMethod("JavaDump", new Class<?>[0]);
+      javaDumpMethod = dumpClass.getMethod("JavaDump");
     } catch (final Exception exception) {
       // No FFDC required - we might not be running on a JVM which
       // supports the IBM JavaDump classes.
@@ -81,7 +81,7 @@ class Javacore {
 
   /**
    * Public method that allows the caller to ask that a javacore be generated.
-   * 
+   *
    * @return The file path for the generated java core file.
    * @throws Throwable
    */
@@ -103,7 +103,7 @@ class Javacore {
 
   /**
    * Causes an JVM with the IBM com.ibm.jvm.Dump class present to take a java core.
-   * 
+   *
    * @return The file path for the generated java core file.
    * @throws Throwable
    */
@@ -112,10 +112,9 @@ class Javacore {
 
     String filePath;
     try {
-      javaDumpMethod.invoke(null, new Object[0]);
+      javaDumpMethod.invoke(null);
 
-      final File currentJavacoreFile = getLatestJavacoreFile();
-      File javacoreFile = currentJavacoreFile;
+      File javacoreFile = getLatestJavacoreFile();
       filePath = javacoreFile.getAbsolutePath();
 
     } catch (final InvocationTargetException invocationException) {
@@ -158,7 +157,7 @@ class Javacore {
 
     final File result = new File(javacoreDirectory, requiredJavacoreFilePath);
 
-    logger.exit("getLatestJavacoreFilePath", (Object) result);
+    logger.exit("getLatestJavacoreFilePath", result);
 
     return result;
   }
@@ -166,7 +165,7 @@ class Javacore {
   /**
    * Simulates a java core, for use with JVMs which do not have the com.ibm.jvm.Dump class available. The file is given a name which looks like a java core to avoid introducing new
    * 'must gathers' for service.
-   * 
+   *
    * @return The file path for the generated java core file.
    */
   private static String simulateJavaCore() {
@@ -198,17 +197,35 @@ class Javacore {
 
       // Generate a thread description in a java core like style.
       final Thread thread = entry.getKey();
-      sb.append("\"" + thread.getName() + "\" ");
-      sb.append("(id: " + thread.getId() + ", state: " + thread.getState() + ") ");
-      sb.append("priority=" + thread.getPriority() + ", interrupted=" + thread.isInterrupted() + ", daemon=" + thread.isDaemon());
+      sb.append("\"");
+      sb.append(thread.getName());
+      sb.append("\" ");
+      sb.append("(id: ");
+      sb.append(thread.getId());
+      sb.append(", state: ");
+      sb.append(thread.getState());
+      sb.append(") ");
+      sb.append("priority=");
+      sb.append(thread.getPriority());
+      sb.append(", interrupted=");
+      sb.append(thread.isInterrupted());
+      sb.append(", daemon=");
+      sb.append(thread.isDaemon());
       sb.append(endOfLineCharacter);
 
       // Dump the stack in a java core like style
       for (final StackTraceElement element : entry.getValue()) {
-        sb.append("   at " + element.getClassName() + "." + element.getMethodName());
+        sb.append("   at ");
+        sb.append(element.getClassName());
+        sb.append(".");
+        sb.append(element.getMethodName());
         if (element.isNativeMethod()) sb.append("(Native Method)");
         else {
-          sb.append("(" + element.getFileName() + ":" + element.getLineNumber() + ")");
+          sb.append("(");
+          sb.append(element.getFileName());
+          sb.append(":");
+          sb.append(element.getLineNumber());
+          sb.append(")");
         }
         sb.append(endOfLineCharacter);
       }

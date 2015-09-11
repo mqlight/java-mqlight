@@ -57,7 +57,7 @@ public interface JsonDelivery {
      * @throws JsonParseException if the data is not valid JSON.
      * @throws JsonSyntaxException if the data contains malformed JSON elements.
      */
-    JsonElement getData() throws JsonParseException, JsonSyntaxException;
+    JsonElement getData() throws JsonParseException;
 
     /**
      * @return a <code>String</code> representation of the JSON.  This allows other parsers to be used.

@@ -18,14 +18,11 @@
  */
 package com.ibm.mqlight.api.impl;
 
-import io.netty.buffer.ByteBuf;
-
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -96,6 +93,7 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
+import io.netty.buffer.ByteBuf;
 
 public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions, Component, CallbackService {
 
@@ -153,7 +151,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
         State state = State.ATTACHING;
         private final LinkedList<QueueableWork> pending = new LinkedList<>();
-        private final Set<DeliveryRequest> pendingDeliveries = new HashSet<DeliveryRequest>();
+        private final Set<DeliveryRequest> pendingDeliveries = new HashSet<>();
         final DestinationListenerWrapper<?> listener;
         private final QOS qos;
         private final int credit;
@@ -170,7 +168,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             this.autoConfirm = autoConfirm;
             this.ttl = ttl;
         }
-        
+
         @Override
         public String toString() {
             return "SubData [state=" + state + ", pending=" + pending + ", pendingDeliveries="
@@ -229,7 +227,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         if (options == null) options = defaultClientOptions;
         clientId = options.getId() != null ? options.getId() : generateClientId();
         logger.setClientId(clientId);
-        clientListener = new NonBlockingClientListenerWrapper<T>(this, listener, context);
+        clientListener = new NonBlockingClientListenerWrapper<>(this, listener, context);
         stateMachine = NonBlockingFSMFactory.newStateMachine(this);
         endpointService.lookup(new EndpointPromiseImpl(this));
         logger.exit(this, methodName);
@@ -250,9 +248,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         this(service == null ? new BluemixEndpointService()
                 : new SingleEndpointService(service,
                         options == null ? null : options.getUser(),
-                                options == null ? null : options.getPassword(),
-                                        options == null ? null : options.getCertificateFile(),
-                                                options == null ? true : options.getVerifyName()),
+                        options == null ? null : options.getPassword(),
+                        options == null ? null : options.getCertificateFile(),
+                        options == null || options.getVerifyName()),
                 new ThreadPoolCallbackService(5), new NettyNetworkService(),
                 new TimerServiceImpl(), null, options, listener, context);
     }
@@ -382,8 +380,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.exit(methodName, true);
           return true;
         }
-        for (int i = 0; i < validPropertyValueTypes.length; ++i) {
-            if (validPropertyValueTypes[i].isAssignableFrom(value.getClass())) {
+        for (Class<?> validPropertyValueType : validPropertyValueTypes) {
+            if (validPropertyValueType.isAssignableFrom(value.getClass())) {
                 logger.exit(methodName, true);
                 return true;
             }
@@ -426,7 +424,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     byte[] copy = new byte[src.length];
                     for (int i = 0; i < src.length; i++) {
                         final Byte b = src[i];
-                        copy[i] = (b == null) ? 0 : (b.byteValue());
+                        copy[i] = (b == null) ? 0 : b;
                     }
                     amqpProperties.put(entry.getKey(), new Binary(copy));
                 } else if (entry.getValue() instanceof byte[]) {
@@ -452,7 +450,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         }
 
         final ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
-        InternalSend<T> is = new InternalSend<T>(this, topic, sendOptions.getQos(), buf, length);
+        InternalSend<T> is = new InternalSend<>(this, topic, sendOptions.getQos(), buf, length);
         ++undrainedSends;
         tell(is, this);
 
@@ -481,7 +479,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "start";
         logger.entry(this, methodName, listener, context);
 
-        InternalStart<T> is = new InternalStart<T>(this);
+        InternalStart<T> is = new InternalStart<>(this);
         try {
           is.future.setListener(callbackService, listener, context);
         } catch (StoppedException e) {
@@ -506,7 +504,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final String methodName = "stop";
         logger.entry(this, methodName, listener, context);
 
-        InternalStop<T> is = new InternalStop<T>(this);
+        InternalStop<T> is = new InternalStop<>(this);
         try {
           is.future.setListener(callbackService, listener, context);
         } catch (StartingException e) {
@@ -546,7 +544,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         final SubscriptionTopic subTopic = new SubscriptionTopic(topicPattern, subOptions.getShareName());
         boolean autoConfirm = subOptions.getAutoConfirm() || subOptions.getQOS() == QOS.AT_MOST_ONCE;
         InternalSubscribe<T> is =
-                new InternalSubscribe<T>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
+                new InternalSubscribe<>(this, subTopic, subOptions.getQOS(), subOptions.getCredit(), autoConfirm, Math.round(subOptions.getTtl() / 1000.0), gsonBuilder, destListener, context);
         tell(is, this);
 
         try {
@@ -588,7 +586,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           throw exception;
         }
 
-        InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, ttl == 0);
+        InternalUnsubscribe<T> us = new InternalUnsubscribe<>(this, topicPattern, share, true);
         tell(us, this);
 
         try {
@@ -624,7 +622,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
           logger.throwing(this, methodName, exception);
           throw exception;
         }
-        InternalUnsubscribe<T> us = new InternalUnsubscribe<T>(this, topicPattern, share, false);
+        InternalUnsubscribe<T> us = new InternalUnsubscribe<>(this, topicPattern, share, false);
         tell(us, this);
 
         try {
@@ -878,7 +876,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             final DeliveryRequest dr = ((DeliveryResponse) message).request;
             final SubData sd =
                     subscribedDestinations.get(new SubscriptionTopic(dr.topicPattern));
-            
+
             if (sd != null) {
                 final boolean success = (dr.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.remove(dr));
                 if (!success) {
