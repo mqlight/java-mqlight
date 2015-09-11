@@ -21,6 +21,8 @@ package com.ibm.mqlight.api.impl.engine;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -43,9 +45,11 @@ import org.apache.qpid.proton.engine.Connection;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Event;
+import org.apache.qpid.proton.engine.Extendable;
 import org.apache.qpid.proton.engine.Handler;
 import org.apache.qpid.proton.engine.Link;
 import org.apache.qpid.proton.engine.Receiver;
+import org.apache.qpid.proton.engine.Record;
 import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
@@ -897,5 +901,47 @@ public class Engine extends ComponentImpl implements Handler {
       final IllegalStateException exception = new IllegalStateException("Unknown event type: " + e.getType());
       logger.throwing(this, "onUnhandled", exception);
       throw exception;
+    }
+
+    public static Handler getHandler(Record r) {
+        return r.get(Handler.class, Handler.class);
+    }
+
+    public static void setHandler(Record r, Handler handler) {
+        r.set(Handler.class, Handler.class, handler);
+    }
+
+    public static Handler getHandler(Extendable ext) {
+        return ext.attachments().get(Handler.class, Handler.class);
+    }
+
+    public static void setHandler(Extendable ext, Handler handler) {
+        ext.attachments().set(Handler.class, Handler.class, handler);
+    }
+
+    private HashSet<Handler> children = new HashSet<Handler>();
+
+    @Override public void onReactorInit(Event e) { onUnhandled(e); }
+    @Override public void onReactorQuiesced(Event e) { onUnhandled(e); }
+    @Override public void onReactorFinal(Event e) { onUnhandled(e); }
+
+    @Override public void onTimerTask(Event e) { onUnhandled(e); }
+
+    @Override public void onSelectableInit(Event e) { onUnhandled(e); }
+    @Override public void onSelectableUpdated(Event e) { onUnhandled(e); }
+    @Override public void onSelectableReadable(Event e) { onUnhandled(e); }
+    @Override public void onSelectableWritable(Event e) { onUnhandled(e); }
+    @Override public void onSelectableExpired(Event e) { onUnhandled(e); }
+    @Override public void onSelectableError(Event e) { onUnhandled(e); }
+    @Override public void onSelectableFinal(Event e) { onUnhandled(e); }
+
+    @Override
+    public void add(Handler child) {
+        children.add(child);
+    }
+
+    @Override
+    public Iterator<Handler> children() {
+        return children.iterator();
     }
 }

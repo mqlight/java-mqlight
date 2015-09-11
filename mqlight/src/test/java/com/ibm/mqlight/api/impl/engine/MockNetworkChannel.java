@@ -30,6 +30,7 @@ import org.apache.qpid.proton.engine.Event;
 import org.apache.qpid.proton.engine.Handler;
 import org.apache.qpid.proton.engine.Sasl;
 import org.apache.qpid.proton.engine.Transport;
+import org.apache.qpid.proton.engine.impl.ByteBufferUtils;
 
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.network.NetworkChannel;
@@ -68,11 +69,11 @@ public class MockNetworkChannel implements NetworkChannel {
     @Override
     public void write(ByteBuffer buffer, Promise<Boolean> promise) {
         promise.setSuccess(true);
-        ByteBuffer tail = transport.tail();
         while(buffer.remaining() > 0) {
-            int amount = Math.min(buffer.remaining(), tail.capacity());
+            ByteBuffer tail = transport.tail();
+            int amount = Math.min(buffer.remaining(), tail.remaining());
             tail.limit(tail.position() + amount);
-            tail.put(buffer);
+            ByteBufferUtils.pour(buffer, tail);
             transport.process();
             while(collector.peek() != null) {
                 Event event = collector.peek();
