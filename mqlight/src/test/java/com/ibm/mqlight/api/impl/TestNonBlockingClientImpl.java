@@ -39,8 +39,6 @@ import java.util.Queue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.AssertionFailedError;
-
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
@@ -83,6 +81,7 @@ import com.ibm.mqlight.api.impl.engine.SubscribeResponse;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeRequest;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeResponse;
 import com.ibm.mqlight.api.timer.TimerService;
+import junit.framework.AssertionFailedError;
 
 public class TestNonBlockingClientImpl {
 
@@ -505,7 +504,7 @@ public class TestNonBlockingClientImpl {
                 final byte[] actual = (byte[]) actualProperties.get(expectedProperty.getKey());
                 for (int i = 0; i < expected.length; i++) {
                     assertTrue("Round-tripped Byte array should match for key: "+expectedProperty.getKey(),
-                            expected[i].byteValue() == actual[i]);
+                            expected[i] == actual[i]);
                 }
             } else if (expectedProperty.getValue() instanceof byte[]) {
                 assertTrue("Round-tripped byte array should match for key: "+expectedProperty.getKey(),
@@ -1086,10 +1085,10 @@ public class TestNonBlockingClientImpl {
         assertEquals("Message 5: content type set incorrectly", "application/json", msg.getContentType());
         assertEquals("Message 5: body doesn't match", expectedRawJson, ((AmqpValue)msg.getBody()).getValue());
     }
-    
+
     /**
-     * Ensure that breakInboundLinks completes when requests have been added to sd.pending  
-     * 
+     * Ensure that breakInboundLinks completes when requests have been added to sd.pending
+     *
      * @throws InterruptedException
      */
     @Test(timeout=5000)
@@ -1113,7 +1112,7 @@ public class TestNonBlockingClientImpl {
                     Exception exception) {
                 done.release();
             }
-            
+
         }, null);
         client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null)), engine);
         assertTrue("Client failed to subscribe within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));

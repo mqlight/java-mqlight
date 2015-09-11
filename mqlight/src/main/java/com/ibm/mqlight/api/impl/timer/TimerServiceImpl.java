@@ -37,7 +37,7 @@ public class TimerServiceImpl implements TimerService {
     private static final int idleKeepAliveTimeMs = 500;
     private static final ScheduledThreadPoolExecutor executor;
     private int timerCount = 0;
-    
+
     static class TimerServiceThreadFactory implements ThreadFactory {
       final ThreadFactory factory = Executors.defaultThreadFactory();
       @Override
@@ -67,7 +67,7 @@ public class TimerServiceImpl implements TimerService {
         private ScheduledFuture<?> future;
 
         private Timer(TimerServiceImpl service,
-                      Promise<Void> promise, 
+                      Promise<Void> promise,
                       ConcurrentHashMap<Promise<Void>, Timer> promiseToTimer) {
             final String methodName = "<init>";
             logger.entry(this, methodName, service, promise, promiseToTimer);
@@ -98,8 +98,7 @@ public class TimerServiceImpl implements TimerService {
 
         final Timer timer = new Timer(this, promise, promiseToTimer);
         incrementUsage();
-        final ScheduledFuture<?> sf = executor.schedule(timer, delay, TimeUnit.MILLISECONDS);
-        timer.future = sf;
+        timer.future = executor.schedule(timer, delay, TimeUnit.MILLISECONDS);
         promiseToTimer.put(promise, timer);
 
         logger.exit(this, methodName);
@@ -127,7 +126,7 @@ public class TimerServiceImpl implements TimerService {
             executor.setKeepAliveTime(idleKeepAliveTimeMs, TimeUnit.MILLISECONDS);
         }
     }
-    
+
     private synchronized void incrementUsage() {
         if (++timerCount == 1) {
             executor.setKeepAliveTime(Long.MAX_VALUE, TimeUnit.NANOSECONDS);

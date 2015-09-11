@@ -19,5 +19,5 @@
 package com.ibm.mqlight.api.impl;
 
 public interface Component {
-  public void tell(Message message, Component self);
+  void tell(Message message, Component self);
 }

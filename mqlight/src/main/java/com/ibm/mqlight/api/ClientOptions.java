@@ -35,7 +35,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class ClientOptions {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientOptions.class);
-  
+
     private final String id;
     private final String user;
     private final String password;
@@ -45,13 +45,13 @@ public class ClientOptions {
     private ClientOptions(String id, String user, String password, File certFile, boolean verifyName) {
         final String methodName = "<init>";
         logger.entry(this, methodName, id, user, "******", certFile, verifyName);
-      
+
         this.id = id;
         this.user = user;
         this.password = password;
         this.certFile = certFile;
         this.verifyName = verifyName;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -77,19 +77,12 @@ public class ClientOptions {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(super.toString());
-        sb.append(" [id=")
-          .append(id)
-          .append(", user=")
-          .append(user)
-          .append(", password=")
-          .append(password == null ? null : "******")
-          .append(", certFile=")
-          .append(certFile)
-          .append(", verifyName=")
-          .append(verifyName)
-          .append("]");
-        return sb.toString();
+        return super.toString()
+                + " [id=" + id
+                + ", user=" + user
+                + ", password=" + (password == null ? null : "******")
+                + ", certFile=" + certFile
+                + ", verifyName=" + verifyName + "]";
     }
 
     /**
@@ -132,7 +125,7 @@ public class ClientOptions {
         public ClientOptionsBuilder setId(String id) throws IllegalArgumentException {
             final String methodName = "setId";
             logger.entry(this, methodName, id);
-          
+
             if (id != null) {
                 if (id.length() > 256) {
                   final IllegalArgumentException exception = new IllegalArgumentException("Client identifier '" + id + "' is longer than the maximum ID length of 256.");
@@ -152,9 +145,9 @@ public class ClientOptions {
                 }
             }
             this.id = id;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -177,7 +170,7 @@ public class ClientOptions {
          * Specifies a X.509 certificate chain file for SSL/TLS certificates
          * that the client will trust. This can either be a file in PEM format
          * or a Java KeyStore (JKS) file.
-         * 
+         *
          * @param certificateFile
          *            a trust store that contains SSL/TLS certificates that the
          *            client is to trust. If this is not set (or is set to null)

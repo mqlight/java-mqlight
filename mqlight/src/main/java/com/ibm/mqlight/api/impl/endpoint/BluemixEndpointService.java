@@ -45,7 +45,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public class BluemixEndpointService extends EndpointServiceImpl {
     private static final Logger logger = LoggerFactory.getLogger(BluemixEndpointService.class);
-      
+
     static {
         LogbackLogging.setup();
     }
@@ -67,7 +67,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     ")specified for System property com.ibm.mqlight.BluemixEndpointService.keepAliveSeconds (must be >= 0).");
         }
     }
-    
+
     private static ThreadPoolExecutor executor;
 
     private static class State {
@@ -89,8 +89,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         }
         @Override
         public Thread newThread(Runnable runnable) {
-            Thread result = new Thread(group, runnable, "bluemix-endpoint-" + number.getAndIncrement());
-            return result;
+            return new Thread(group, runnable, "bluemix-endpoint-" + number.getAndIncrement());
         }
     }
 
@@ -105,7 +104,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     protected String hitUri(String httpUri) throws IOException {
         final String methodName = "hitUri";
         logger.entry(this, methodName, httpUri);
-      
+
         URL url = new URL(httpUri);
         InputStream in = url.openStream();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -115,18 +114,18 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             if (amount < 0) break;
             out.write(buffer, 0, amount);
         }
-        
+
         final String result = out.toString("UTF-8");
-        
+
         logger.exit(this, methodName, result);
-        
+
         return result;
     }
 
     protected void doHttpLookup(final String httpUri, final EndpointPromise future) {
         final String methodName = "doHttpLookup";
         logger.entry(this, methodName, httpUri, future);
-      
+
         synchronized(this) {
             if (executor == null) {
                 executor = new ThreadPoolExecutor(THREAD_POOL_CORE_THREADS, THREAD_POOL_MAX_THREADS, THREAD_POOL_KEEP_ALIVE_SECONDS,
@@ -138,7 +137,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             public void run() {
                 final String methodName = "run";
                 logger.entry(this, methodName);
-              
+
                 try {
                     String serviceJson = hitUri(httpUri);
 
@@ -180,25 +179,25 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                     logger.data(this, methodName, exception);
                     future.setFailure(exception);
                 }
-                
+
                 logger.exit(this, methodName);
             }
         });
-        
+
         logger.exit(this, methodName);
     }
 
     protected void doRetry(EndpointPromise future) {
         final String methodName = "doRetry";
         logger.entry(this, methodName, future);
-      
+
         int retry;
         synchronized(state) {
             retry = state.retryCount;
             ++state.retryCount;
         }
         future.setWait(calculateDelay(retry));
-        
+
         logger.exit(this, methodName);
     }
 
@@ -206,9 +205,9 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     public void lookup(EndpointPromise future) {
         final String methodName = "lookup";
         logger.entry(this, methodName, future);
-      
+
         try {
-            String lookupUri = null;
+            String lookupUri;
             Endpoint endpoint = null;
             boolean retry = false;
 
@@ -262,7 +261,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             logger.data(this, methodName, exception);
             future.setFailure(exception);
         }
-        
+
         logger.exit(this, methodName);
     }
 
@@ -270,7 +269,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
     public void onSuccess(Endpoint endpoint) {
         final String methodName = "onSuccess";
         logger.entry(this, methodName, endpoint);
-      
+
         synchronized(state) {
             int index = -1;
             if (state.endpoints != null) {
@@ -286,7 +285,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                 state.nextEndpointIndex = 0;
             }
         }
-        
+
         logger.exit(this, methodName);
     }
 

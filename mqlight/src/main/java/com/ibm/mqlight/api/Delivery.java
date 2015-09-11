@@ -32,7 +32,7 @@ public interface Delivery {
      */
     enum Type {
         BYTES, STRING, MALFORMED, JSON
-    };
+    }
 
     /**
      * @return the type of the delivery.  This is provided to simplify casting this

@@ -31,179 +31,179 @@ package com.ibm.mqlight.api.logging;
  * unnecessary conversion when trace is off (note that with this approach there is no need to use a {@code if (Trace.enabled()))} type test when invoking the trace methods).
  */
 public interface Logger {
-  
-  
+
+
   /** The client id key, which can be used to record the client id by implementations of the {@link #setClientId(String)} method. */
-  public static final String CLIENTID_KEY = "clientid";
-  
+  String CLIENTID_KEY = "clientid";
+
   /**
    * Associate the specified client id for the current thread, and its child threads, for tracing and logging
-   * 
+   *
    * @param clientId
    */
-  public abstract void setClientId(String clientId);
-  
+  void setClientId(String clientId);
+
 
   /**
    * Logs an information message.
-   * 
+   *
    * @param message The information message text.
    */
-  public abstract void info(String message);
-  
+  void info(String message);
+
   /**
    * Logs a warning.
-   * 
+   *
    * @param message The warning message text.
    */
-  public abstract void warning(String message);
-  
+  void warning(String message);
+
   /**
    * Logs an error message.
-   * 
+   *
    * @param message The error message text.
    */
-  public abstract void error(String message);
-  
+  void error(String message);
+
   /**
    * Logs an error message.
-   * 
+   *
    * @param message The error message text.
    * @param throwable The exception causing the error.
    */
-  public abstract void error(String message, Throwable throwable);
-  
-  
+  void error(String message, Throwable throwable);
+
+
   /**
    * Method entry tracing for static classes.
-   * 
+   *
    * @param methodName Name of the calling method.
    */
-  public abstract void entry(String methodName);
-  
+  void entry(String methodName);
+
   /**
    * Method entry tracing for static classes. Note that this may not be that efficient.
-   * 
+   *
    * @param methodName Name of the calling method.
    * @param objects Objects on which toString() is called.
    */
-  public abstract void entry(String methodName, Object... objects);
+  void entry(String methodName, Object... objects);
 
   /**
    * Method entry tracing.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    */
-  public abstract void entry(Object source, String methodName);
-    
+  void entry(Object source, String methodName);
+
   /**
    * Method entry tracing. Note that this may not be that efficient.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    * @param objects Objects on which toString() is called.
    */
-  public abstract void entry(Object source, String methodName, Object... objects);
-  
-  
-  /**
-   * Method exit tracing for static classes.
-   * 
-   * @param methodName Name of the calling method.
-   */
-  public abstract void exit(String methodName);
+  void entry(Object source, String methodName, Object... objects);
+
 
   /**
    * Method exit tracing for static classes.
-   * 
+   *
+   * @param methodName Name of the calling method.
+   */
+  void exit(String methodName);
+
+  /**
+   * Method exit tracing for static classes.
+   *
    * @param methodName Name of the calling method.
    * @param result Object on which toString() is called, containing the return value.
    */
-  public abstract void exit(String methodName, Object result);
+  void exit(String methodName, Object result);
 
   /**
    * Method exit tracing.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    */
-  public abstract void exit(Object source, String methodName);
+  void exit(Object source, String methodName);
 
   /**
    * Method exit tracing.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    * @param result Object on which toString() is called, containing the return value.
    */
-  public abstract void exit(Object source, String methodName, Object result);
-  
-  
+  void exit(Object source, String methodName, Object result);
+
+
   /**
    * Method data tracing for static classes.
-   * 
+   *
    * @param methodName Name of the calling method.
    */
-  public abstract void data(String methodName);
+  void data(String methodName);
 
   /**
    * Method data tracing for static classes. Note that this may not be that efficient.
-   * 
+   *
    * @param methodName Name of the calling method.
    * @param objects Objects on which toString() is called.
    */
-  public abstract void data(String methodName, Object... objects);
+  void data(String methodName, Object... objects);
 
   /**
    * Method data tracing.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    */
-  public abstract void data(Object source, String methodName);
-  
+  void data(Object source, String methodName);
+
   /**
    * Method data tracing. Note that this may not be that efficient.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    * @param objects Objects on which toString() is called.
    */
-  public abstract void data(Object source, String methodName, Object... objects);
-  
-  
+  void data(Object source, String methodName, Object... objects);
+
+
   /**
    * Exception tracing when a throwable is caught in a static class.
-   * 
+   *
    * @param methodName Name of the calling method.
    * @param throwable Causing the event.
    */
-  public abstract void throwing(String methodName, Throwable throwable);
+  void throwing(String methodName, Throwable throwable);
 
   /**
    * Exception tracing.
-   * 
+   *
    * @param source Object making the trace call.
    * @param methodName Name of the calling method.
    * @param throwable Causing the event.
    */
-  public abstract void throwing(Object source, String methodName, Throwable throwable);
+  void throwing(Object source, String methodName, Throwable throwable);
 
   /**
    * Captures FFDC information.
-   * 
+   *
    * @param methodName Name of the calling method.
    * @param probeId A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
    *          class.
    * @param throwable The throwable that triggered capturing of FFDC information. This can be null if there is no obvious throwable cause.
    * @param data Arbitrary data that is captured into the FFDC record.
    */
-  public abstract void ffdc(String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
+  void ffdc(String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
 
   /**
    * Captures FFDC information.
-   * 
+   *
    * @param source Object requesting the FFDC.
    * @param methodName Name of the calling method.
    * @param probeId A probe identifier that can be used to uniquely identify the point in the code that requested the data capture. The probe identifier should be unique within a
@@ -211,6 +211,6 @@ public interface Logger {
    * @param throwable The throwable that triggered capturing of FFDC information. This can be null if there is no obvious throwable cause.
    * @param data Arbitrary data that is captured into the FFDC record.
    */
-  public abstract void ffdc(Object source, String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
+  void ffdc(Object source, String methodName, FFDCProbeId probeId, Throwable throwable, Object... data);
 }
 

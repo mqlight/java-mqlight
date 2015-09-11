@@ -28,19 +28,19 @@ import com.ibm.mqlight.api.logging.Logger;
 /**
  * A trace/logger implementation that utilizes a SLF4J logger.
  * <p>
- * SLF4J loggers do not have methods to directly trace method entry, exit and exception throwing. But a {@link Marker} can be passed to various methods. Thus we use {@link Maker}s
+ * SLF4J loggers do not have methods to directly trace method entry, exit and exception throwing. But a {@link Marker} can be passed to various methods. Thus we use {@link Marker}s
  * to "mark" calls as entry, exit, throw, etc. It will then be up to the logger to filter and display appropriately based on these markers.
  */
 class LoggerImpl implements Logger {
-  
+
   /**
    * The underlying SLFJ logger.
    */
   private final org.slf4j.Logger logger;
-  
+
   /**
    * Constructor.
-   * 
+   *
    * @param clazz The class associated with this logger instance.
    */
   public LoggerImpl(Class<?> clazz) {
@@ -49,52 +49,51 @@ class LoggerImpl implements Logger {
 
   /**
    * Constructor, from an existing {@link org.slf4j.Logger}.
-   * 
+   *
    * @param logger The SLF4J logger instance.
    */
   public LoggerImpl(org.slf4j.Logger logger) {
     this.logger = logger;
   }
-  
+
   @Override
   public void setClientId(String clientId) {
     MDC.put(CLIENTID_KEY, clientId);
   }
 
-  
+
   @Override
   public void info(String message) {
     logger.info(LogMarker.INFO.getValue(), message);
   }
-  
+
   @Override
   public void warning(String message) {
     logger.warn(LogMarker.WARNING.getValue(), message);
   }
-  
+
   @Override
   public void error(String message) {
     logger.error(LogMarker.ERROR.getValue(), message);
   }
-  
+
   @Override
   public void error(String message, Throwable throwable) {
     logger.error(LogMarker.ERROR.getValue(), message, throwable);
   }
-  
-  
+
+
   @Override
   public void entry(String methodName) {
     logger.trace(LogMarker.ENTRY.getValue(), methodName, (Object)null);
   }
-  
+
   @Override
   public void entry(String methodName, Object... objects) {
     if (logger.isTraceEnabled()) {
       final Object[] objs = new Object[objects.length + 1];
       objs[0] = null;
-      for (int i = 0; i < objects.length; i++)
-        objs[i + 1] = objects[i];
+      System.arraycopy(objects, 0, objs, 1, objects.length);
       logger.trace(LogMarker.ENTRY.getValue(), methodName, objs);
     }
   }
@@ -109,8 +108,7 @@ class LoggerImpl implements Logger {
     if (logger.isTraceEnabled()) {
       final Object[] objs = new Object[objects.length + 1];
       objs[0] = source;
-      for (int i = 0; i < objects.length; i++)
-        objs[i + 1] = objects[i];
+      System.arraycopy(objects, 0, objs, 1, objects.length);
       logger.trace(LogMarker.ENTRY.getValue(), methodName, objs);
     }
   }
@@ -135,7 +133,7 @@ class LoggerImpl implements Logger {
     logger.trace(LogMarker.EXIT.getValue(), methodName, source, result);
   }
 
-  
+
   @Override
   public void data(String methodName) {
     logger.trace(LogMarker.DATA.getValue(), methodName, (Object)null);
@@ -146,8 +144,7 @@ class LoggerImpl implements Logger {
     if (logger.isTraceEnabled()) {
       final Object[] objs = new Object[objects.length + 1];
       objs[0] = null;
-      for (int i = 0; i < objects.length; i++)
-        objs[i + 1] = objects[i];
+      System.arraycopy(objects, 0, objs, 1, objects.length);
       logger.trace(LogMarker.DATA.getValue(), methodName, objs);
     }
   }
@@ -156,14 +153,13 @@ class LoggerImpl implements Logger {
   public void data(Object source, String methodName) {
     logger.trace(LogMarker.DATA.getValue(), methodName, source);
   }
-  
+
   @Override
   public void data(Object source, String methodName, Object... objects) {
     if (logger.isTraceEnabled()) {
       final Object[] objs = new Object[objects.length + 1];
       objs[0] = source;
-      for (int i = 0; i < objects.length; i++)
-        objs[i + 1] = objects[i];
+      System.arraycopy(objects, 0, objs, 1, objects.length);
       logger.trace(LogMarker.DATA.getValue(), methodName, objs);
     }
   }

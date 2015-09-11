@@ -19,7 +19,6 @@
 
 package com.ibm.mqlight.api.impl.logging;
 
-import com.ibm.mqlight.api.impl.logging.LoggerImpl;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
@@ -27,10 +26,10 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
  * Factory implementation to obtain a {@link Logger} implementation.
  */
 class LoggerFactoryImpl extends LoggerFactory {
-  
+
   /**
    * Obtains a {@link Logger} implementation for the specified class.
-   *  
+   *
    * @param clazz Class to be associated with the logger instance.
    * @return {@link Logger} instance for trace and information logging.
    */

@@ -25,40 +25,40 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 
 public abstract class ComponentImpl implements Component {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ComponentImpl.class);
-    
+
     public static final ComponentImpl NOBODY = new ComponentImpl() {
         public void tell(Message message, Component self) {}
         @Override protected void onReceive(Message message) {
           logger.data(this, "tell", message);
         }
     };
-    
+
     private final LinkedList<Message> queue = new LinkedList<>();
     private boolean scheduled = false;
     protected final Object componentMonitor = new Object();
-    
+
     public void tell(Message message, Component self) {
         final String methodName = "tell";
         logger.entry(this, methodName, message, self);
 
         message.setSender(self);
-        boolean execute = false;
+        boolean execute;
         synchronized(queue) {
             queue.addLast(message);
             execute = !scheduled;
             if (execute) scheduled = true;
         }
         if (execute) deliverMessages();
-        
+
         logger.exit(this, methodName);
     }
-    
+
     private void deliverMessages() {
         final String methodName = "deliverMessages";
         logger.entry(this, methodName);
-      
+
         while(true) {
             Message message = null;
             synchronized(queue) {
@@ -76,9 +76,9 @@ public abstract class ComponentImpl implements Component {
               }
             }
         }
-        
+
         logger.exit(this, methodName);
     }
-    
+
     protected abstract void onReceive(Message message);
 }

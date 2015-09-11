@@ -37,7 +37,7 @@ class InternalSend<T> extends Message implements QueueableWork {
         final String methodName = "<init>";
         logger.entry(this, methodName, client, topic, qos, buf, length);
 
-        this.future = new CompletionFuture<T>(client);
+        this.future = new CompletionFuture<>(client);
         this.topic = topic;
         this.qos = qos;
         this.buf = buf;

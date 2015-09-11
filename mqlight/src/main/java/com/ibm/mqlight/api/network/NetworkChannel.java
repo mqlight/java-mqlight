@@ -32,24 +32,24 @@ public interface NetworkChannel {
      * @param promise a promise which is to be completed when the connection is closed.
      */
     void close(Promise<Void> promise);
-    
+
     /**
      * Write data to the network connection.
      * @param buffer contains the data to write.
      * @param promise a promise which is to be completed when the data is written.
      */
     void write(ByteBuffer buffer, Promise<Boolean> promise);
-    
+
     /**
      * Allows an arbitrary object to be associated with this channel object.
      * @param context
      */
-    public void setContext(Object context);
-    
+    void setContext(Object context);
+
     /**
      * Retrieves the value set using {@link NetworkChannel#setContext(Object)}.
      * Returns <code>null</code> if no value has yet been set.
      * @return the context object (if any) set using {@link NetworkChannel#setContext(Object)}
      */
-    public Object getContext();
+    Object getContext();
 }

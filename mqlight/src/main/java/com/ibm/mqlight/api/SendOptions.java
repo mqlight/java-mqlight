@@ -33,17 +33,17 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class SendOptions {
 
     private static final Logger logger = LoggerFactory.getLogger(SendOptions.class);
-  
+
     private final QOS qos;
     private final long ttl;
 
     private SendOptions(QOS qos, long ttl) {
         final String methodName = "<init>";
         logger.entry(this, methodName, qos, ttl);
-      
+
         this.qos = qos;
         this.ttl = ttl;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -57,13 +57,9 @@ public class SendOptions {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(super.toString());
-        sb.append(" [qos=")
-          .append(qos)
-          .append(", ttl=")
-          .append(ttl)
-          .append("]");
-        return sb.toString();
+        return super.toString()
+                + " [qos=" + qos
+                + ", ttl=" + ttl + "]";
     }
 
     /**
@@ -94,16 +90,16 @@ public class SendOptions {
         public SendOptionsBuilder setQos(QOS qos) throws IllegalArgumentException {
             final String methodName = "setQos";
             logger.entry(this, methodName, qos);
-          
+
             if (qos == null) {
               final IllegalArgumentException exception = new IllegalArgumentException("qos argument cannot be null");
               logger.throwing(this,  methodName, exception);
               throw exception;
             }
             this.qos = qos;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -117,16 +113,16 @@ public class SendOptions {
         public SendOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
             final String methodName = "setTtl";
             logger.entry(this, methodName, ttl);
-          
+
             if (ttl < 1 || ttl > 4294967295L) {
               final IllegalArgumentException exception = new IllegalArgumentException("ttl value '" + ttl + "' is invalid, must be an unsigned non-zero integer number");
               logger.throwing(this,  methodName, exception);
               throw exception;
             }
             this.ttl = ttl;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 

@@ -30,12 +30,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
  * When a passed event contains a matrker, the {@link #convert(ILoggingEvent)} method simply returns a {@link String} with text for the marker, otherwise the a {@link String} for the event's level is returned.
  */
 public class LevelConverter extends ClassicConverter {
-  
+
   @Override
   public String convert(ILoggingEvent event) {
     final Marker marker = event.getMarker();
-    final String result = marker == null ? (event.getLevel() == null ? "" : event.getLevel().toString()) : marker.getName();
-    return result;
+    return marker == null ? (event.getLevel() == null ? "" : event.getLevel().toString()) : marker.getName();
   }
 
 }

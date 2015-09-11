@@ -31,14 +31,14 @@ import com.ibm.mqlight.api.Promise;
  * time before making more endpoint lookup requests
  */
 public interface EndpointPromise extends Promise<Endpoint>{
-    
+
     /**
      * Completes the promise and indicates to the client that it should
      * wait for a period of time before querying the endpoint service again.
-     * 
+     *
      * @param delay a wait time in milliseconds.
      * @throws IllegalStateException if this method is invoked when the promise
      *                               has already been completed.
      */
-    public void setWait(long delay) throws IllegalStateException;
+    void setWait(long delay) throws IllegalStateException;
 }

@@ -34,10 +34,10 @@ public class TestArgsConverter {
   public void testConvertWithUnexpectedEvents() {
 
     final ArgsConverter converter = new ArgsConverter();
-    
+
     assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent()));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object [] {})));
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object [] {})));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message")));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message")));
   }
 
   @Test
@@ -45,11 +45,11 @@ public class TestArgsConverter {
 
     final ArgsConverter converter = new ArgsConverter();
 
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { "arg1" })));
-    assertEquals("Unexpected convertion", " returns [null]", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { "arg1", null })));
-    assertEquals("Unexpected convertion", " returns [arg2]", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { "arg1", "arg2" })));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", "arg1")));
+    assertEquals("Unexpected convertion", " returns [null]", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", "arg1", null)));
+    assertEquals("Unexpected convertion", " returns [arg2]", converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", "arg1", "arg2")));
     assertEquals("Unexpected convertion", " returns [arg2]",
-        converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", new Object[] { "arg1", "arg2", "arg3" })));
+        converter.convert(new MockILoggingEvent(null, LogMarker.EXIT.getValue(), "message", "arg1", "arg2", "arg3")));
   }
 
   @Test
@@ -57,15 +57,15 @@ public class TestArgsConverter {
 
     final ArgsConverter converter = new ArgsConverter();
 
-    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { "arg1" })));
-    assertEquals("Unexpected convertion", " [null]", converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { "arg1", null })));
-    assertEquals("Unexpected convertion", " [arg2]", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", new Object[] { "arg1", "arg2" })));
+    assertEquals("Unexpected convertion", "", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", "arg1")));
+    assertEquals("Unexpected convertion", " [null]", converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", "arg1", null)));
+    assertEquals("Unexpected convertion", " [arg2]", converter.convert(new MockILoggingEvent(null, LogMarker.ENTRY.getValue(), "message", "arg1", "arg2")));
     assertEquals("Unexpected convertion", " [arg2] [123]",
-        converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { "arg1", "arg2", 123 })));
+        converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", "arg1", "arg2", 123)));
     assertEquals("Unexpected convertion", " [45] [foo] [true] [file://tmp/bar.txt]",
-        converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", new Object[] { "arg1", 45, "foo", true, new URL("file://tmp/bar.txt") })));
+        converter.convert(new MockILoggingEvent(null, LogMarker.DATA.getValue(), "message", "arg1", 45, "foo", true, new URL("file://tmp/bar.txt"))));
     assertEquals("Unexpected convertion", " [java.lang.Exception: test exception]",
-        converter.convert(new MockILoggingEvent(null, LogMarker.THROWING.getValue(), "message", new Object[] { "arg1", new Exception("test exception") })));
+        converter.convert(new MockILoggingEvent(null, LogMarker.THROWING.getValue(), "message", "arg1", new Exception("test exception"))));
   }
-  
+
 }

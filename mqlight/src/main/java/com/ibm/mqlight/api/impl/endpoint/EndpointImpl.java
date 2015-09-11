@@ -68,7 +68,7 @@ class EndpointImpl implements Endpoint {
         }
         port = 5672;
         useSsl = false;
-        URI serviceUri = null;
+        URI serviceUri;
         try {
             serviceUri = new URI(uri);
             if (serviceUri.getScheme() == null) {

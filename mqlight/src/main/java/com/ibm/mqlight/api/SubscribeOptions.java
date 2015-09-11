@@ -34,7 +34,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class SubscribeOptions {
 
     private static final Logger logger = LoggerFactory.getLogger(SubscribeOptions.class);
-  
+
     private final boolean autoConfirm;
     private final int credit;
     private final QOS qos;
@@ -44,13 +44,13 @@ public class SubscribeOptions {
     private SubscribeOptions(boolean autoConfirm, int credit, QOS qos, String shareName, long ttl) {
         final String methodName = "<init>";
         logger.entry(this, methodName, autoConfirm, credit, qos, shareName, ttl);
-      
+
         this.autoConfirm = autoConfirm;
         this.credit = credit;
         this.qos = qos;
         this.shareName = shareName;
         this.ttl = ttl;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -76,19 +76,12 @@ public class SubscribeOptions {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(super.toString());
-        sb.append(" [autoConfirm=")
-          .append(autoConfirm)
-          .append(", credit=")
-          .append(credit)
-          .append(", qos=")
-          .append(qos)
-          .append(", share=")
-          .append(shareName)
-          .append(", ttl=")
-          .append(ttl)
-          .append("]");
-        return sb.toString();
+        return super.toString()
+                + " [autoConfirm=" + autoConfirm
+                + ", credit=" + credit
+                + ", qos=" + qos
+                + ", share=" + shareName
+                + ", ttl=" + ttl + "]";
     }
 
     /**
@@ -141,16 +134,16 @@ public class SubscribeOptions {
         public SubscribeOptionsBuilder setCredit(int credit) throws IllegalArgumentException {
             final String methodName = "setCredit";
             logger.entry(this, methodName, credit);
-          
+
             if (credit < 0) {
               final IllegalArgumentException exception = new IllegalArgumentException("Credit value '" + credit + "' is invalid, must be >= 0");
               logger.throwing(this,  methodName, exception);
               throw exception;
             }
             this.credit = credit;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -164,16 +157,16 @@ public class SubscribeOptions {
         public SubscribeOptionsBuilder setQos(QOS qos) throws IllegalArgumentException {
             final String methodName = "setQos";
             logger.entry(this, methodName, qos);
-          
+
             if (qos == null) {
               final IllegalArgumentException exception = new IllegalArgumentException("QOS value cannot be null");
               logger.throwing(this,  methodName, exception);
               throw exception;
             }
             this.qos = qos;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -182,23 +175,23 @@ public class SubscribeOptions {
          * @param shareName the share argument used to subscribe to a destination.  The
          *                  default is <code>null</code> which is interpreted as "do not subscribe
          *                  to a shared destination - the destination is private to this client".
-         *                  When specified, the share name must not contain a colon (:) character. 
+         *                  When specified, the share name must not contain a colon (:) character.
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          * @throws IllegalArgumentException if an invalid <code>shareName</code> value is specified.
          */
         public SubscribeOptionsBuilder setShare(String shareName) throws IllegalArgumentException {
             final String methodName = "setShare";
             logger.entry(this, methodName, shareName);
-          
+
             if (shareName != null && shareName.contains(":")) {
               final IllegalArgumentException exception = new IllegalArgumentException("Share name cannot contain a colon (:) character");
               logger.throwing(this,  methodName, exception);
               throw exception;
             }
             this.shareName = shareName;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -208,7 +201,7 @@ public class SubscribeOptions {
          * there are no instances of a client subscribed to a destination. It is reset each time a new instance of the client
          * subscribes to the destination. If time to live counts down to zero then MQ Light will delete the destination by
          * discarding any messages held at the destination and not accruing any new messages.
-         * 
+         *
          * @param ttl
          *            a time to live value in milliseconds, the default being 0 - meaning the destination will be deleted as
          *            soon as there are no clients subscribed to it. This must be a positive value, and when converted to
@@ -220,20 +213,20 @@ public class SubscribeOptions {
         public SubscribeOptionsBuilder setTtl(long ttl) throws IllegalArgumentException {
             final String methodName = "setTtl";
             logger.entry(this, methodName, ttl);
-            
+
             setTtl(ttl, TimeUnit.MILLISECONDS);
 
             logger.exit(this, methodName, this);
             return this;
         }
-        
+
         /**
          * A time-to-live value that is applied to the destination that the client is subscribed to. This value will replace any
          * previous value, if the destination already exists. Time to live starts counting down when there are no instances of a
          * client subscribed to a destination. It is reset each time a new instance of the client subscribes to the destination.
          * If time to live counts down to zero then MQ Light will delete the destination by discarding any messages held at the
          * destination and not accruing any new messages.
-         * 
+         *
          * @param ttl
          *            a time to live value in the given {@link TimeUnit}, the default being 0 - meaning the destination will be
          *            deleted as soon as there are no clients subscribed to it. This must be a positive value, and a maximum of
@@ -256,11 +249,11 @@ public class SubscribeOptions {
                 throw exception;
             }
             this.ttl = ttl;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
-        }        
+        }
 
         /**
          * @return an instance of SubscribeOptions based on the current settings of
