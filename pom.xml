@@ -319,27 +319,6 @@
         </executions>
       </plugin>
 
-      <!-- Sign the project artifacts for all modules -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-            <configuration>
-              <defaultKeyring>false</defaultKeyring>
-              <keyname>mqlight</keyname>
-              <passphraseServerId>mqlight</passphraseServerId>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- Deploy and Release to Maven Central
            command: mvn clean deploy - to deploy to OSSRH
                     mvn nexus-staging:release - to release to Maven Central (when version does not end in -SNAPSHOT)
@@ -358,4 +337,33 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>sign</id>
+      <build>
+        <plugins>
+          <!-- Sign the project artifacts for all modules -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <defaultKeyring>false</defaultKeyring>
+                  <keyname>mqlight</keyname>
+                  <passphraseServerId>mqlight</passphraseServerId>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
