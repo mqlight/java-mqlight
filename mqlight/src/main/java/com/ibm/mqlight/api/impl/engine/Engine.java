@@ -365,7 +365,7 @@ public class Engine extends ComponentImpl implements Handler {
             DataRead dr = (DataRead) message;
             try {
                 EngineConnection engineConnection = (EngineConnection) dr.channel.getContext();
-                if (!engineConnection.closed) {
+                if (!engineConnection.closed && !engineConnection.transport.isClosed()) {
                     final ByteBuffer buffer = dr.buffer.nioBuffer();
                     while (buffer.remaining() > 0) {
                         int origLimit = buffer.limit();
