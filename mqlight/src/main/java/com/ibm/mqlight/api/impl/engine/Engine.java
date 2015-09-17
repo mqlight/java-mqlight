@@ -366,14 +366,16 @@ public class Engine extends ComponentImpl implements Handler {
             try {
                 EngineConnection engineConnection = (EngineConnection) dr.channel.getContext();
                 if (!engineConnection.closed && !engineConnection.transport.isClosed()) {
-                    final ByteBuffer buffer = dr.buffer.nioBuffer();
-                    while (buffer.remaining() > 0) {
-                        int origLimit = buffer.limit();
+                    int bytesAvailable;
+                    while ((bytesAvailable = dr.buffer.readableBytes()) > 0) {
                         ByteBuffer tail = engineConnection.transport.tail();
-                        int amount = Math.min(tail.remaining(), buffer.remaining());
-                        buffer.limit(buffer.position() + amount);
-                        tail.put(buffer);
-                        buffer.limit(origLimit);
+                        if (bytesAvailable > tail.remaining()) {
+                            int max = tail.capacity() - tail.position();
+                            if (bytesAvailable > max)
+                                bytesAvailable = max;
+                        }
+                        tail.limit(tail.position() + bytesAvailable);
+                        dr.buffer.readBytes(tail);
                         engineConnection.transport.process();
                         process(engineConnection.collector);
                     }
