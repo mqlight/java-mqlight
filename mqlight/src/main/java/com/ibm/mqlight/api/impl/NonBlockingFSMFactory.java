@@ -191,9 +191,12 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.EP_RESP_OK, NonBlockingClientState.Retrying2B)
               .permit(NonBlockingClientTrigger.EP_RESP_FATAL, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, requestEndpointAction)
+              .onEntryFrom(NonBlockingClientTrigger.OPEN_RESP_RETRY, eventRetryingAction)
               .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, requestEndpointAction)
+              .onEntryFrom(NonBlockingClientTrigger.TIMER_RESP_POP, eventRetryingAction)
               .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, requestEndpointAction)
-              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, breakInboundLinksAction);
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, breakInboundLinksAction)
+              .onEntryFrom(NonBlockingClientTrigger.NETWORK_ERROR, eventRetryingAction);
 
         config.configure(NonBlockingClientState.Retrying2B)
               .ignore(NonBlockingClientTrigger.START)
