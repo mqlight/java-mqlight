@@ -297,20 +297,25 @@ public class Engine extends ComponentImpl implements Handler {
             EngineConnection.SubscriptionData sd = engineConnection.subscriptionData.get(ur.topic.toString());
             Target t = (Target)sd.receiver.getTarget();
             Source s = (Source)sd.receiver.getSource();
+            
+            // if we explicitly requested zeroTtl in the unsubscribe then always close the link
             if (ur.zeroTtl) {
                 t.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
                 t.setTimeout(new UnsignedInteger(0));
-                s.setTimeout(new UnsignedInteger(0));
                 s.setExpiryPolicy(TerminusExpiryPolicy.LINK_DETACH);
+                s.setTimeout(new UnsignedInteger(0));
+                sd.receiver.close();
+            } else {
+                // else detach the link if expiry is in effect or this is a shared subscription
+                if (t.getExpiryPolicy() == TerminusExpiryPolicy.NEVER ||
+                        t.getTimeout().longValue() > 0 ||
+                        ur.topic.isShared()) {
+                    sd.receiver.detach();
+                } else {
+                    sd.receiver.close();
+                }
             }
 
-            // detach link if expiry is still in effect, else close
-            if (t.getExpiryPolicy() == TerminusExpiryPolicy.NEVER ||
-                    t.getTimeout().longValue() > 0) {
-                sd.receiver.detach();
-            } else {
-                sd.receiver.close();
-            }
             writeToNetwork(engineConnection);
 
         } else if (message instanceof DeliveryResponse) {
