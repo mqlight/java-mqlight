@@ -396,6 +396,7 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingA)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingB)
               .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingB)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.StoppingB)
               .onEntryFrom(NonBlockingClientTrigger.STOP, eventUserStoppingAction);
 
         config.configure(NonBlockingClientState.StoppingR2F)
@@ -403,7 +404,8 @@ class NonBlockingFSMFactory {
               .permit(NonBlockingClientTrigger.STOP, NonBlockingClientState.StoppingR2E)
               .permit(NonBlockingClientTrigger.OPEN_RESP_OK, NonBlockingClientState.StoppingC)
               .permit(NonBlockingClientTrigger.OPEN_RESP_RETRY, NonBlockingClientState.StoppingD)
-              .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingD);
+              .permit(NonBlockingClientTrigger.OPEN_RESP_FATAL, NonBlockingClientState.StoppingD)
+              .permit(NonBlockingClientTrigger.NETWORK_ERROR, NonBlockingClientState.StoppingD);
 
         config.configure(NonBlockingClientState.StoppingR2G)
               .ignore(NonBlockingClientTrigger.STOP)
