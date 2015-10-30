@@ -231,6 +231,7 @@ public class Engine extends ComponentImpl implements Handler {
               d.settle();
               if (!sr.retainLink) {
                 linkSender.close();
+                linkSender.free();
               }
             } else {
               engineConnection.inProgressOutboundDeliveries.put(d, sr);
@@ -866,6 +867,7 @@ public class Engine extends ComponentImpl implements Handler {
           }
           if (!sr.retainLink) {
               event.getLink().close();
+              event.getLink().free();
           }
           sr.getSender().tell(new SendResponse(sr, exception), this);
       } else if (delivery.isReadable() && !delivery.isPartial()) {    // Assuming link instanceof Receiver...
