@@ -95,7 +95,7 @@ public class Send {
             if (args.containsKey("--message-ttl")) {
                 optsBuilder.setTtl((Integer)args.get("--message-ttl") * 1000);
             }
-            optsBuilder.setRetainLink(repeat > 1);
+            optsBuilder.setRetainLink(repeat > 1 || messages.length > 1);
             opts = optsBuilder.build();
         }
 
@@ -176,15 +176,15 @@ public class Send {
             @Override
             public void onStarted(NonBlockingClient client, Void context) {
                 System.out.printf("Connected to %s using client-id %s\n", client.getService(), client.getId());
-                String topic = (String)args.parsed.get("-t");
-                SendOptionsBuilder optsBuilder = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE);
-                if (args.parsed.containsKey("--message-ttl")) {
-                    optsBuilder.setTtl((Integer)args.parsed.get("--message-ttl") * 1000);
-                }
-                optsBuilder.setRetainLink(false);
-                SendOptions opts = optsBuilder.build();
 
                 if (args.parsed.containsKey("-f")) {
+                    String topic = (String)args.parsed.get("-t");
+                    SendOptionsBuilder optsBuilder = SendOptions.builder().setQos(QOS.AT_LEAST_ONCE);
+                    if (args.parsed.containsKey("--message-ttl")) {
+                        optsBuilder.setTtl((Integer)args.parsed.get("--message-ttl") * 1000);
+                    }
+                    optsBuilder.setRetainLink(false);
+                    SendOptions opts = optsBuilder.build();
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     try (FileInputStream in = new FileInputStream((String)args.parsed.get("-f"))) {
                         byte[] buffer = new byte[1024 * 128];
