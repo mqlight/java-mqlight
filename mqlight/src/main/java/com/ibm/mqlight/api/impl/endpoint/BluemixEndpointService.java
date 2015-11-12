@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -227,6 +228,19 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                                     state.password = credentials.get("password").getAsString();
                                     break;
                                 }
+                                else if (entry.getKey().startsWith("user-provided")) {
+                                        Iterator<JsonElement> i = entry.getValue().getAsJsonArray().iterator();
+					while (i.hasNext()) {
+						JsonObject obj = i.next().getAsJsonObject();
+						if (obj.has("name") && obj.get("name").getAsString().startsWith("mqlight")) {
+						    JsonObject credentials = obj.get("credentials").getAsJsonObject();
+						    state.user = credentials.get("username").getAsString();
+						    state.lookupUri = credentials.get("connectionLookupURI").getAsString();
+						    state.password = credentials.get("password").getAsString();
+						    break;
+						}
+					}
+				}
                             }
                     }
                 }
