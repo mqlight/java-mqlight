@@ -581,7 +581,7 @@ public class Engine extends ComponentImpl implements Handler {
         ClientException result = null;
 
         if (errorCondition != null && errorCondition.getCondition() != null) {
-            if (errorCondition.getDescription().contains("_Takeover")) {
+            if (errorCondition.getDescription().contains("amqp:link:stolen")) {
                 result = new ReplacedException(errorCondition.getDescription());
             } else if (errorCondition.getCondition().equals(AmqpError.PRECONDITION_FAILED)
                     || errorCondition.getCondition().equals(AmqpError.NOT_ALLOWED)
