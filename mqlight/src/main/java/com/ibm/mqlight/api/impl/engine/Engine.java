@@ -38,6 +38,7 @@ import org.apache.qpid.proton.amqp.messaging.Target;
 import org.apache.qpid.proton.amqp.messaging.TerminusExpiryPolicy;
 import org.apache.qpid.proton.amqp.transport.AmqpError;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
+import org.apache.qpid.proton.amqp.transport.LinkError;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
 import org.apache.qpid.proton.engine.Collector;
@@ -581,7 +582,7 @@ public class Engine extends ComponentImpl implements Handler {
         ClientException result = null;
 
         if (errorCondition != null && errorCondition.getCondition() != null) {
-            if (errorCondition.getDescription().contains("amqp:link:stolen")) {
+            if (errorCondition.getCondition() == LinkError.STOLEN) {
                 result = new ReplacedException(errorCondition.getDescription());
             } else if (errorCondition.getCondition().equals(AmqpError.PRECONDITION_FAILED)
                     || errorCondition.getCondition().equals(AmqpError.NOT_ALLOWED)
