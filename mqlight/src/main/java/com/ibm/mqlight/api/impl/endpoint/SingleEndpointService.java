@@ -18,8 +18,7 @@
  */
 package com.ibm.mqlight.api.impl.endpoint;
 
-import java.io.File;
-
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.LogbackLogging;
@@ -65,11 +64,11 @@ public class SingleEndpointService extends EndpointServiceImpl {
         logger.exit(this, methodName);
     }
 
-    public SingleEndpointService(String uri, String user, String password, File certChainFile, boolean verifyName) {
+    public SingleEndpointService(String uri, String user, String password, SSLOptions sslOptions) {
         final String methodName = "<init>";
-        logger.entry(this, methodName, uri, user, "******", certChainFile, verifyName);
+        logger.entry(this, methodName, uri, user, "******", sslOptions);
       
-        endpoint = new EndpointImpl(uri, user, password, certChainFile, verifyName);
+        endpoint = new EndpointImpl(uri, user, password, sslOptions);
         
         logger.exit(this, methodName);
     }

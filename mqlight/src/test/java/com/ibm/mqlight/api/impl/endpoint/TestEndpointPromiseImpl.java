@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.net.URI;
 import java.util.LinkedList;
 
@@ -31,6 +30,7 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.endpoint.EndpointPromise;
 import com.ibm.mqlight.api.impl.ComponentImpl;
@@ -51,12 +51,14 @@ public class TestEndpointPromiseImpl {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
-        @Override public File getCertChainFile() { return null; }
-        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
         @Override public int getIdleTimeout() { return 0; }
         @Override public URI getURI() { return null; }
+        @Override
+        public SSLOptions getSSLOptions() {
+            return new SSLOptions(null, null, null, false, null, null, null);
+        }
     }
 
     private void testPromiseThrowsIllegalStateException(EndpointPromise promise) {

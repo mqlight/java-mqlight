@@ -18,8 +18,9 @@
  */
 package com.ibm.mqlight.api.endpoint;
 
-import java.io.File;
 import java.net.URI;
+
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 
 /**
  * Bundles information that the client uses when establishing connections
@@ -42,18 +43,6 @@ public interface Endpoint {
      *         be used.
      */
     boolean useSsl();
-
-    /**
-     * @return an (optional) X.509 certificate chain file to use for the SSL/TLS
-     *         protected connection
-     */
-    File getCertChainFile();
-
-    /**
-     * @return a {@code boolean} indicating whether the client validates that
-     *         the CN name of the server's certificate matches its DNS name.
-     */
-    boolean getVerifyName();
 
     /**
      * @return the user name to use as part of a SASL PLAIN flow used to
@@ -79,4 +68,10 @@ public interface Endpoint {
      *         and taking into account whether or not SSL/TLS is enabled.
      */
     URI getURI();
+ 
+    /**
+     * @return the required SSL/TLS options.
+     */
+    SSLOptions getSSLOptions();
+    
 }

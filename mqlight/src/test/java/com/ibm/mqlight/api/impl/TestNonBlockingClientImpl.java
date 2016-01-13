@@ -27,7 +27,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -39,6 +38,8 @@ import java.util.Queue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import junit.framework.AssertionFailedError;
+
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
@@ -47,6 +48,7 @@ import org.junit.Test;
 import com.google.gson.GsonBuilder;
 import com.ibm.mqlight.api.ClientException;
 import com.ibm.mqlight.api.ClientOptions;
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 import com.ibm.mqlight.api.ClientState;
 import com.ibm.mqlight.api.CompletionListener;
 import com.ibm.mqlight.api.Delivery;
@@ -81,7 +83,6 @@ import com.ibm.mqlight.api.impl.engine.SubscribeResponse;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeRequest;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeResponse;
 import com.ibm.mqlight.api.timer.TimerService;
-import junit.framework.AssertionFailedError;
 
 public class TestNonBlockingClientImpl {
 
@@ -103,12 +104,14 @@ public class TestNonBlockingClientImpl {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
-        @Override public File getCertChainFile() { return null; }
-        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() {return null;}
         @Override public int getIdleTimeout() { return 0; }
         @Override public URI getURI() { return null; }
+        @Override
+        public SSLOptions getSSLOptions() {
+            return new SSLOptions(null, null, null, false, null, null, null);
+        }
     }
 
     private class MockEndpointService implements EndpointService {

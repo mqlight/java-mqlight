@@ -34,7 +34,7 @@ public class TestSingleEndpointService {
 
     @Test
     public void getOneEndpoint() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null, false);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise endpointPromise = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         service.lookup(endpointPromise);
         
@@ -46,12 +46,12 @@ public class TestSingleEndpointService {
         assertNull(endpoint.getUser());
         assertNull(endpoint.getPassword());
         assertFalse(endpoint.useSsl());
-        assertFalse(endpoint.getVerifyName());
+        assertFalse(endpoint.getSSLOptions().getVerifyName());
     }
     
     @Test
     public void exhaustEndpoints() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null, false);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise[] promises = new MockEndpointPromise[6];
         for (int i = 0; i < promises.length; ++i) { 
             promises[i] = new MockEndpointPromise(i % 2 == 0 ? MockEndpointPromise.Method.SUCCESS : MockEndpointPromise.Method.WAIT);
@@ -69,7 +69,7 @@ public class TestSingleEndpointService {
     
     @Test
     public void endpointSuccess() {
-        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null, false);
+        EndpointService service = new SingleEndpointService("amqp://example.org", null, null, null);
         MockEndpointPromise promise1 = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         MockEndpointPromise promise2 = new MockEndpointPromise(MockEndpointPromise.Method.SUCCESS);
         

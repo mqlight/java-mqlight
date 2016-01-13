@@ -25,7 +25,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 
@@ -39,6 +38,7 @@ import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sender;
 import org.junit.Test;
 
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 import com.ibm.mqlight.api.NetworkException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
@@ -161,12 +161,14 @@ public class TestEngine {
         @Override public String getHost() { return null; }
         @Override public int getPort() { return 0; }
         @Override public boolean useSsl() { return false; }
-        @Override public File getCertChainFile() { return null; }
-        @Override public boolean getVerifyName() { return false; }
         @Override public String getUser() { return null; }
         @Override public String getPassword() { return null; }
         @Override public int getIdleTimeout() { return 0; }
         @Override public URI getURI() { return null; }
+        @Override
+        public SSLOptions getSSLOptions() {
+            return new SSLOptions(null, null, null, false, null, null, null);
+        }
     }
 
     @Test

@@ -18,37 +18,6 @@
  */
 package com.ibm.mqlight.api.impl.network;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.UnresolvedAddressException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.TrustManagerFactory;
-
-import com.ibm.mqlight.api.ClientException;
-import com.ibm.mqlight.api.NetworkException;
-import com.ibm.mqlight.api.Promise;
-import com.ibm.mqlight.api.endpoint.Endpoint;
-import com.ibm.mqlight.api.impl.LogbackLogging;
-import com.ibm.mqlight.api.logging.FFDCProbeId;
-import com.ibm.mqlight.api.logging.Logger;
-import com.ibm.mqlight.api.logging.LoggerFactory;
-import com.ibm.mqlight.api.network.NetworkChannel;
-import com.ibm.mqlight.api.network.NetworkListener;
-import com.ibm.mqlight.api.network.NetworkService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -63,10 +32,33 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.JdkSslContext;
-import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.UnresolvedAddressException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+
+import com.ibm.mqlight.api.ClientException;
+import com.ibm.mqlight.api.NetworkException;
+import com.ibm.mqlight.api.Promise;
+import com.ibm.mqlight.api.endpoint.Endpoint;
+import com.ibm.mqlight.api.impl.LogbackLogging;
+import com.ibm.mqlight.api.impl.network.ssl.SSLEngineFactory;
+import com.ibm.mqlight.api.logging.FFDCProbeId;
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+import com.ibm.mqlight.api.network.NetworkChannel;
+import com.ibm.mqlight.api.network.NetworkListener;
+import com.ibm.mqlight.api.network.NetworkService;
 
 public class NettyNetworkService implements NetworkService {
 
@@ -383,63 +375,12 @@ public class NettyNetworkService implements NetworkService {
         final String methodName = "connect";
         logger.entry(this, methodName, endpoint, listener, promise);
 
-        SslContext sslCtx = null;
         try {
-            if (endpoint.getCertChainFile() != null && endpoint.getCertChainFile().exists()) {
-                try (FileInputStream fileInputStream =
-                        new FileInputStream(endpoint.getCertChainFile())) {
-                    KeyStore jks = KeyStore.getInstance("JKS");
-                    jks.load(fileInputStream, null);
-                    TrustManagerFactory trustManagerFactory = TrustManagerFactory
-                            .getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    trustManagerFactory.init(jks);
-                    sslCtx = SslContext.newClientContext();
-                    if (sslCtx instanceof JdkSslContext) {
-                        ((JdkSslContext) sslCtx).context().init(null,
-                                trustManagerFactory.getTrustManagers(), null);
-                    }
-                } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException | KeyManagementException e) {
-                    logger.data(this, methodName, e.toString());
-                }
-            }
-            // fallback to passing as .PEM file (or null, which loads default cacerts)
-            if (sslCtx == null) {
-                sslCtx = SslContext.newClientContext(endpoint.getCertChainFile());
-            }
-
-            final SSLEngine sslEngine = sslCtx.newEngine(null, endpoint.getHost(), endpoint.getPort());
-            sslEngine.setUseClientMode(true);
-
-            final LinkedList<String> enabledProtocols = new LinkedList<String>() {
-              private static final long serialVersionUID = 7838479468739671083L;
-              {
-                for (String protocol : sslEngine.getSupportedProtocols()) {
-                  if (!disabledProtocolPattern.matcher(protocol).matches()) {
-                    add(protocol);
-                  }
-                }
-              }
-            };
-            sslEngine.setEnabledProtocols(enabledProtocols.toArray(new String[enabledProtocols.size()]));
-            logger.data(this, methodName, "enabledProtocols", Arrays.toString(sslEngine.getEnabledProtocols()));
-
-            final LinkedList<String> enabledCipherSuites = new LinkedList<String>() {
-              private static final long serialVersionUID = 7838479468739671083L;
-              {
-                for (String cipher : sslEngine.getSupportedCipherSuites()) {
-                  if (!disabledCipherPattern.matcher(cipher).matches()) {
-                    add(cipher);
-                  }
-                }
-              }
-            };
-            sslEngine.setEnabledCipherSuites(enabledCipherSuites.toArray(new String[enabledCipherSuites.size()]));
-            logger.data(this, methodName, "enabledCipherSuites", Arrays.toString(sslEngine.getEnabledCipherSuites()));
-
-            if (endpoint.getVerifyName()) {
-                SSLParameters sslParams = sslEngine.getSSLParameters();
-                sslParams.setEndpointIdentificationAlgorithm("HTTPS");
-                sslEngine.setSSLParameters(sslParams);
+            final SSLEngine sslEngine;
+            if (endpoint.useSsl()) {
+                sslEngine = SSLEngineFactory.newInstance().createClientSSLEngine(endpoint.getSSLOptions(),  endpoint.getHost(),  endpoint.getPort());
+            } else {
+                sslEngine = null;
             }
 
             // The listener must be added to the ChannelFuture before the bootstrap channel initialisation completes (i.e.
@@ -470,12 +411,12 @@ public class NettyNetworkService implements NetworkService {
                        }
                     };
                 }
-                final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), sslEngine, handler);
+                final Bootstrap bootstrap = getBootstrap(endpoint.useSsl(), handler);
                 final ChannelFuture f = bootstrap.connect(endpoint.getHost(), endpoint.getPort());
                 f.addListener(new ConnectListener(endpoint, f, promise, listener));
             }
 
-        } catch (SSLException e) {
+        } catch (NoSuchAlgorithmException | SSLException | KeyManagementException e) {
             if (e.getCause() == null) {
                 promise.setFailure(new SecurityException(e.getMessage(), e));
             } else {
@@ -495,16 +436,13 @@ public class NettyNetworkService implements NetworkService {
      * @param secure
      *            a {@code boolean} indicating whether or not a secure channel
      *            will be required
-     * @param sslEngine
-     *            an {@link SSLEngine} if one should be used to secure the channel
      * @param handler a {@link ChannelHandler} to use for serving the requests.
      * @return a netty {@link Bootstrap} object suitable for obtaining a
      *         {@link Channel} from
      */
-    private static synchronized Bootstrap getBootstrap(final boolean secure,
-            final SSLEngine sslEngine, final ChannelHandler handler) {
+    private static synchronized Bootstrap getBootstrap(final boolean secure, final ChannelHandler handler) {
         final String methodName = "getBootstrap";
-        logger.entry(methodName, secure, sslEngine);
+        logger.entry(methodName, secure);
 
         ++useCount;
         if (useCount == 1) {

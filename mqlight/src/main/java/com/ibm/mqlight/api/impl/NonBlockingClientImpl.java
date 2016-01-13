@@ -249,8 +249,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 : new SingleEndpointService(service,
                         options == null ? null : options.getUser(),
                         options == null ? null : options.getPassword(),
-                        options == null ? null : options.getCertificateFile(),
-                        options == null || options.getVerifyName()),
+                        options == null ? null : options.getSSLOptions()),
                 new ThreadPoolCallbackService(5), new NettyNetworkService(),
                 new TimerServiceImpl(), null, options, listener, context);
     }

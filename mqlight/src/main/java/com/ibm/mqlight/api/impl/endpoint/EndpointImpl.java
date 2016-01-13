@@ -22,6 +22,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import com.ibm.mqlight.api.ClientOptions.SSLOptions;
 import com.ibm.mqlight.api.endpoint.Endpoint;
 import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
@@ -40,22 +41,21 @@ class EndpointImpl implements Endpoint {
     private String host;
     private int port;
     private boolean useSsl;
-    private File certChainFile;
-    private final boolean verifyName;
     private String user;
     private String password;
     private final int idleTimeout;
+    private final SSLOptions sslOptions;
 
     protected EndpointImpl(final String uri, final String user,
             final String password) throws IllegalArgumentException {
-        this(uri, user, password, null, false);
+        this(uri, user, password, null);
     }
 
     protected EndpointImpl(final String uri, final String user,
-            final String password, final File certChainFile, final boolean verifyName)
-            throws IllegalArgumentException {
+                           final String password, final SSLOptions sslOptions)
+        throws IllegalArgumentException {
         final String methodName = "<init>";
-        logger.entry(this, methodName, uri, user, "******", certChainFile);
+        logger.entry(this, methodName, uri, user, "******", sslOptions);
 
         if (user == null && password != null) {
             final IllegalArgumentException exception = new IllegalArgumentException("Can't have an empty user ID if you specify a password!");
@@ -138,27 +138,59 @@ class EndpointImpl implements Endpoint {
             throw exception;
         }
 
-        if (certChainFile != null) {
-            if (!certChainFile.exists()) {
+        // Validate the SSL options
+        if (sslOptions != null) {
+            validateFileOption("sslTrustCertificate", sslOptions.getTrustCertificateFile());
+            validateFileOption("sslKeyStore", sslOptions.getKeyStoreFile());
+            validateFileOption("sslClientCertificate", sslOptions.getClientCertificateFile());
+            validateFileOption("sslClientKey", sslOptions.getClientKeyFile());
+
+            if (sslOptions.getKeyStoreFile() != null
+                    && (sslOptions.getTrustCertificateFile() != null || sslOptions.getClientCertificateFile() != null || sslOptions
+                            .getClientKeyFile() != null)) {
                 final IllegalArgumentException exception = new IllegalArgumentException(
-                        "The file specified for sslTrustCertificate '"
-                                + certChainFile.getPath() + "' does not exist");
+                        "The SslKeyStore and other SSL options cannot be specified together");
                 logger.throwing(this, methodName, exception);
                 throw exception;
             }
-            if (!certChainFile.isFile()) {
+
+            if ((sslOptions.getClientKeyFile() != null && sslOptions.getClientCertificateFile() == null)
+                    || (sslOptions.getClientKeyFile() == null && sslOptions.getClientCertificateFile() != null)) {
                 final IllegalArgumentException exception = new IllegalArgumentException(
-                        "The file specified for sslTrustCertificate '"
-                                + certChainFile.getPath() + "' is not a regular file");
+                        "The SslClientCertificate and SslClientKey options must be specified together");
                 logger.throwing(this, methodName, exception);
                 throw exception;
             }
-            this.certChainFile = certChainFile;
+            
+            this.sslOptions = sslOptions;
+        } else {
+            this.sslOptions = new SSLOptions(null, null, null, false, null, null, null);
         }
-        this.verifyName = verifyName;
+        
         this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
         this.uri = serviceUri;
+        
+        logger.exit(this, methodName);
+    }
 
+    private void validateFileOption(String optionName, File file) {
+        final String methodName = "validateFileOption";
+        logger.entry(this, methodName, optionName, file);
+        if (file != null) {
+            if (!file.exists()) {
+                final IllegalArgumentException exception = new IllegalArgumentException(
+                        "The file specified for "+optionName+" '" + file.getPath() + "' does not exist");
+                logger.throwing(this, methodName, exception);
+                throw exception;
+            }
+            if (!file.isFile()) {
+                final IllegalArgumentException exception = new IllegalArgumentException(
+                        "The file specified for "+optionName+" '" + file.getPath() + "' is not a regular file");
+                logger.throwing(this, methodName, exception);
+                throw exception;
+            }
+        }
+        
         logger.exit(this, methodName);
     }
 
@@ -175,16 +207,6 @@ class EndpointImpl implements Endpoint {
     @Override
     public boolean useSsl() {
         return useSsl;
-    }
-
-    @Override
-    public File getCertChainFile() {
-        return certChainFile;
-    }
-
-    @Override
-    public boolean getVerifyName() {
-        return verifyName;
     }
 
     @Override
@@ -205,6 +227,11 @@ class EndpointImpl implements Endpoint {
     @Override
     public URI getURI() {
       return uri;
+    }
+
+    @Override
+    public SSLOptions getSSLOptions() {
+      return sslOptions;
     }
 
 }
