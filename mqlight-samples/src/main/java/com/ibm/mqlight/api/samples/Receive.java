@@ -56,11 +56,33 @@ public class Receive {
                     "                        amqp://user:password@host:5672 or\n" +
                     "                        amqps://host:5671 to use SSL/TLS\n" +
                     "                        (default: amqp://localhost)");
+        out.println("  -k FILE, --keystore=FILE\n" +
+                    "                        use key store contained in FILE (in PKCS#12 format) to\n" +
+                    "                        supply the client certificate, private key and trust\n" +
+                    "                        certificates.\n" +
+                    "                        The Connection must be secured with SSL/TLS (e.g. the\n" +
+                    "                        service URL must start with 'amqps://').\n" +
+                    "                        Option is mutually exclusive with the client-key,\n" +
+                    "                        client-certificate and trust-certifcate options");
+        out.println("  -p PASSPHRASE, --keystore-passphrase=PASSPHRASE\n" +
+                    "                        use PASSPHRASE to access the keystore");
+        out.println("  --client-certificate=FILE\n" +
+                    "                        use the certificate contained in FILE (in PEM format) to\n" +
+                    "                        supply the identity of the client. The connection must\n" +
+                    "                        be secured with SSL/TLS");
+        out.println("  --client-key=FILE     use the private key contained in FILE (in PEM format)\n" +
+                    "                        for encrypting the specified client certificate");
+        out.println("  --client-key-passphrase=PASSPHRASE\n" +
+                    "                        use PASSPHRASE to access the client private key");
         out.println("  -c FILE, --trust-certificate=FILE\n" +
                     "                        use the certificate contained in FILE (in PEM format) to\n" +
                     "                        validate the identity of the server. The connection must\n" +
-                    "                        be secured with SSL/TLS (e.g. the service URL must start\n" +
-                    "                        with 'amqps://')");
+                    "                        be secured with SSL/TLS");
+        out.println("  --verify-name=TRUE|FALSE\n" +
+                    "                        specify whether or not to additionally check the\n" +
+                    "                        server's common name in the specified trust certificate\n" +
+                    "                        matches the actual server's DNS name\n" +
+                    "                        (default: TRUE)");
         out.println("  -t TOPICPATTERN, --topic-pattern=TOPICPATTERN\n" +
                     "                        subscribe to receive messages matching TOPICPATTERN");
         out.println("                        (default: public)");
@@ -171,16 +193,22 @@ public class Receive {
         scheduledExecutor.setRemoveOnCancelPolicy(true);
 
         ArgumentParser parser = new ArgumentParser();
-        parser.expect("-h", "--help", Boolean.class, null)
+        parser.expect("-h", "--help", null, null)
               .expect("-s", "--service", String.class, "amqp://localhost")
+              .expect("-k", "--keystore", String.class, null)
+              .expect("-p", "--keystore-passphrase", String.class, null)
               .expect("-c", "--trust-certificate", String.class, null)
+              .expect(null, "--client-certificate", String.class, null)
+              .expect(null, "--client-key", String.class, null)
+              .expect(null, "--client-key-passphrase", String.class, null)
+              .expect(null, "--verify-name", Boolean.class, true)
               .expect("-t", "--topic-pattern", String.class, "public")
               .expect("-i", "--id", String.class, null)
               .expect(null, "--destination-ttl", Double.class, 0.0)
               .expect("-n", "--share-name", String.class, null)
               .expect("-f", "--file", String.class, null)
               .expect("-d", "--delay", Double.class, 0.0)
-              .expect(null, "--verbose", Boolean.class, false);
+              .expect(null, "--verbose", null, false);
 
         Results tmpArgs = null;
         try {
@@ -201,10 +229,28 @@ public class Receive {
         if (args.parsed.containsKey("-i")) {
             builder.setId((String)args.parsed.get("-i"));
         }
+        if (args.parsed.containsKey("-k")) {
+            builder.setSslKeyStore(new File((String) args.parsed.get("-k")));
+        }
+        if (args.parsed.containsKey("-p")) {
+            builder.setSslKeyStorePassphase((String)args.parsed.get("-p"));
+        }
         if (args.parsed.containsKey("-c")
                 && args.parsed.get("-c") instanceof String) {
             builder.setSslTrustCertificate(
                     new File((String) args.parsed.get("-c")));
+        }
+        if (args.parsed.containsKey("--verify-name")) {
+            builder.setSslVerifyName((Boolean)args.parsed.get("--verify-name"));
+        }
+        if (args.parsed.containsKey("--client-certificate")) {
+            builder.setSslClientCertificate(new File((String) args.parsed.get("--client-certificate")));
+        }
+        if (args.parsed.containsKey("--client-key")) {
+            builder.setSslClientKey(new File((String) args.parsed.get("--client-key")));
+        }
+        if (args.parsed.containsKey("--client-key-passphrase")) {
+            builder.setSslClientKeyPassphase((String)args.parsed.get("--client-key-passphrase"));
         }
         ClientOptions clientOpts = builder.build();
 

@@ -74,11 +74,33 @@ public class UiWorkout {
                     "                        amqp://user:password@host:5672 or\n" +
                     "                        amqps://host:5671 to use SSL/TLS\n" +
                     "                        (default: amqp://localhost)");
+        out.println("  -k FILE, --keystore=FILE\n" +
+                    "                        use key store contained in FILE (in PKCS#12 format) to\n" +
+                    "                        supply the client certificate, private key and trust\n" +
+                    "                        certificates.\n" +
+                    "                        The Connection must be secured with SSL/TLS (e.g. the\n" +
+                    "                        service URL must start with 'amqps://').\n" +
+                    "                        Option is mutually exclusive with the client-key,\n" +
+                    "                        client-certificate and trust-certifcate options");
+        out.println("  -p PASSPHRASE, --keystore-passphrase=PASSPHRASE\n" +
+                    "                        use PASSPHRASE to access the keystore");
+        out.println("  --client-certificate=FILE\n" +
+                    "                        use the certificate contained in FILE (in PEM format) to\n" +
+                    "                        supply the identity of the client. The connection must\n" +
+                    "                        be secured with SSL/TLS");
+        out.println("  --client-key=FILE     use the private key contained in FILE (in PEM format)\n" +
+                    "                        for encrypting the specified client certificate");
+        out.println("  --client-key-passphrase=PASSPHRASE\n" +
+                    "                        use PASSPHRASE to access the client private key");
         out.println("  -c FILE, --trust-certificate=FILE\n" +
                     "                        use the certificate contained in FILE (in PEM format) to\n" +
                     "                        validate the identity of the server. The connection must\n" +
-                    "                        be secured with SSL/TLS (e.g. the service URL must start\n" +
-                    "                        with 'amqps://')");
+                    "                        be secured with SSL/TLS");
+        out.println("  --verify-name=TRUE|FALSE\n" +
+                    "                        specify whether or not to additionally check the\n" +
+                    "                        server's common name in the specified trust certificate\n" +
+                    "                        matches the actual server's DNS name\n" +
+                    "                        (default: TRUE)");
     }
 
     private static String createClientId() {
@@ -91,9 +113,15 @@ public class UiWorkout {
         scheduledExecutor.setRemoveOnCancelPolicy(true);
 
         ArgumentParser parser = new ArgumentParser();
-        parser.expect("-h", "--help", Boolean.class, null)
+        parser.expect("-h", "--help", null, null)
               .expect("-s", "--service", String.class, System.getenv("VCAP_SERVICES") == null ? "amqp://localhost" : null)
-              .expect("-c", "--trust-certificate", String.class, null);
+              .expect("-k", "--keystore", String.class, null)
+              .expect("-p", "--keystore-passphrase", String.class, null)
+              .expect("-c", "--trust-certificate", String.class, null)
+              .expect(null, "--client-certificate", String.class, null)
+              .expect(null, "--client-key", String.class, null)
+              .expect(null, "--client-key-passphrase", String.class, null)
+              .expect(null, "--verify-name", Boolean.class, true);
 
         Results tmpArgs = null;
         try {
@@ -113,8 +141,26 @@ public class UiWorkout {
         for (final String[] dest : destinations) {
             ClientOptionsBuilder optBuilder = ClientOptions.builder();
             optBuilder.setId(createClientId());
+            if (args.parsed.containsKey("-k")) {
+                optBuilder.setSslKeyStore(new File((String) args.parsed.get("-k")));
+            }
+            if (args.parsed.containsKey("-p")) {
+                optBuilder.setSslKeyStorePassphase((String)args.parsed.get("-p"));
+            }
             if (args.parsed.containsKey("-c") && args.parsed.get("-c") instanceof String) {
               optBuilder.setSslTrustCertificate(new File((String) args.parsed.get("-c")));
+            }
+            if (args.parsed.containsKey("--verify-name")) {
+                optBuilder.setSslVerifyName((Boolean)args.parsed.get("--verify-name"));
+            }
+            if (args.parsed.containsKey("--client-certificate")) {
+                optBuilder.setSslClientCertificate(new File((String) args.parsed.get("--client-certificate")));
+            }
+            if (args.parsed.containsKey("--client-key")) {
+                optBuilder.setSslClientKey(new File((String) args.parsed.get("--client-key")));
+            }
+            if (args.parsed.containsKey("--client-key-passphrase")) {
+                optBuilder.setSslClientKeyPassphase((String)args.parsed.get("--client-key-passphrase"));
             }
             NonBlockingClient.create((String)args.parsed.get("-s"), optBuilder.build(), new NonBlockingClientAdapter<Void>() {
 

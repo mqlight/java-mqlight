@@ -192,16 +192,16 @@ public class TestArgumentParser {
     }
 
     @Test
-    public void booleanArgument() {
+    public void SingleArgument() {
         ArgumentParser parser = new ArgumentParser();
-        parser.expect("-d", "-durrh", Boolean.class, null);
+        parser.expect("-d", "-durrh", null, null);
         
         ArgumentParser.Results[] results = new ArgumentParser.Results[] {
             parser.parse(new String[]{"-d"}),
             parser.parse(new String[]{"-durrh"})
         };
         for (int i=0; i < results.length; ++i) {
-            assertEquals("Expected two parsed arguments [i="+i+"]", 2, results[i].parsed.size());
+            assertEquals("Expected two parsed argument [i="+i+"]", 2, results[i].parsed.size());
             assertEquals("Expected no unparsed arguments [i="+i+"]", 0, results[i].unparsed.length);
             assertEquals("Expected value for short argument to match [i="+i+"]", true, results[i].parsed.get("-d"));
             assertEquals("Expected value for long argument to match [i="+i+"]", true, results[i].parsed.get("-durrh"));
@@ -220,13 +220,50 @@ public class TestArgumentParser {
     }
     
     @Test
+    public void booleanArgument() {
+        ArgumentParser parser = new ArgumentParser();
+        parser.expect("-b", "-burglh", Boolean.class, null);
+        
+        ArgumentParser.Results[] results = new ArgumentParser.Results[] {
+            parser.parse(new String[]{"-b", "true"}),
+            parser.parse(new String[]{"-burglh=TRUE"}),
+            parser.parse(new String[]{"-burglh=tRuE"}),
+        };
+        for (int i=0; i < results.length; ++i) {
+            assertEquals("Expected two parsed arguments [i="+i+"]", 2, results[i].parsed.size());
+            assertEquals("Expected no unparsed arguments [i="+i+"] (unparsed is: "+ results[i].unparsed, 0, results[i].unparsed.length);
+            assertEquals("Expected value for short argument to match [i="+i+"]", true, results[i].parsed.get("-b"));
+            assertEquals("Expected value for long argument to match [i="+i+"]", true, results[i].parsed.get("-burglh"));
+        }
+    }
+    
+    @Test
+    public void booleanArgumentWithUnparsed() {
+        ArgumentParser parser = new ArgumentParser();
+        parser.expect("-b", "-burglh", Boolean.class, null);
+        
+        ArgumentParser.Results[] results = new ArgumentParser.Results[] {
+            parser.parse(new String[]{"-b", "FALSE", "v"}),
+            parser.parse(new String[]{"-burglh=false", "v"}),
+            parser.parse(new String[]{"-burglh=FaLsE", "v"}),
+        };
+        for (int i=0; i < results.length; ++i) {
+            assertEquals("Expected two parsed arguments [i="+i+"]", 2, results[i].parsed.size());
+            assertEquals("Expected one unparsed arguments [i="+i+"]", 1, results[i].unparsed.length);
+            assertEquals("Expected value for short argument to match [i="+i+"]", false, results[i].parsed.get("-b"));
+            assertEquals("Expected value for long argument to match [i="+i+"]", false, results[i].parsed.get("-burglh"));
+            assertEquals("Expected value for unparsed argument to match [i="+i+"]", "v", results[i].unparsed[0]);
+        }
+    }
+    
+    @Test
     public void badness() {
         ArgumentParser parser = new ArgumentParser();
         parser.expect("-e", "-eeek", Integer.class, null);
         
         ArgumentParser.Results r1 = parser.parse(new String[]{"-ea"});
         assertEquals("Expected no parsed arguments", 0, r1.parsed.size());
-        assertEquals("Expected one parsed argument", 1, r1.unparsed.length);
+        assertEquals("Expected one unparsed argument", 1, r1.unparsed.length);
         assertEquals("Expected value for unparsed arguments to match", "-ea", r1.unparsed[0]);
         
         ArrayList<String[]>failingCases  = new ArrayList<>();
@@ -249,6 +286,39 @@ public class TestArgumentParser {
             throw new AssertionFailedError("Expected setup of parser to fail");
         } catch(IllegalArgumentException e) {
             // Expected
+        }
+    }
+    
+    @Test
+    public void booleanBadness() {
+        ArgumentParser parser = new ArgumentParser();
+        parser.expect("-b", "-bk", Boolean.class, null);
+        
+        ArrayList<String[]> failingCases  = new ArrayList<>();
+        failingCases.add(new String[]{"-ba"});
+        failingCases.add(new String[]{"-bka"});
+        failingCases.add(new String[]{"-b"});
+        for (int i = 0; i < failingCases.size(); ++i) {
+            ArgumentParser.Results r1 = parser.parse(new String[]{"-ba"});
+            assertEquals("Expected no parsed arguments", 0, r1.parsed.size());
+            assertEquals("Expected one unparsed argument", 1, r1.unparsed.length);
+            assertEquals("Expected value for unparsed arguments to match", "-ba", r1.unparsed[0]);
+        }
+        
+        failingCases = new ArrayList<>();
+        failingCases.add(new String[]{"-bk=X"});
+        failingCases.add(new String[]{"-bk="});
+        failingCases.add(new String[]{"-bk=t"});
+        failingCases.add(new String[]{"-bk=truee"});
+        failingCases.add(new String[]{"-bk=f"});
+        failingCases.add(new String[]{"-bk=falsee"});
+        for (int i = 0; i < failingCases.size(); ++i) {
+            try {
+                parser.parse(failingCases.get(i));
+                throw new AssertionFailedError("Expected parsing to fail on: "+i);
+            } catch(IllegalArgumentException e) {
+                // Expected
+            }
         }
     }
 }

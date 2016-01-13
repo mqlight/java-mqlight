@@ -49,17 +49,17 @@ public class ArgumentParser {
     public ArgumentParser() {}
 
     public ArgumentParser expect(String shortName, String longName, Class<?> type, Object defaultValue) {
-        if (!(type == Double.class || type == String.class || type == Boolean.class || type == Integer.class)) {
+        if (!(type == null || type == Double.class || type == String.class || type == Boolean.class || type == Integer.class)) {
             throw new IllegalArgumentException("Unsupported type: " + (type == null ? null : type.getClass()));
         }
-        if ((defaultValue != null) && !type.isAssignableFrom(defaultValue.getClass())) {
+        if ((defaultValue != null) && (type == null || !type.isAssignableFrom(defaultValue.getClass()))) {
             throw new IllegalArgumentException("Invalid default: " + (defaultValue == null ? null : defaultValue.getClass()));
         }
         ExpectedArgument arg = new ExpectedArgument(shortName, longName, type);
         if (shortName != null) {
             expected.put(shortName, arg);
             if (defaultValue == null) {
-                if (type == Boolean.class) {
+                if (type == null) {
                     defaults.put(shortName, false);
                 }
             } else {
@@ -69,7 +69,7 @@ public class ArgumentParser {
         if (longName != null) {
             expected.put(longName, arg);
             if (defaultValue == null) {
-                if (type == Boolean.class) {
+                if (type == null) {
                     defaults.put(longName, false);
                 }
             } else {
@@ -88,7 +88,7 @@ public class ArgumentParser {
             String arg = args[i];
             String value = null;
             for (ExpectedArgument a : expected.values()) {
-                if (a.type == Boolean.class) {
+                if (a.type == null) {
                     if ((args[i].equals(a.shortName) || args[i].equals(a.longName))) {
                         ea = a;
                         value = Boolean.TRUE.toString();
@@ -129,8 +129,12 @@ public class ArgumentParser {
             } else {
                 Object v = value;   // Assume ea.type == String unless changed below...
                 try {
-                    if (ea.type == Boolean.class) {
-                        v = Boolean.valueOf(value);
+                    if (ea.type == null || ea.type == Boolean.class) {
+                        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+                            v = Boolean.valueOf(value);
+                        } else {
+                            throw new IllegalArgumentException("Value for argument '" + arg + "' must be TRUE or FALSE");
+                        }
                     } else if (ea.type == Double.class) {
                         v = Double.valueOf(value);
                     } else if (ea.type == Integer.class) {
