@@ -96,11 +96,9 @@ public class UiWorkout {
                     "                        use the certificate contained in FILE (in PEM format) to\n" +
                     "                        validate the identity of the server. The connection must\n" +
                     "                        be secured with SSL/TLS");
-        out.println("  --verify-name=TRUE|FALSE\n" +
-                    "                        specify whether or not to additionally check the\n" +
-                    "                        server's common name in the specified trust certificate\n" +
-                    "                        matches the actual server's DNS name\n" +
-                    "                        (default: TRUE)");
+        out.println("  --no-verify-name      specify to not additionally check the server's common\n" +
+                    "                        name in the specified trust certificate matches the\n" +
+                    "                        actual server's DNS name\n");
     }
 
     private static String createClientId() {
@@ -121,7 +119,7 @@ public class UiWorkout {
               .expect(null, "--client-certificate", String.class, null)
               .expect(null, "--client-key", String.class, null)
               .expect(null, "--client-key-passphrase", String.class, null)
-              .expect(null, "--verify-name", Boolean.class, true);
+              .expect(null, "--no-verify-name", null, null);
 
         Results tmpArgs = null;
         try {
@@ -150,8 +148,8 @@ public class UiWorkout {
             if (args.parsed.containsKey("-c") && args.parsed.get("-c") instanceof String) {
               optBuilder.setSslTrustCertificate(new File((String) args.parsed.get("-c")));
             }
-            if (args.parsed.containsKey("--verify-name")) {
-                optBuilder.setSslVerifyName((Boolean)args.parsed.get("--verify-name"));
+            if (args.parsed.get("--no-verify-name").equals(true)) {
+                optBuilder.setSslVerifyName(false);
             }
             if (args.parsed.containsKey("--client-certificate")) {
                 optBuilder.setSslClientCertificate(new File((String) args.parsed.get("--client-certificate")));
