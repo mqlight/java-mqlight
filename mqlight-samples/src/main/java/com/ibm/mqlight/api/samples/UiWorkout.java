@@ -145,7 +145,7 @@ public class UiWorkout {
                 optBuilder.setSslKeyStore(new File((String) args.parsed.get("-k")));
             }
             if (args.parsed.containsKey("-p")) {
-                optBuilder.setSslKeyStorePassphase((String)args.parsed.get("-p"));
+                optBuilder.setSslKeyStorePassphrase((String)args.parsed.get("-p"));
             }
             if (args.parsed.containsKey("-c") && args.parsed.get("-c") instanceof String) {
               optBuilder.setSslTrustCertificate(new File((String) args.parsed.get("-c")));
@@ -160,7 +160,7 @@ public class UiWorkout {
                 optBuilder.setSslClientKey(new File((String) args.parsed.get("--client-key")));
             }
             if (args.parsed.containsKey("--client-key-passphrase")) {
-                optBuilder.setSslClientKeyPassphase((String)args.parsed.get("--client-key-passphrase"));
+                optBuilder.setSslClientKeyPassphrase((String)args.parsed.get("--client-key-passphrase"));
             }
             NonBlockingClient.create((String)args.parsed.get("-s"), optBuilder.build(), new NonBlockingClientAdapter<Void>() {
 

@@ -90,7 +90,7 @@ public class ClientOptions {
         private final File clientCertFile;
         private final File clientKeyFile;
         private final String clientKeyFilePassphrase;
-        
+
         public SSLOptions(File keyStoreFile, String keyStoreFilePassphrase, File certFile, boolean verifyName,
                 File clientCertFile, File clientKeyFile, String clientKeyFilePassphrase) {
             this.keyStoreFile = keyStoreFile;
@@ -101,15 +101,15 @@ public class ClientOptions {
             this.clientKeyFile = clientKeyFile;
             this.clientKeyFilePassphrase = clientKeyFilePassphrase;
         }
-        
+
         public File getKeyStoreFile() {
             return keyStoreFile;
         }
 
-        public String getKeyStoreFilePassprase() {
+        public String getKeyStoreFilePassphrase() {
             return keyStoreFilePassphrase;
         }
-        
+
         public File getTrustCertificateFile() {
             return trustCertFile;
         }
@@ -117,19 +117,19 @@ public class ClientOptions {
         public boolean getVerifyName() {
             return verifyName;
         }
-        
+
         public File getClientCertificateFile() {
             return clientCertFile;
         }
-        
+
         public File getClientKeyFile() {
             return clientKeyFile;
         }
-        
-        public String getClientKeyFilePassprase() {
+
+        public String getClientKeyFilePassphrase() {
             return clientKeyFilePassphrase;
         }
-        
+
         @Override
         public String toString() {
             return super.toString()
@@ -141,7 +141,7 @@ public class ClientOptions {
                     + ", clientKeyFile=" + clientKeyFile
                     + ", clientKeyFilePassphrase=" + (clientKeyFilePassphrase == null ? null : "******") + "]";
         }
-        
+
     }
 
     /**
@@ -167,7 +167,7 @@ public class ClientOptions {
         private File clientCertFile = null;
         private File clientKeyFile = null;
         private String clientKeyFilePassphrase = null;
-        
+
         private ClientOptionsBuilder() {}
 
         /**
@@ -240,7 +240,7 @@ public class ClientOptions {
          * <li>PKCS12 - A PKCS#12 format key store.</li>
          * <li>CMS - Certificate Management Services key store. File extension .kdb</li>
          * </ul>
-         * 
+         *
          * @param keyStoreFile
          *            The key store file.
          * @return the same instance of <code>ClientOptionsBuilder</code> that
@@ -249,40 +249,40 @@ public class ClientOptions {
         public ClientOptionsBuilder setSslKeyStore(File keyStoreFile) {
             final String methodName = "setSslKeyStore";
             logger.entry(this, methodName, keyStoreFile);
-            
+
             if (this.certFile != null || this.clientCertFile != null || this.clientKeyFile != null || this.clientKeyFilePassphrase != null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("The SSL KeyStore and other SSL options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.keyStoreFile = keyStoreFile;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
-        
+
         /**
-         * Specifies the passphase used to access the key store file.
-         * 
-         * @param passphase
-         *            The passphase used to access the key store file.
+         * Specifies the passphrase used to access the key store file.
+         *
+         * @param passphrase
+         *            The passphrase used to access the key store file.
          * @return the same instance of <code>ClientOptionsBuilder</code> that
          *         this method was invoked on.
          */
-        public ClientOptionsBuilder setSslKeyStorePassphase(String passphrase) {
-            final String methodName = "setSslKeyStorePassphase";
+        public ClientOptionsBuilder setSslKeyStorePassphrase(String passphrase) {
+            final String methodName = "setSslKeyStorePassphrase";
             logger.entry(this, methodName, passphrase);
-            
+
             if (this.certFile != null || this.clientCertFile != null || this.clientKeyFile != null || this.clientKeyFilePassphrase != null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("The SSL KeyStore and other SSL options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.keyStoreFilePassphrase = passphrase;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
@@ -290,7 +290,7 @@ public class ClientOptions {
          * Specifies a X.509 certificate chain file for SSL/TLS certificates
          * that the client will trust. This can either be a file in PEM format
          * or a Java KeyStore (JKS) file.
-         * 
+         *
          * @param certificateFile
          *            a trust store that contains SSL/TLS certificates that the
          *            client is to trust. If this is not set (or is set to null)
@@ -305,23 +305,23 @@ public class ClientOptions {
         public ClientOptionsBuilder setSslTrustCertificate(File certificateFile) {
             final String methodName = "setSslTrustCertificate";
             logger.entry(this, methodName, certificateFile);
-            
+
             if (this.keyStoreFile != null || this.keyStoreFilePassphrase != null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("The SSL TrustCertificate and KeyStore options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.certFile = certificateFile;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
         /**
          * Determines whether the client validates that the CN name of the
          * server's certificate matches its DNS name.
-         * 
+         *
          * @param verifyName
          *            should the client validate the server's CN name? If this
          *            method is not called, the default is to behave as if this
@@ -337,7 +337,7 @@ public class ClientOptions {
         /**
          * Specifies a X.509 certificate file for the client's SSL/TLS
          * certificate. This file is expected to be in PEM format.
-         * 
+         *
          * @param certificateFile
          *            a PEM format file that contains the client's SSL/TLS
          *            certificate.
@@ -347,23 +347,23 @@ public class ClientOptions {
         public ClientOptionsBuilder setSslClientCertificate(File certificateFile) {
             final String methodName = "setSslClientCertificate";
             logger.entry(this, methodName, certificateFile);
-            
+
             if (this.keyStoreFile != null || this.keyStoreFilePassphrase != null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("The SSL ClientCertificateFile and KeyStore options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.clientCertFile = certificateFile;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
         /**
          * Specifies a X.509 certificate containing the private key for the
          * client. This file is expected to be in PEM format.
-         * 
+         *
          * @param keyFile
          *            a PEM format file that contains the SSL/TLS private key
          *            for the client.
@@ -373,44 +373,44 @@ public class ClientOptions {
         public ClientOptionsBuilder setSslClientKey(File keyFile) {
             final String methodName = "setSslClientKey";
             logger.entry(this, methodName, keyFile);
-            
+
             if (this.keyStoreFile != null || this.keyStoreFilePassphrase != null) {
                 final IllegalArgumentException exception = new IllegalArgumentException("The SSL ClientKeyFile and KeyStore options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.clientKeyFile = keyFile;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
 
         /**
          * Specifies the passphrase used to decrypt the client private key, when
          * it is stored in an encrypted format.
-         * 
+         *
          * @param passphrase
-         *            The passphase used to decrypt the client private key.
+         *            The passphrase used to decrypt the client private key.
          * @return the same instance of <code>ClientOptionsBuilder</code> that
          *         this method was invoked on.
          */
-        public ClientOptionsBuilder setSslClientKeyPassphase(String passphrase) {
-            final String methodName = "setSslClientKeyPassphase";
+        public ClientOptionsBuilder setSslClientKeyPassphrase(String passphrase) {
+            final String methodName = "setSslClientKeyPassphrase";
             logger.entry(this, methodName, passphrase);
-            
+
             if (this.keyStoreFile != null || this.keyStoreFilePassphrase != null) {
-                final IllegalArgumentException exception = new IllegalArgumentException("The SSL ClientKeyPassphase and KeyStore options cannot be specified together");
+                final IllegalArgumentException exception = new IllegalArgumentException("The SSL ClientKeyPassphrase and KeyStore options cannot be specified together");
                 logger.throwing(this,  methodName, exception);
                 throw exception;
             }
             this.clientKeyFilePassphrase = passphrase;
-            
+
             logger.exit(this, methodName, this);
-            
+
             return this;
         }
-        
+
         /**
          * @return an instance of the <code>ClientOptions</code> object, built using the various
          *         settings of this <code>ClientOptionsBuilder</code> class at the point this method

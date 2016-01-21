@@ -47,8 +47,8 @@ public class TestSSLClientOptions {
             // Expected.
         }
         try {
-            builder.setSslClientKeyPassphase("passphrase");
-            throw new AssertionFailedError("Expected SslClientKeyPassphase option to be rejected");
+            builder.setSslClientKeyPassphrase("passphrase");
+            throw new AssertionFailedError("Expected SslClientKeyPassphrase option to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected.
         }
@@ -58,15 +58,15 @@ public class TestSSLClientOptions {
         } catch(IllegalArgumentException e) {
             // Expected.
         }
-        builder.setSslKeyStorePassphase("passphrase");
+        builder.setSslKeyStorePassphrase("passphrase");
         builder.setSslVerifyName(false);
         final ClientOptions opts = builder.build();
         SSLOptions sslOpts = opts.getSSLOptions();
         assertEquals("keystore", sslOpts.getKeyStoreFile().getPath());
-        assertEquals("passphrase", sslOpts.getKeyStoreFilePassprase());
+        assertEquals("passphrase", sslOpts.getKeyStoreFilePassphrase());
         assertEquals(null, sslOpts.getClientCertificateFile());
         assertEquals(null, sslOpts.getClientKeyFile());
-        assertEquals(null, sslOpts.getClientKeyFilePassprase());
+        assertEquals(null, sslOpts.getClientKeyFilePassphrase());
         assertEquals(null, sslOpts.getTrustCertificateFile());
         assertEquals(false, sslOpts.getVerifyName());
     }
@@ -81,8 +81,8 @@ public class TestSSLClientOptions {
             // Expected.
         }
         try {
-            builder.setSslKeyStorePassphase("passphrase");
-            throw new AssertionFailedError("Expected SslKeyStorePassphase option to be rejected");
+            builder.setSslKeyStorePassphrase("passphrase");
+            throw new AssertionFailedError("Expected SslKeyStorePassphrase option to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected.
         }
@@ -90,14 +90,14 @@ public class TestSSLClientOptions {
         final ClientOptions opts = builder.build();
         SSLOptions sslOpts = opts.getSSLOptions();
         assertEquals(null, sslOpts.getKeyStoreFile());
-        assertEquals(null, sslOpts.getKeyStoreFilePassprase());
+        assertEquals(null, sslOpts.getKeyStoreFilePassphrase());
         assertEquals(null, sslOpts.getClientCertificateFile());
         assertEquals(null, sslOpts.getClientKeyFile());
-        assertEquals(null, sslOpts.getClientKeyFilePassprase());
+        assertEquals(null, sslOpts.getClientKeyFilePassphrase());
         assertEquals("trustCert", sslOpts.getTrustCertificateFile().getPath());
         assertEquals(true, sslOpts.getVerifyName());
     }
-    
+
     @Test
     public void clientCertificateOption() {
         final ClientOptionsBuilder builder = ClientOptions.builder().setSslClientCertificate(new File("clientCert"));
@@ -108,8 +108,8 @@ public class TestSSLClientOptions {
             // Expected.
         }
         try {
-            builder.setSslKeyStorePassphase("passphrase");
-            throw new AssertionFailedError("Expected SslKeyStorePassphase option to be rejected");
+            builder.setSslKeyStorePassphrase("passphrase");
+            throw new AssertionFailedError("Expected SslKeyStorePassphrase option to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected.
         }
@@ -117,14 +117,14 @@ public class TestSSLClientOptions {
         final ClientOptions opts = builder.build();
         SSLOptions sslOpts = opts.getSSLOptions();
         assertEquals(null, sslOpts.getKeyStoreFile());
-        assertEquals(null, sslOpts.getKeyStoreFilePassprase());
+        assertEquals(null, sslOpts.getKeyStoreFilePassphrase());
         assertEquals("clientCert", sslOpts.getClientCertificateFile().getPath());
         assertEquals(null, sslOpts.getClientKeyFile());
-        assertEquals(null, sslOpts.getClientKeyFilePassprase());
+        assertEquals(null, sslOpts.getClientKeyFilePassphrase());
         assertEquals(null, sslOpts.getTrustCertificateFile());
         assertEquals(true, sslOpts.getVerifyName());
     }
-    
+
     @Test
     public void clientKeyOption() {
         final ClientOptionsBuilder builder = ClientOptions.builder().setSslClientKey(new File("clientKey"));
@@ -135,8 +135,8 @@ public class TestSSLClientOptions {
             // Expected.
         }
         try {
-            builder.setSslKeyStorePassphase("passphrase");
-            throw new AssertionFailedError("Expected SslKeyStorePassphase option to be rejected");
+            builder.setSslKeyStorePassphrase("passphrase");
+            throw new AssertionFailedError("Expected SslKeyStorePassphrase option to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected.
         }
@@ -144,17 +144,17 @@ public class TestSSLClientOptions {
         final ClientOptions opts = builder.build();
         SSLOptions sslOpts = opts.getSSLOptions();
         assertEquals(null, sslOpts.getKeyStoreFile());
-        assertEquals(null, sslOpts.getKeyStoreFilePassprase());
+        assertEquals(null, sslOpts.getKeyStoreFilePassphrase());
         assertEquals(null, sslOpts.getClientCertificateFile());
         assertEquals("clientKey", sslOpts.getClientKeyFile().getPath());
-        assertEquals(null, sslOpts.getClientKeyFilePassprase());
+        assertEquals(null, sslOpts.getClientKeyFilePassphrase());
         assertEquals(null, sslOpts.getTrustCertificateFile());
         assertEquals(true, sslOpts.getVerifyName());
     }
-    
+
     @Test
     public void clientKeyPassphraseOption() {
-        final ClientOptionsBuilder builder = ClientOptions.builder().setSslClientKeyPassphase("wibble");
+        final ClientOptionsBuilder builder = ClientOptions.builder().setSslClientKeyPassphrase("wibble");
         try {
             builder.setSslKeyStore(new File("keystore"));
             throw new AssertionFailedError("Expected SslKeyStore option to be rejected");
@@ -162,8 +162,8 @@ public class TestSSLClientOptions {
             // Expected.
         }
         try {
-            builder.setSslKeyStorePassphase("passphrase");
-            throw new AssertionFailedError("Expected SslKeyStorePassphase option to be rejected");
+            builder.setSslKeyStorePassphrase("passphrase");
+            throw new AssertionFailedError("Expected SslKeyStorePassphrase option to be rejected");
         } catch(IllegalArgumentException e) {
             // Expected.
         }
@@ -171,10 +171,10 @@ public class TestSSLClientOptions {
         final ClientOptions opts = builder.build();
         SSLOptions sslOpts = opts.getSSLOptions();
         assertEquals(null, sslOpts.getKeyStoreFile());
-        assertEquals(null, sslOpts.getKeyStoreFilePassprase());
+        assertEquals(null, sslOpts.getKeyStoreFilePassphrase());
         assertEquals(null, sslOpts.getClientCertificateFile());
         assertEquals(null, sslOpts.getClientKeyFile());
-        assertEquals("wibble", sslOpts.getClientKeyFilePassprase());
+        assertEquals("wibble", sslOpts.getClientKeyFilePassphrase());
         assertEquals(null, sslOpts.getTrustCertificateFile());
         assertEquals(true, sslOpts.getVerifyName());
     }

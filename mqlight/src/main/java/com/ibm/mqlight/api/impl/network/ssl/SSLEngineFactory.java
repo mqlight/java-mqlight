@@ -53,32 +53,32 @@ import com.ibm.mqlight.api.security.PemFile;
  *
  */
 public class SSLEngineFactory {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(SSLEngineFactory.class);
 
     static {
         LogbackLogging.setup();
     }
-    
+
     /** Pattern of protocols to disable */
     final Pattern disabledProtocolPattern = Pattern.compile("(SSLv2|SSLv3).*");
 
     /** Pattern of cipher suites to disable */
     final Pattern disabledCipherPattern = Pattern.compile(".*_(NULL|EXPORT|DES|RC4|MD5|PSK|SRP|CAMELLIA)_.*");
-    
+
     /**
      * @return A new {@link SSLEngineFactory}.
      */
     public static SSLEngineFactory newInstance() {
         return new SSLEngineFactory();
     }
-    
+
     private SSLEngineFactory() {
     }
-    
+
     /**
      * Creates a client mode {@SSLEngine} for the specified SSL options.
-     * 
+     *
      * @param sslOptions
      * @param host
      * @param port
@@ -90,21 +90,21 @@ public class SSLEngineFactory {
     public SSLEngine createClientSSLEngine(SSLOptions sslOptions, String host, int port) throws SSLException, NoSuchAlgorithmException, KeyManagementException {
         final String methodName = "createClientSSLEngine";
         logger.entry(this, methodName, sslOptions, host, port);
-        
+
         KeyManagerFactory keyManagerFactory = null;
         TrustManagerFactory trustManagerFactory = null;
-        
+
         // Setup the key and trust manager factories from the supplied options
         final File keyStoreFile = sslOptions.getKeyStoreFile();
         if (keyStoreFile != null) {
             try {
-                final java.security.KeyStore keyStore = KeyStoreUtils.loadKeyStore(keyStoreFile, sslOptions.getKeyStoreFilePassprase());
-                
+                final java.security.KeyStore keyStore = KeyStoreUtils.loadKeyStore(keyStoreFile, sslOptions.getKeyStoreFilePassphrase());
+
                 keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                keyManagerFactory.init(keyStore, sslOptions.getKeyStoreFilePassprase().toCharArray());
+                keyManagerFactory.init(keyStore, sslOptions.getKeyStoreFilePassphrase().toCharArray());
                 trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(keyStore);
-                
+
             } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException | UnrecoverableKeyException e) {
                 throw new SSLException("failed to load key store", e);
             }
@@ -115,26 +115,26 @@ public class SSLEngineFactory {
                 try {
                     final KeyStore keyStore = KeyStore.getInstance("JKS");
                     keyStore.load(null, null);
-                    
+
                     final char [] clientKeyPasswordChars;
-                    if (sslOptions.getClientKeyFilePassprase() == null) {
+                    if (sslOptions.getClientKeyFilePassphrase() == null) {
                         // No password provided, so generate one (not that secure, but does not need to be as never exposed externally)
                         clientKeyPasswordChars = Long.toHexString(new SecureRandom().nextLong()).toCharArray();
                     } else {
-                        clientKeyPasswordChars = sslOptions.getClientKeyFilePassprase().toCharArray();
+                        clientKeyPasswordChars = sslOptions.getClientKeyFilePassphrase().toCharArray();
                     }
-                    
+
                     // Get the client certificate chain
                     final PemFile certChainPemFile = new PemFile(sslOptions.getClientCertificateFile());
-                    final List<Certificate> certChain = (List<Certificate>) certChainPemFile.getCertificates();
-                    
+                    final List<Certificate> certChain = certChainPemFile.getCertificates();
+
                     // Add the private key, with the certificate chain, to the key store
                     KeyStoreUtils.addPrivateKey(keyStore, sslOptions.getClientKeyFile(), clientKeyPasswordChars, certChain);
 
                     // Set up key manager factory to use our key store
                     keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
                     keyManagerFactory.init(keyStore, clientKeyPasswordChars);
-                    
+
                 } catch (Exception e) {
                     throw new SSLException("failed to load client certificate or private key", e);
                 }
@@ -175,12 +175,12 @@ public class SSLEngineFactory {
                 }
             }
         }
-        
+
         // Initialise the SSL context. If the trust manager is null then this falls back to loading default cacerts
         final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(keyManagerFactory == null ? null : keyManagerFactory.getKeyManagers(),
                         trustManagerFactory == null ? null : trustManagerFactory.getTrustManagers(), null);
-        
+
         // Setup the SSLEngine for client mode with the appropriate protocols and ciphers enabled
         final SSLEngine sslEngine = sslContext.createSSLEngine(host, port);
         sslEngine.setUseClientMode(true);

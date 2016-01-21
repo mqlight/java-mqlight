@@ -233,7 +233,7 @@ public class Receive {
             builder.setSslKeyStore(new File((String) args.parsed.get("-k")));
         }
         if (args.parsed.containsKey("-p")) {
-            builder.setSslKeyStorePassphase((String)args.parsed.get("-p"));
+            builder.setSslKeyStorePassphrase((String)args.parsed.get("-p"));
         }
         if (args.parsed.containsKey("-c")
                 && args.parsed.get("-c") instanceof String) {
@@ -250,7 +250,7 @@ public class Receive {
             builder.setSslClientKey(new File((String) args.parsed.get("--client-key")));
         }
         if (args.parsed.containsKey("--client-key-passphrase")) {
-            builder.setSslClientKeyPassphase((String)args.parsed.get("--client-key-passphrase"));
+            builder.setSslClientKeyPassphrase((String)args.parsed.get("--client-key-passphrase"));
         }
         ClientOptions clientOpts = builder.build();
 
