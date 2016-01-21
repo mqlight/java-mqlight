@@ -18,6 +18,8 @@
  */
 package com.ibm.mqlight.api.impl;
 
+import io.netty.buffer.ByteBuf;
+
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.nio.BufferOverflowException;
@@ -93,7 +95,6 @@ import com.ibm.mqlight.api.logging.Logger;
 import com.ibm.mqlight.api.logging.LoggerFactory;
 import com.ibm.mqlight.api.network.NetworkService;
 import com.ibm.mqlight.api.timer.TimerService;
-import io.netty.buffer.ByteBuf;
 
 public class NonBlockingClientImpl extends NonBlockingClient implements FSMActions, Component, CallbackService {
 
@@ -245,7 +246,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
     }
 
     public <T> NonBlockingClientImpl(String service, ClientOptions options, NonBlockingClientListener<T> listener, T context) {
-        this(service == null ? new BluemixEndpointService()
+        this(service == null ? new BluemixEndpointService(null, null)
                 : new SingleEndpointService(service,
                         options == null ? null : options.getUser(),
                         options == null ? null : options.getPassword(),

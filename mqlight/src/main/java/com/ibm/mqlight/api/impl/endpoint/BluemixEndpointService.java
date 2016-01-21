@@ -22,14 +22,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -71,6 +74,12 @@ public class BluemixEndpointService extends EndpointServiceImpl {
 
     private static ThreadPoolExecutor executor;
 
+    private static final Pattern defaultServiceLabelPattern = Pattern.compile("(mqlight.*)|(messagehub.*)|(user-provided)");
+    private static final Pattern defaultServiceNamePattern = Pattern.compile(".*");
+
+    private final Pattern serviceLabelPattern;
+    private final Pattern serviceNamePattern;
+
     private static class State {
         String lookupUri;
         int retryCount;
@@ -92,6 +101,11 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         public Thread newThread(Runnable runnable) {
             return new Thread(group, runnable, "bluemix-endpoint-" + number.getAndIncrement());
         }
+    }
+
+    public BluemixEndpointService(Pattern label, Pattern name) {
+        serviceLabelPattern = (label == null ? defaultServiceLabelPattern : label);
+        serviceNamePattern = (name == null ? defaultServiceNamePattern : name);
     }
 
     protected String getVcapServices() {
@@ -135,6 +149,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         }
 
         executor.execute(new Runnable() {
+            @Override
             public void run() {
                 final String methodName = "run";
                 logger.entry(this, methodName);
@@ -202,6 +217,68 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         logger.exit(this, methodName);
     }
 
+    private void parseVCAPJson() throws JsonParseException {
+        String vcapServices = getVcapServices();
+        if (vcapServices != null) {
+            JsonParser parser = new JsonParser();
+            JsonObject root = parser.parse(vcapServices).getAsJsonObject();
+            Set<JsonObject> serviceObjects = new HashSet<>();
+
+            // Iterate over all of the services in VCAP_SERVICES
+            for (Map.Entry<String, JsonElement> rootObjectProperty : root.entrySet()) {
+                JsonArray arrayOfServices = rootObjectProperty.getValue().getAsJsonArray();
+                for (JsonElement serviceElement : arrayOfServices) {
+                    JsonObject service = serviceElement.getAsJsonObject();
+
+                    // For each service that has name that matches 'serviceNamePattern' and a label
+                    // that matches 'serviceLabelPattern'...
+                    if (service.has("label") &&
+                            serviceLabelPattern.matcher(service.get("label").getAsString()).matches() &&
+                            service.has("name") &&
+                            serviceNamePattern.matcher(service.get("name").getAsString()).matches()) {
+
+                        // Skip over any services that are labelled 'user-provided - but don't
+                        // contain the required attributes of an MQ Light service
+                        if ("user-provided".equals(service.get("label").getAsString())) {
+                            JsonObject credentials = service.get("credentials").getAsJsonObject();
+                            if (!credentials.has("username") || !credentials.has("connectionLookupURI") || !credentials.has("password")) {
+                                continue;
+                            }
+                        }
+
+                        serviceObjects.add(service);
+                    }
+                }
+            }
+
+            if (serviceObjects.size() > 1) {
+                // It is an error if more than one service matches
+                StringBuilder errorMsg =
+                        new StringBuilder("Multiple services were found in VCAP_SERVICES. ");
+                errorMsg.append("Use the serviceLabel and serviceName methods of BluemixNonBlockingClientBuilder to disambiguate. ");
+                errorMsg.append("Candidate services are: [");
+                Iterator<JsonObject> serviceIterator = serviceObjects.iterator();
+                while(serviceIterator.hasNext()) {
+                    JsonObject service = serviceIterator.next();
+                    errorMsg.append("label: ").append(service.get("label").getAsString()).append(",");
+                    errorMsg.append("name: ").append(service.get("name").getAsString());
+                    if (serviceIterator.hasNext()) {
+                        errorMsg.append(", ");
+                    }
+                }
+                errorMsg.append("]");
+                throw new JsonParseException(errorMsg.toString());
+            } else if (serviceObjects.size() == 1) {
+                JsonObject service = serviceObjects.iterator().next();
+                JsonObject credentials = service.get("credentials").getAsJsonObject();
+                state.user = credentials.get("username").getAsString();
+                state.lookupUri = credentials.get("connectionLookupURI").getAsString();
+                state.password = credentials.get("password").getAsString();
+            }
+
+        }
+    }
+
     @Override
     public void lookup(EndpointPromise future) {
         final String methodName = "lookup";
@@ -214,35 +291,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
 
             synchronized(state) {
                 if (state.lookupUri == null) {
-                    String vcapServices = getVcapServices();
-                    if (vcapServices != null) {
-
-                            JsonParser parser = new JsonParser();
-                            JsonObject root = parser.parse(vcapServices).getAsJsonObject();
-                            for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-                                if (entry.getKey().startsWith("mqlight")) {
-                                    JsonObject mqlight = entry.getValue().getAsJsonArray().get(0).getAsJsonObject();
-                                    JsonObject credentials = mqlight.get("credentials").getAsJsonObject();
-                                    state.user = credentials.get("username").getAsString();
-                                    state.lookupUri = credentials.get(getConnectionUriKey()).getAsString();
-                                    state.password = credentials.get("password").getAsString();
-                                    break;
-                                }
-                                else if (entry.getKey().startsWith("user-provided")) {
-                                        Iterator<JsonElement> i = entry.getValue().getAsJsonArray().iterator();
-					while (i.hasNext()) {
-						JsonObject obj = i.next().getAsJsonObject();
-						if (obj.has("name") && obj.get("name").getAsString().startsWith("mqlight")) {
-						    JsonObject credentials = obj.get("credentials").getAsJsonObject();
-						    state.user = credentials.get("username").getAsString();
-						    state.lookupUri = credentials.get("connectionLookupURI").getAsString();
-						    state.password = credentials.get("password").getAsString();
-						    break;
-						}
-					}
-				}
-                            }
-                    }
+                    parseVCAPJson();
                 }
 
                 lookupUri = state.lookupUri;
