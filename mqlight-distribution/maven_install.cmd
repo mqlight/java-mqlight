@@ -24,5 +24,9 @@ call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile
 REM Install the MQ Light API samples to the local Maven repository
 call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=mqlight-api-samples-%version%.jar -DpomFile=mqlight-samples/pom.xml
 
+REM Install the MQ Light project to the local Maven repository
+REM This is necessary in order for other Maven projects depending on MQ Light to be able to build in offline mode 
+call mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=pom.xml -DpomFile=pom.xml
+
 REM Install the required dependencies to the local Maven repository
 call mvn org.apache.maven.plugins:maven-dependency-plugin:2.10:get -Dartifact=com.ibm.mqlight:mqlight-api:%version%
