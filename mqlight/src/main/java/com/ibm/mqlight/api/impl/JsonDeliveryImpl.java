@@ -34,7 +34,7 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class JsonDeliveryImpl extends DeliveryImpl implements JsonDelivery {
 
     private static final Logger logger = LoggerFactory.getLogger(JsonDeliveryImpl.class);
-  
+
     private final String jsonString;
     private final GsonBuilder gsonBuilder;
 
@@ -46,13 +46,13 @@ public class JsonDeliveryImpl extends DeliveryImpl implements JsonDelivery {
                                String data, GsonBuilder gsonBuilder,
                                Map<String, Object> properties, DeliveryRequest deliveryRequest) {
         super(client, qos, share, topic, topicPattern, ttl, properties, deliveryRequest);
-        
+
         final String methodName = "<init>";
         logger.entry(this, methodName, client, qos, share, topic, topicPattern, ttl, data, gsonBuilder, properties, deliveryRequest);
-        
+
         jsonString = data;
         this.gsonBuilder = gsonBuilder;
-        
+
         logger.exit(this, methodName);
     }
 
@@ -69,7 +69,7 @@ public class JsonDeliveryImpl extends DeliveryImpl implements JsonDelivery {
     }
 
     @Override
-    public <T> T getData(java.lang.reflect.Type typeOfT) {
+    public <T> T getData(java.lang.reflect.Type typeOfT) throws JsonSyntaxException {
         init();
         return gson.fromJson(jsonString, typeOfT);
     }
@@ -91,4 +91,5 @@ public class JsonDeliveryImpl extends DeliveryImpl implements JsonDelivery {
     public Type getType() {
         return Type.JSON;
     }
+
 }

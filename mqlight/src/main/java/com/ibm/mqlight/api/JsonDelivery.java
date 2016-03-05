@@ -18,8 +18,6 @@
  */
 package com.ibm.mqlight.api;
 
-import java.lang.reflect.Type;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
@@ -30,7 +28,7 @@ import com.google.gson.JsonSyntaxException;
  * A sub-type of delivery that is used to represent JSON data being received
  * by the client.
  */
-public interface JsonDelivery {
+public interface JsonDelivery extends Delivery {
 
     /**
      * Deserializes the JSON data into an object of the specified class.  Use the {@link JsonDelivery#getData(Type)}
@@ -50,7 +48,7 @@ public interface JsonDelivery {
      * @return an object of type T (or <code>null</code> if the JSON is a representation of null).
      * @throws JsonSyntaxException if the JSON data cannot be deserialized into an object of type <code>typeOfT</code>.
      */
-    <T> T getData(Type typeOfT) throws JsonSyntaxException;
+    <T> T getData(java.lang.reflect.Type typeOfT) throws JsonSyntaxException;
 
     /**
      * @return a {@link JsonElement} representing the deserialized JSON data.  This is equivalent to calling {@link JsonParser#parse(String)}.
