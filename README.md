@@ -1,6 +1,6 @@
 # IBM MQ Light Java
 
-[![Maven version][maven-img]][maven-url]
+[![Build Status][travis-img]][travis-url] [![Maven version][maven-img]][maven-url]
 
 ## Non-blocking API
 
@@ -144,4 +144,5 @@ environment variables that can be set to control the logging behavior when
 -- 
 [maven-url]: https://search.maven.org/#search%7Cga%7C1%7Cmqlight
 [maven-img]: https://img.shields.io/maven-central/v/com.ibm.mqlight/mqlight-api.svg
-
+[travis-img]: https://travis-ci.org/mqlight/java-mqlight.svg?branch=master
+[travis-url]: https://travis-ci.org/mqlight/java-mqlight
