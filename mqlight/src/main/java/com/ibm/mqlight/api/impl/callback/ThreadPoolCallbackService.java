@@ -19,7 +19,9 @@
 package com.ibm.mqlight.api.impl.callback;
 
 import java.util.LinkedList;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -96,6 +98,16 @@ public class ThreadPoolCallbackService implements CallbackService {
     private final int poolSize;
     private final WorkList workLists[];
 
+    static class ThreadPoolCallbackServiceThreadFactory implements ThreadFactory {
+        final ThreadFactory factory = Executors.defaultThreadFactory();
+        @Override
+        public Thread newThread(Runnable r) {
+            final Thread t = factory.newThread(r);
+            t.setName(ThreadPoolCallbackService.class.getSimpleName() + "-" + t.getName());
+            return t;
+        }
+    }
+
     public ThreadPoolCallbackService(int poolSize) {
         final String methodName = "<init>";
         logger.entry(this, methodName, poolSize);
@@ -103,7 +115,7 @@ public class ThreadPoolCallbackService implements CallbackService {
         this.poolSize = poolSize;
         workLists = new WorkList[poolSize];
 
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, poolSize, 500, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, poolSize, 500, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadPoolCallbackServiceThreadFactory());
         for (int i = 0; i < poolSize; ++i) workLists[i] = new WorkList(executor);
 
         logger.exit(this, methodName);
