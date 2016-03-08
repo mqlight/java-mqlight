@@ -177,6 +177,9 @@
             <transformationSets>
               <transformationSet>
                 <dir>${project.build.directory}/findbugs</dir>
+                <includes>
+                  <include>*.xml</include>
+                </includes>
                 <outputDir>${project.build.directory}/findbugs</outputDir>
                 <stylesheet>fancy.xsl</stylesheet>
                 <fileMappers>
