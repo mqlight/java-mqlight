@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.ibm.mqlight.api.ClientRuntimeException;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.callback.CallbackService;
 import com.ibm.mqlight.api.logging.Logger;
@@ -74,6 +75,14 @@ public class ThreadPoolCallbackService implements CallbackService {
                     promise.setSuccess(null);
                 } catch(Exception e) {
                     promise.setFailure(e);
+                } catch(Throwable t) {
+                    promise.setFailure(new ClientRuntimeException("Throwable raised during callback", t));
+                    synchronized(this) {
+                        if (!promises.isEmpty()) {
+                            executor.submit(this);
+                        }
+                        throw t;
+                    }
                 }
             }
 

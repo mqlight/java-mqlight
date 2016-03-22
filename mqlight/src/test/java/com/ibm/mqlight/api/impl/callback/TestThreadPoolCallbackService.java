@@ -52,7 +52,7 @@ public class TestThreadPoolCallbackService {
     
     @Test
     public void exceptionThrownInCallback() throws InterruptedException {
-        CallbackService cbs = new SameThreadCallbackService();
+        CallbackService cbs = new ThreadPoolCallbackService(5);
         MockCallbackPromise promise = new MockCallbackPromise(Method.FAILURE, false);
         final RuntimeException exception = new RuntimeException();
         cbs.run(new Runnable() {
@@ -60,12 +60,28 @@ public class TestThreadPoolCallbackService {
                 throw exception;
             }
         }, new Object(), promise);
-        
+
         assertTrue("Promise should have been completed", promise.waitForComplete(2500));
         assertTrue("Promise should not have been completed successfully", !promise.isSuccessful());
-        assertSame("Exception should have been thrown from run()!", exception, promise.getException().getCause());
+        assertSame("Exception should have been thrown from run()!", exception, promise.getException());
     }
-    
+
+    @Test
+    public void errorThrownInCallback() throws InterruptedException {
+        CallbackService cbs = new ThreadPoolCallbackService(5);
+        MockCallbackPromise promise = new MockCallbackPromise(Method.FAILURE, false);
+        final Error error = new AssertionError();
+        cbs.run(new Runnable() {
+            public void run() {
+                throw error;
+            }
+        }, new Object(), promise);
+
+        assertTrue("Promise should have been completed", promise.waitForComplete(2500));
+        assertTrue("Promise should not have been completed successfully", !promise.isSuccessful());
+        assertSame("Error should have been thrown from run()!", error, promise.getException().getCause());
+    }
+
     static class StressCallbackPromise extends MockCallbackPromise {
         private static final AtomicInteger atomicCount = new AtomicInteger(0);
         private int sequence;
