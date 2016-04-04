@@ -59,10 +59,10 @@ import com.ibm.mqlight.api.logging.LoggerFactory;
 public class LogbackLoggingImpl {
 
   protected static final Class<LogbackLoggingImpl> cclass = LogbackLoggingImpl.class;
-  
+
   /** Output encoding for log and trace when output to a file. */
   private static final String outputEncoding = System.getProperty("file.encoding", "UTF-8");
-  
+
   private static final Logger logger = LoggerFactory.getLogger(cclass);
 
   /** The process id. */
@@ -71,7 +71,7 @@ public class LogbackLoggingImpl {
     final String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
     pid = processName.split("@")[0];
   }
-  
+
   /** Indicates whether or not we have been setup. */
   private static AtomicBoolean setup = new AtomicBoolean(false);
 
@@ -85,7 +85,7 @@ public class LogbackLoggingImpl {
    * The MQ Light logback configuration resource.
    */
   private static String logbackConfigResource = "/com/ibm/mqlight/api/resources/mqlight-logback.xml";
-  
+
   /**
    * Sets up logging. Can be called multiple times with no side-effect on all but the first invocation. Should be invoked from any class that an application writer might invoke
    * (e.g. the client and any pluggable components) ahead of any calls to the SLF4J logging framework (e.g. a static constructor would be a good place).
@@ -101,7 +101,7 @@ public class LogbackLoggingImpl {
    */
   public static void setup() {
     if (!setup.getAndSet(true)) {
-      
+
       final ILoggerFactory loggerFactory = org.slf4j.LoggerFactory.getILoggerFactory();
       if (loggerFactory instanceof LoggerContext) {
         final LoggerContext context = (LoggerContext) loggerFactory;
@@ -110,10 +110,10 @@ public class LogbackLoggingImpl {
         //      2. Should not be defining a rootLogger, but instead a "com.ibm.mqlight.api" logger
         if (!context.isStarted()) {
           final ch.qos.logback.classic.Logger rootLogger = context.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-          
+
           // Obtain the required log level
           final Level mqlightLogLevel = getMQLightLogLevel();
-          
+
           // When the MQ Light log level is set, configure the logback trace for MQ Light
           // Note that this replaces any existing logback settings
           if (mqlightLogLevel != null) {
@@ -139,31 +139,31 @@ public class LogbackLoggingImpl {
                 }
               }
             }
-            
+
             // set log level to what MQLIGHT_JAVA_LOG is set to, defaulting to INFO
             rootLogger.setLevel(mqlightLogLevel);
             // TODO could implement mqlightLogLevel to specify levels for different loggers (e.g. com.ibm.mqlight.api=all)
-            
-            // Determine where the log output is required to go, creating the appropriate appenders and adding to the root logger       
+
+            // Determine where the log output is required to go, creating the appropriate appenders and adding to the root logger
             final LoggerOutput logOutput = getMQLightLogOutput();
             final OutputStreamAppender<ILoggingEvent> logAppender = createAppender(context, new LogFilter(), logOutput, "log.pattern", "log");
             rootLogger.addAppender(logAppender);
-            
+
             LoggerOutput traceOutput = getMQLightTraceOutput();
             if (traceOutput.equals(logOutput)) traceOutput = logOutput;
             final OutputStreamAppender<ILoggingEvent> traceAppender = createAppender(context, new TraceFilter(), traceOutput, "trace.pattern", "trace");
             rootLogger.addAppender(traceAppender);
-            
+
             // Output trace header to the trace output stream, when trace is enabled
             if (rootLogger.isTraceEnabled()) {
               writeTraceHeaderInfo(traceOutput.getPrintStream());
               logger.data("setup", (Object)("Trace level set to: "+mqlightLogLevel));
             }
-            
+
             // Output the logback setup information to the log output
             StatusPrinter.setPrintStream(logOutput.getPrintStream());
             StatusPrinter.print(context);
-            
+
           } else {
             // If the default logback configuration is set then update the level to WARN (as the default is DEBUG)
             if (ClassLoader.class.getResource("/logback.groovy") == null &&
@@ -179,11 +179,11 @@ public class LogbackLoggingImpl {
 
   /**
    * Creates an {@link OutputStreamAppender} for the required filter, pattern and logger output.
-   * 
-   * @param context Logger context to associate the appender with. 
+   *
+   * @param context Logger context to associate the appender with.
    * @param filter Event log filter.
    * @param logOutput Logger output information for the destination to write logger events to.
-   * @param patternProperty Logger context property that defines the pattern for formatting logger event output. 
+   * @param patternProperty Logger context property that defines the pattern for formatting logger event output.
    * @param name The name of the appender.
    * @return An {@link OutputStreamAppender} for the required parameters.
    */
@@ -205,7 +205,7 @@ public class LogbackLoggingImpl {
       rAppender.setFile(logOutput.getOutputName()+"."+logOutput.getOutputType());
       rAppender.setName(name);
       rAppender.addFilter(filter);
-      
+
       final FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
       rollingPolicy.setContext(context);
       rollingPolicy.setParent(rAppender);
@@ -222,7 +222,7 @@ public class LogbackLoggingImpl {
       rAppender.setRollingPolicy(rollingPolicy);
       rAppender.setTriggeringPolicy(triggeringPolicy);
       rAppender.start();
-      
+
       appender = rAppender;
     }
     return appender;
@@ -230,8 +230,8 @@ public class LogbackLoggingImpl {
 
   /**
    * Creates a {@link PatternLayoutEncoder} for the pattern specified for the pattern property.
-   * 
-   * @param context Logger context to associate the pattern layout encoder with. 
+   *
+   * @param context Logger context to associate the pattern layout encoder with.
    * @param patternProperty Logger context property that contains the required pattern.
    * @return A {@link PatternLayoutEncoder} for the required pattern.
    */
@@ -255,7 +255,7 @@ public class LogbackLoggingImpl {
         System.err.println("ERROR: MQ Light log level '"+requiredMQLightLogLevel+"' is invalid");
       }
     }
-    
+
     return mqlightLogLevel;
   }
 
@@ -280,7 +280,7 @@ public class LogbackLoggingImpl {
       this.outputName = outputName;
       this.outputType = outputType;
       this.printStream = printStream;
-      
+
       try {
         this.fileCount = Integer.parseInt(fileCount == null || fileCount.trim().length() == 0 ? defaultFileCount : fileCount);
       } catch (NumberFormatException e) {
@@ -290,7 +290,7 @@ public class LogbackLoggingImpl {
       }
       this.fileLimit = fileLimit == null || fileLimit.trim().length() == 0 ? defaultFileLimit : fileLimit;
     }
-    
+
     public String getFileLimit() {
       return fileLimit;
     }
@@ -306,15 +306,15 @@ public class LogbackLoggingImpl {
     public boolean isConsole() {
       return outputName.equals("stdout") || outputName.equals("stderr");
     }
-    
+
     public String getOutputName() {
       return outputName;
     }
-    
+
     public String getOutputType() {
       return outputType;
     }
-     
+
     @Override
     public int hashCode() {
       final int prime = 31;
@@ -339,7 +339,7 @@ public class LogbackLoggingImpl {
       return true;
     }
   }
-  
+
   /**
    * Obtains the required logger output information, for the required log type, based on environment settings.
    * <p>
@@ -352,7 +352,7 @@ public class LogbackLoggingImpl {
    * <p>
    * When {@code MQLIGHT_JAVA_LOG_STREAM} specifies a file path the output log file path will be in the format:
    * {@code MQLIGHT_JAVA_LOG_STREAM%i.type} where {@code %i} is blank for the active log file and ranging from 1 to the defined {@code MQLIGHT_JAVA_LOG_FILE_COUNT} for the archive log files.
-   * 
+   *
    * @param defaultOutput The default output for the logger information.
    * @param type The type of log output. This is used as the extension, when logging to file.
    * @return A {@link LoggerOutput} containing the required logger information.
@@ -381,29 +381,29 @@ public class LogbackLoggingImpl {
 
     return result;
   }
-  
+
   /**
    * @return Logger output information for event log messages.
    */
   private static LoggerOutput getMQLightLogOutput() {
     return getMQLightOutput("stdout", "log");
   }
-  
+
   /**
    * @return Logger output information for trace log messages.
    */
   private static LoggerOutput getMQLightTraceOutput() {
     return getMQLightOutput("stderr", "trc");
   }
-  
+
   /**
    * *** For Unit testing purposes only ***
    * <p>
    * Sets the default MQ Light log level, when the MQLIGHT_JAVA_LOG environment variable has not been set.
-   * 
+   *
    * @param value The default log level required, as a {@link String}.
    */
-  static void setDefaultRequiredMQLightLogLevel(String value) {
+  public static void setDefaultRequiredMQLightLogLevel(String value) {
     defaultRequiredMQLightLogLevel = value;
   }
 
@@ -411,7 +411,7 @@ public class LogbackLoggingImpl {
    * *** For Unit testing purposes only ***
    * <p>
    * Sets the logback configuration resource.
-   * 
+   *
    * @param value The required logback configuration resource, as a {@link String}.
    */
   static void setLogbackConfigResource(String value) {
@@ -422,25 +422,25 @@ public class LogbackLoggingImpl {
    * *** For Unit testing purposes only ***
    * <p>
    * Gets the logback configuration resource.
-   * 
+   *
    * @return The logback configuration resource, as a {@link String}.
    */
   static String getLogbackConfigResource() {
     return logbackConfigResource;
   }
-  
+
   /**
    * Helper method to write trace header information to the specified {@link PrintStream}.
-   * 
+   *
    * @param out
    */
-  private static void writeTraceHeaderInfo(PrintStream out) {        
+  private static void writeTraceHeaderInfo(PrintStream out) {
     final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz YYYY");
-    
+
     out.println("Date: "+dateFormat.format(new Date()));
-    
+
     out.println("\nProcess ID: "+pid);
-    
+
     out.println("\nSystem properties:");
     final Properties sysProps = System.getProperties();
     int maxPropNameLength = 0;
@@ -451,9 +451,9 @@ public class LogbackLoggingImpl {
     for (Entry<Object, Object> entry : sysProps.entrySet()) {
       final String prop = String.format(propNameStringFormat, entry.getKey());
       final String value = (String)entry.getValue();
-      out.println("|   "+prop+"  :-  "+value);      
+      out.println("|   "+prop+"  :-  "+value);
     }
-    
+
 
     out.println("\nRuntime properties:");
     out.println( "Available processors: "+Runtime.getRuntime().availableProcessors());
@@ -471,13 +471,13 @@ public class LogbackLoggingImpl {
     }
 
     out.println("\nVersion: "+Version.getVersion());
-    
+
     out.println("\nTimeStamp    TID  ClientId     ObjectId  Class                                                                                      Data");
     out.println("======================================================================================================================================================================");
-    
+
     out.flush();
   }
-  
+
   /**
    * Stops the logging.
    */
