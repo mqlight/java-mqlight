@@ -217,7 +217,7 @@ public class BluemixEndpointService extends EndpointServiceImpl {
         logger.exit(this, methodName);
     }
 
-    private void parseVCAPJson() throws JsonParseException {
+    private void parseVCAPJson() throws JsonParseException, ClientException {
         String vcapServices = getVcapServices();
         if (vcapServices != null) {
             JsonParser parser = new JsonParser();
@@ -260,14 +260,14 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                 Iterator<JsonObject> serviceIterator = serviceObjects.iterator();
                 while(serviceIterator.hasNext()) {
                     JsonObject service = serviceIterator.next();
-                    errorMsg.append("label: ").append(service.get("label").getAsString()).append(",");
-                    errorMsg.append("name: ").append(service.get("name").getAsString());
+                    errorMsg.append("label:").append(service.get("label").getAsString()).append("/");
+                    errorMsg.append("name:").append(service.get("name").getAsString());
                     if (serviceIterator.hasNext()) {
                         errorMsg.append(", ");
                     }
                 }
                 errorMsg.append("]");
-                throw new JsonParseException(errorMsg.toString());
+                throw new ClientException(errorMsg.toString());
             } else if (serviceObjects.size() == 1) {
                 JsonObject service = serviceObjects.iterator().next();
                 JsonObject credentials = service.get("credentials").getAsJsonObject();
@@ -323,6 +323,9 @@ public class BluemixEndpointService extends EndpointServiceImpl {
               new ClientException("Could not parse the JSON present in the IBM Bluemix VCAP_SERVICES environment variable.  See linked exception for more information", e);
             logger.data(this, methodName, exception);
             future.setFailure(exception);
+        } catch(ClientException e) {
+            logger.data(this, methodName, e);
+            future.setFailure(e);
         }
 
         logger.exit(this, methodName);
