@@ -426,8 +426,8 @@ public abstract class NonBlockingClient {
      * @param context a context object that is passed into the listeners registered using this method.
      *                The object supplied can be used within the listener code to identify the specific
      *                instance of the subscribe method relating to the listener invocation.
-     * @return the instance of <code>NonBlockingClient</code> that the unsubscribe method was invoked upon.  This is to
-     *         allow invocations of the unsubscribe method to be chained.
+     * @return the instance of <code>NonBlockingClient</code> that the subscribe method was invoked upon.  This is to
+     *         allow invocations of the subscribe method to be chained.
      * @throws SubscribedException if the client is already subscribed to the destination identified by a combination
      *                             of the topic pattern and share options.
      * @throws StoppedException if the client is in stopped or stopping state when this method is invoked.
