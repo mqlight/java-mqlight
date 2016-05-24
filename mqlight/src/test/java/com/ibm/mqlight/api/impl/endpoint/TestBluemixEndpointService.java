@@ -34,7 +34,7 @@ public class TestBluemixEndpointService {
 
     // Example JSON for a user-provided service
     private final String expectedUserProvidedUri = "http://mqlight-lookup.stage1.ng.bluemix.net/Lookup?serviceId=74f27d98-5368-4ae6-aad4-5c23798dec92&tls=true";
-    private final String userProvidedJSON =
+    private final String userProvidedJSONUsername =
             "{" +
             "  'user-provided': [" +
             "    {" +
@@ -47,6 +47,43 @@ public class TestBluemixEndpointService {
             "        'version': '2'," +
             "        'connectionLookupURI': '" + expectedUserProvidedUri + "'," +
             "        'username': 'nvAN7VgCXSFS'" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}".replace("'", "\"");
+
+    private final String userProvidedJSONUser =
+            "{" +
+            "  'user-provided': [" +
+            "    {" +
+            "      'name': 'Example MQ Light User Provided'," +
+            "      'label': 'user-provided', "+
+            "      'plan': 'standard'," +
+            "      'credentials': {" +
+            "        'password': 'r2jk9J?!P~/:', " +
+            "        'nonTLSConnectionLookupURI': 'http://mqlight-lookup.stage1.ng.bluemix.net/Lookup?serviceId=74f27d98-5368-4ae6-aad4-5c23798dec92'," +
+            "        'version': '2'," +
+            "        'connectionLookupURI': '" + expectedUserProvidedUri + "'," +
+            "        'user': 'DkcWc9aSldLs'" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}".replace("'", "\"");
+
+    private final String userProvidedJSONUserAndUsername =
+            "{" +
+            "  'user-provided': [" +
+            "    {" +
+            "      'name': 'Example MQ Light User Provided'," +
+            "      'label': 'user-provided', "+
+            "      'plan': 'standard'," +
+            "      'credentials': {" +
+            "        'password': 'r2jk9J?!P~/:', " +
+            "        'nonTLSConnectionLookupURI': 'http://mqlight-lookup.stage1.ng.bluemix.net/Lookup?serviceId=74f27d98-5368-4ae6-aad4-5c23798dec92'," +
+            "        'version': '2'," +
+            "        'connectionLookupURI': '" + expectedUserProvidedUri + "'," +
+            "        'username': 'nvAN7VgCXSFS', " +
+            "        'user': 'DkcWc9aSldLs'" +
             "      }" +
             "    }" +
             "  ]" +
@@ -234,6 +271,7 @@ public class TestBluemixEndpointService {
 
         // Expect 1st endpoint to be returned.
         assertEquals("ep1.example.org", promise.getEndoint().getHost());
+        assertEquals("jBruGnaTHuwq", promise.getEndoint().getUser());
 
         // If the test asks for another endpoint - it should receive the second.
         promise = new MockEndpointPromise(Method.SUCCESS);
@@ -330,7 +368,7 @@ public class TestBluemixEndpointService {
     // Test golden path for 'user-provided' services.
     @Test
     public void userProvidedWorks() throws InterruptedException {
-        BluemixEndpointService service = new MockBluemixEndpointService(userProvidedJSON, expectedUserProvidedUri, servicesJson);
+        BluemixEndpointService service = new MockBluemixEndpointService(userProvidedJSONUsername, expectedUserProvidedUri, servicesJson);
         MockEndpointPromise promise = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(promise);
         waitForComplete(promise);
@@ -346,6 +384,55 @@ public class TestBluemixEndpointService {
         MockEndpointPromise promise = new MockEndpointPromise(Method.SUCCESS);
         service.lookup(promise);
         waitForComplete(promise);
+        assertTrue("Promise should have been marked done", promise.isComplete());
+
+        assertEquals("User name", "nvAN7VgCXSFS", promise.getEndoint().getUser());
+    }
+
+    // Test that Message Hub services (which use 'user' rather than 'username' in
+    // the VCAP_SERVICES) are correctly parsed.
+    @Test
+    public void goldenPathUserNotUsername() throws InterruptedException {
+        String vcapJson =
+                "{ \"mqlight\": [ { \"name\": \"mqlsampleservice\", " +
+                "\"label\": \"mqlight\", \"plan\": \"default\", " +
+                "\"credentials\": { \"user\": \"jBruGnaTHuwq\", " +
+                "\"connectionLookupURI\": \"http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090\", " +
+                "\"password\": \"xhUQve2gdgAN\", \"version\": \"2\" } } ] }";
+        String expectedUri = "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090";
+        BluemixEndpointService service = new MockBluemixEndpointService(vcapJson, expectedUri, servicesJson);
+        MockEndpointPromise promise = new MockEndpointPromise(Method.SUCCESS);
+        service.lookup(promise);
+        waitForComplete(promise);
+        assertTrue("Promise should have been marked done", promise.isComplete());
+
+        // Expect 1st endpoint to be returned.
+        assertEquals("ep1.example.org", promise.getEndoint().getHost());
+        assertEquals("jBruGnaTHuwq", promise.getEndoint().getUser());
+    }
+
+    // Test that user provided entries can use 'user' as well as 'username'
+    @Test
+    public void userProvidedWorksWithUserNotUsername() throws InterruptedException {
+        BluemixEndpointService service = new MockBluemixEndpointService(userProvidedJSONUser, expectedUserProvidedUri, servicesJson);
+        MockEndpointPromise promise = new MockEndpointPromise(Method.SUCCESS);
+        service.lookup(promise);
+        waitForComplete(promise);
+        assertTrue("Promise should have been marked done", promise.isComplete());
+
+        assertEquals("User name", "DkcWc9aSldLs", promise.getEndoint().getUser());
+    }
+
+    // Test that user provided endpoints are only valid if they contain _either_
+    // a 'user' property, or a 'username' property, not both. As with any user provided
+    // endpoints that are not valid, they will be skipped over and ignored.
+    @Test
+    public void userProvidedIgnoredIfBothUserAndUsernameSpecified() throws InterruptedException {
+        BluemixEndpointService service = new MockBluemixEndpointService(userProvidedJSONUserAndUsername, expectedUserProvidedUri, servicesJson);
+        MockEndpointPromise promise = new MockEndpointPromise(Method.FAILURE);
+        service.lookup(promise);
+        waitForComplete(promise);
+
         assertTrue("Promise should have been marked done", promise.isComplete());
     }
 }

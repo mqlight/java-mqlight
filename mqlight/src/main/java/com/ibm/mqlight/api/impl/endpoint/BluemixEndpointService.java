@@ -241,7 +241,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                         // contain the required attributes of an MQ Light service
                         if ("user-provided".equals(service.get("label").getAsString())) {
                             JsonObject credentials = service.get("credentials").getAsJsonObject();
-                            if (!credentials.has("username") || !credentials.has("connectionLookupURI") || !credentials.has("password")) {
+                            if (!(credentials.has("username") ^ credentials.has("user"))
+                                    || !credentials.has("connectionLookupURI") || !credentials.has("password")) {
                                 continue;
                             }
                         }
@@ -271,7 +272,11 @@ public class BluemixEndpointService extends EndpointServiceImpl {
             } else if (serviceObjects.size() == 1) {
                 JsonObject service = serviceObjects.iterator().next();
                 JsonObject credentials = service.get("credentials").getAsJsonObject();
-                state.user = credentials.get("username").getAsString();
+                if (credentials.has("username")) {
+                    state.user = credentials.get("username").getAsString();
+                } else {
+                    state.user = credentials.get("user").getAsString();
+                }
                 state.lookupUri = credentials.get("connectionLookupURI").getAsString();
                 state.password = credentials.get("password").getAsString();
             }
