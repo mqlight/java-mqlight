@@ -27,6 +27,7 @@ package com.ibm.mqlight.api;
  *   <li>Attempting to subscribe to a destination to which the client is already subscribed.</li>
  *   <li>Attempting to unsubscribe from a destination to which the client is not already
  *       subscribed.</li>
+ * </ul>
  */
 public class StateException extends ClientRuntimeException {
 

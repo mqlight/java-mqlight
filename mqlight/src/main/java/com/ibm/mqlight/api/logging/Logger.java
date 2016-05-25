@@ -39,7 +39,7 @@ public interface Logger {
   /**
    * Associate the specified client id for the current thread, and its child threads, for tracing and logging
    *
-   * @param clientId
+   * @param clientId the client ID to associate.
    */
   void setClientId(String clientId);
 

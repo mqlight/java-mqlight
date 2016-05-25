@@ -1089,11 +1089,7 @@ public class TestNonBlockingClientImpl {
         assertEquals("Message 5: body doesn't match", expectedRawJson, ((AmqpValue)msg.getBody()).getValue());
     }
 
-    /**
-     * Ensure that breakInboundLinks completes when requests have been added to sd.pending
-     *
-     * @throws InterruptedException
-     */
+    // Ensure that breakInboundLinks completes when requests have been added to sd.pending
     @Test(timeout=5000)
     public void testBreakInboundLinks() throws InterruptedException {
         MockComponent engine = new MockComponent();

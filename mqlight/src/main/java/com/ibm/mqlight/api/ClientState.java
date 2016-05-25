@@ -21,7 +21,7 @@ package com.ibm.mqlight.api;
 /**
  * An enumeration used to describe the state of the MQ Light client.  This is the state
  * machine backing the client:
- * <img src="doc-files/sm.gif">
+ * <img src="doc-files/sm.gif" alt="MQ Light client state machine">
  */
 public enum ClientState {
     STARTING, STARTED, STOPPING, STOPPED, RETRYING

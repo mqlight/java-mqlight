@@ -127,7 +127,8 @@ public class SubscribeOptions {
          * Sets the maximum number of unconfirmed messages a client can have before the server will stop
          * sending new messages to the client and require that it confirms some of the outstanding message
          * deliveries in order to receive more messages.
-         * @param credit the credit value which must be >= 0.  The default if this is not specified is 1024.
+         * @param credit the credit value which must be greater than or equal to 0.  The default if this
+         *               is not specified is 1024.
          * @return the instance of <code>SubscribeOptionsBuilder</code> that this method was invoked on.
          * @throws IllegalArgumentException if an invalid <code>credit</code> value is specified.
          */

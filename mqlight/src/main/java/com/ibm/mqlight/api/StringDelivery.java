@@ -23,9 +23,9 @@ package com.ibm.mqlight.api;
  * by the client.
  */
 public interface StringDelivery extends Delivery {
-    
+
     /**
-     * @return a <code>String<code> object containing the textual data.
+     * @return a <code>String</code> object containing the textual data.
      */
     String getData();
 }

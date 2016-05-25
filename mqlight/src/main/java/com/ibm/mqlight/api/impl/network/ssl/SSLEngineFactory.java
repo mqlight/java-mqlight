@@ -77,15 +77,23 @@ public class SSLEngineFactory {
     }
 
     /**
-     * Creates a client mode {@SSLEngine} for the specified SSL options.
+     * Creates a client mode {@link SSLEngine} for the specified SSL options.
      *
      * @param sslOptions
+     *         an object encapsulating the SSL options to use when creating the
+     *         SSLEngine.
      * @param host
+     *         the host that the SSL engine will be used to connect to.
      * @param port
-     * @return A {@SSLEngine} instance for the required SSL options.
+     *         the port that the SSL engine will be used to connect to.
+     * @return An SSLEngine instance for the required SSL options.
      * @throws SSLException
+     *         if the keystore, trust store, or client certificate cannot be
+     *         found.
      * @throws NoSuchAlgorithmException
+     *         if a TLSv1.2 {@link SSLContext} cannot be created.
      * @throws KeyManagementException
+     *         if the initialization of the SSLContext fails.
      */
     public SSLEngine createClientSSLEngine(SSLOptions sslOptions, String host, int port) throws SSLException, NoSuchAlgorithmException, KeyManagementException {
         final String methodName = "createClientSSLEngine";

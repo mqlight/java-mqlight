@@ -145,8 +145,8 @@ public class ClientOptions {
     }
 
     /**
-     * @return a new instance of the <code>ClientOptionsBuilder<code> object.  This can be used to
-     * build (immutable) <code>ClientOptions</code> objects.
+     * @return a new instance of the {@link ClientOptionsBuilder} object.  This can be used to
+     * build (immutable) {@link ClientOptions} objects.
      */
     public static ClientOptionsBuilder builder() {
         return new ClientOptionsBuilder();

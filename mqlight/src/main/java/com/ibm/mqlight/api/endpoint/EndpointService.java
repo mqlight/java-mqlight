@@ -52,7 +52,7 @@ public interface EndpointService {
      * optimise the order in which it returns endpoints (for example to implement an
      * algorithm that always returns the most recently successful endpoints first).
      *
-     * @param endpoint
+     * @param endpoint the endpoint to which a connection has successfully being established.
      */
     void onSuccess(Endpoint endpoint);
 }

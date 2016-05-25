@@ -42,7 +42,7 @@ public interface NetworkChannel {
 
     /**
      * Allows an arbitrary object to be associated with this channel object.
-     * @param context
+     * @param context the arbitrary object.
      */
     void setContext(Object context);
 

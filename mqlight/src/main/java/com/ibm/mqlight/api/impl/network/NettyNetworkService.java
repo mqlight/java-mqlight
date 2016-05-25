@@ -494,7 +494,7 @@ public class NettyNetworkService implements NetworkService {
      * @param timeout Maximum time to wait in seconds.
      * @return {@code true} if the underlying network service has terminated, {@code false} if the underlying network
      *         service is still active after waiting the specified time.
-     * @throws InterruptedException
+     * @throws InterruptedException if the thread performing the operation is interrupted.
      */
     public boolean awaitTermination(long timeout) throws InterruptedException {
         final String methodName = "awaitTermination";

@@ -51,22 +51,22 @@ public class KeyStoreUtils {
     static {
         LogbackLogging.setup();
     }
-    
+
     /**
      * Attempts to load the specified file as a {@link KeyStore}, determining the key store type from the file extension.
-     * 
-     * @param file
-     * @param password
+     *
+     * @param file the file containing the key store to be loaded.
+     * @param password password for the key store file.
      * @return A {@link KeyStore} instance loaded from the specified file.
-     * @throws KeyStoreException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws IOException
+     * @throws KeyStoreException if no KeyStore provider supports the key store type (inferred from the key store file extension).
+     * @throws NoSuchAlgorithmException if an unknown algorithm is used to check key store identity.
+     * @throws CertificateException if certificates from the key store could not be loaded.
+     * @throws IOException if there is a problem accessing the key store file.
      */
     public static KeyStore loadKeyStore(File file, String password) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
         final String methodName = "loadKeyStore";
         logger.entry(methodName, file);
-        
+
         final String fileName = file.getName();
         final java.security.KeyStore keyStore;
         if (fileName.matches("(?i).*\\.jks")) {
@@ -81,7 +81,7 @@ public class KeyStoreUtils {
             final String keyStoreType = java.security.KeyStore.getDefaultType();
             keyStore = java.security.KeyStore.getInstance(keyStoreType);
         }
-        
+
         java.io.FileInputStream fileInputStream = null;
         try {
             fileInputStream = new java.io.FileInputStream(file);
@@ -92,7 +92,7 @@ public class KeyStoreUtils {
             } else {
                 passwordChars = password.toCharArray();
             }
-            
+
             keyStore.load(fileInputStream, passwordChars);
         } finally {
             if (fileInputStream != null) {
@@ -103,15 +103,15 @@ public class KeyStoreUtils {
                 }
             }
         }
-        
+
         logger.exit(methodName, keyStore);
-        
+
         return keyStore;
     }
-    
+
     /**
      * Adds a private key to the specified key store from the passed private key file and certificate chain.
-     * 
+     *
      * @param keyStore
      *            The key store to receive the private key.
      * @param pemKeyFile
@@ -119,29 +119,30 @@ public class KeyStoreUtils {
      * @param passwordChars
      *            The password that protects the private key.
      * @param certChain The certificate chain to associate with the private key.
-     * @throws IOException
-     * @throws GeneralSecurityException 
+     * @throws IOException if the key store file cannot be read
+     * @throws GeneralSecurityException if a cryptography problem is encountered.
      */
     public static void addPrivateKey(KeyStore keyStore, File pemKeyFile, char[] passwordChars, List<Certificate> certChain) throws IOException, GeneralSecurityException {
         final String methodName = "addPrivateKey";
         logger.entry(methodName, pemKeyFile, certChain);
 
         PrivateKey privateKey = createPrivateKey(pemKeyFile, passwordChars);
-        
+
         keyStore.setKeyEntry("key", privateKey, passwordChars, certChain.toArray(new Certificate[certChain.size()]));
-        
+
         logger.exit(methodName);
     }
-    
+
     /**
      * Creates a {@link PrivateKey} instance from the passed private key PEM format file and certificate chain.
-     * 
+     *
      * @param pemKeyFile
      *            A PEM format file containing the private key.
      * @param passwordChars
      *            The password that protects the private key.
-     * @throws IOException
-     * @throws GeneralSecurityException 
+     * @return the private key, created by this method.
+     * @throws IOException if the file cannot be read.
+     * @throws GeneralSecurityException if a cryptography problem is encountered.
      */
     public static PrivateKey createPrivateKey(File pemKeyFile, char[] passwordChars) throws IOException, GeneralSecurityException {
         final String methodName = "createPrivateKey";
@@ -150,7 +151,7 @@ public class KeyStoreUtils {
         // Read the private key from the PEM format file
         final PemFile privateKeyPemFile = new PemFile(pemKeyFile);
         final byte[] privateKeyBytes = privateKeyPemFile.getPrivateKeyBytes();
-        
+
         final PrivateKey privateKey;
         if (privateKeyPemFile.containsEncryptedPrivateKey()) {
             // We should be able to do the follows (using standard JDK classes):
@@ -184,9 +185,9 @@ public class KeyStoreUtils {
             if (key == null) throw keyFactoryException;
             privateKey = key;
         }
-        
+
         logger.exit(methodName, privateKey);
-        
+
         return privateKey;
     }
 }

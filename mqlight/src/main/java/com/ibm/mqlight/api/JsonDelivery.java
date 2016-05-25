@@ -31,10 +31,11 @@ import com.google.gson.JsonSyntaxException;
 public interface JsonDelivery extends Delivery {
 
     /**
-     * Deserializes the JSON data into an object of the specified class.  Use the {@link JsonDelivery#getData(Type)}
-     * method instead if the class is of a generic type.  This is equivalent to calling {@link Gson#fromJson(String, Type)}.
+     * Deserializes the JSON data into an object of the specified class.  Use the {@link JsonDelivery#getData(java.lang.reflect.Type)}
+     * method instead if the class is of a generic type.  This is equivalent to calling {@link Gson#fromJson(String, java.lang.reflect.Type)}.
      *
      * @param classOfT the class for the desired object.
+     * @param <T> the type of data object to return.
      * @return an object of type T (or <code>null</code> if the JSON is a representation of null).
      * @throws JsonSyntaxException if the JSON data cannot be deserialized into an object of type <code>classOfT</code>.
      */
@@ -42,9 +43,10 @@ public interface JsonDelivery extends Delivery {
 
     /**
      * Deserializes the JSON data into an object of the specified type.  Use the {@link JsonDelivery#getData(Class)}
-     * method instead if the class is not of a generic type.  This is equivalent to calling {@link Gson#fromJson(String, Type)}.
+     * method instead if the class is not of a generic type.  This is equivalent to calling {@link Gson#fromJson(String, java.lang.reflect.Type)}.
      *
      * @param typeOfT the type for the desired object.
+     * @param <T> the type of data object to return.
      * @return an object of type T (or <code>null</code> if the JSON is a representation of null).
      * @throws JsonSyntaxException if the JSON data cannot be deserialized into an object of type <code>typeOfT</code>.
      */
