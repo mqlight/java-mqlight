@@ -663,6 +663,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (or.exception != null) {
                 if (lastException == null) lastException = or.exception;
                 if (or.exception instanceof com.ibm.mqlight.api.ReplacedException
+                        || or.exception instanceof com.ibm.mqlight.api.NotPermittedException
                         || or.exception instanceof com.ibm.mqlight.api.SecurityException) {
                     stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
                 } else {
@@ -899,6 +900,9 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
             if (error instanceof ReplacedException) {
                 if (lastException == null) lastException = (ReplacedException) error;
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
+            } else if (error instanceof com.ibm.mqlight.api.NotPermittedException) {
+                if (lastException == null) lastException = (com.ibm.mqlight.api.NotPermittedException) error;
+                stateMachine.fire(NonBlockingClientTrigger.STOP);
             } else if (error instanceof com.ibm.mqlight.api.SecurityException) {
                 if (lastException == null) lastException = (com.ibm.mqlight.api.SecurityException) error;
                 stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
