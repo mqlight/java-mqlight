@@ -18,27 +18,40 @@
  */
 package com.ibm.mqlight.api;
 
+import com.ibm.mqlight.api.logging.Logger;
+import com.ibm.mqlight.api.logging.LoggerFactory;
+
 /**
- * An abstract adapter class for receiving client events. The methods in this class are empty.  
+ * An abstract adapter class for receiving client events. The methods in this class are empty.
  * This class exists as convenience for creating client listener objects.  Extend this class to
- * create a <code>NonBlockingClientListener</code> object and override the methods for the events of interest. 
+ * create a <code>NonBlockingClientListener</code> object and override the methods for the events of interest.
  * (If you implement the <code>NonBlockingClientListener</code> interface, you have to define all of the methods in it.
  * This abstract class defines null methods for them all, so you can only have to define methods for
  * events you care about.)
  */
 public abstract class NonBlockingClientAdapter<T> implements NonBlockingClientListener<T> {
 
+    private static final Logger logger = LoggerFactory.getLogger(NonBlockingClientAdapter.class);
+
     @Override
     public void onStarted(NonBlockingClient client, T context) {}
 
     @Override
-    public void onStopped(NonBlockingClient client, T context, ClientException throwable) {}
+    public void onStopped(NonBlockingClient client, T context, ClientException clientException) {
+        if (clientException != null) {
+            logger.warning("Unhandled exception in NonBlockingClientAdapter.onStopped() method :" + clientException.getMessage());
+        }
+    }
 
     @Override
     public void onRestarted(NonBlockingClient client, T context) {}
 
     @Override
-    public void onRetrying(NonBlockingClient client, T context, ClientException throwable) {}
+    public void onRetrying(NonBlockingClient client, T context, ClientException clientException) {
+        if (clientException != null) {
+            logger.warning("Unhandled exception in NonBlockingClientAdapter.onRetrying() method :" + clientException.getMessage());
+        }
+    }
 
     @Override
     public void onDrain(NonBlockingClient client, T context) {}
