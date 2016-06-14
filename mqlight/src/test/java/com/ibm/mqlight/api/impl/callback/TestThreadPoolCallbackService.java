@@ -40,22 +40,24 @@ public class TestThreadPoolCallbackService {
         MockCallbackPromise promise = new MockCallbackPromise(Method.SUCCESS, false);
         final AtomicBoolean run = new AtomicBoolean(false);
         cbs.run(new Runnable() {
+            @Override
             public void run() {
                 run.set(true);
             }
         }, new Object(), promise);
-        
+
         assertTrue("Promise should have been completed", promise.waitForComplete(2500));
         assertTrue("Promise should have been completed successfully", promise.isSuccessful());
         assertTrue("Runnable should have been run!", run.get());
     }
-    
+
     @Test
     public void exceptionThrownInCallback() throws InterruptedException {
         CallbackService cbs = new ThreadPoolCallbackService(5);
         MockCallbackPromise promise = new MockCallbackPromise(Method.FAILURE, false);
         final RuntimeException exception = new RuntimeException();
         cbs.run(new Runnable() {
+            @Override
             public void run() {
                 throw exception;
             }
@@ -72,6 +74,7 @@ public class TestThreadPoolCallbackService {
         MockCallbackPromise promise = new MockCallbackPromise(Method.FAILURE, false);
         final Error error = new AssertionError();
         cbs.run(new Runnable() {
+            @Override
             public void run() {
                 throw error;
             }
@@ -118,11 +121,11 @@ public class TestThreadPoolCallbackService {
         final int orderingContexts = 50;
         final int poolSize = 5;
         final ThreadPoolCallbackService callbackService = new ThreadPoolCallbackService(poolSize);
-        
+
         class PromiseList extends LinkedList<StressCallbackPromise> {
             private static final long serialVersionUID = 2857979802052992226L;
         }
-        
+
         PromiseList[] promiseList = new PromiseList[orderingContexts];
         Object[] contexts = new Object[orderingContexts];
         for (int i = 0; i < orderingContexts; ++i) {
@@ -133,15 +136,15 @@ public class TestThreadPoolCallbackService {
         ArrayList<MockCallbackPromise> allPromises = new ArrayList<>(callbacks);
         Random random = new Random();
         for (int i = 0; i < callbacks; ++i) {
-            Method expectedOutcome = Math.abs(random.nextInt()) % 100 > 5 ? Method.SUCCESS : Method.FAILURE;
+            Method expectedOutcome = Math.abs(random.nextInt() % 100) > 5 ? Method.SUCCESS : Method.FAILURE;
             StressCallbackPromise promise = new StressCallbackPromise(expectedOutcome);
-            int x = Math.abs(random.nextInt()) % orderingContexts;
+            int x = Math.abs(random.nextInt() % orderingContexts);
             PromiseList list = promiseList[x];
             allPromises.add(promise);
             list.addLast(promise);
             callbackService.run(promise.getRunnable(), contexts[x], promise);
         }
-        
+
         int count = 0;
         while(!allPromises.isEmpty()) {
             MockCallbackPromise p = allPromises.remove(0);
@@ -153,7 +156,7 @@ public class TestThreadPoolCallbackService {
             }
             ++count;
         }
-        
+
         // Check within a context promises were completed in order
         for (int i = 0; i < orderingContexts; ++i) {
             if (promiseList[i].size() > 1) {
