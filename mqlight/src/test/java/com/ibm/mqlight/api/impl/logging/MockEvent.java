@@ -19,6 +19,8 @@
 
 package com.ibm.mqlight.api.impl.logging;
 
+import java.util.Arrays;
+
 import org.slf4j.Marker;
 
 public class MockEvent {
@@ -27,7 +29,7 @@ public class MockEvent {
   public final String message;
   public final Object [] args;
   public final Throwable throwable;
-  
+
   public MockEvent(String type, Marker marker, String message, Object... args) {
     this.type = type;
     this.marker = marker;
@@ -50,8 +52,15 @@ public class MockEvent {
     this.args = new Object[0];
     this.throwable = throwable;
   }
-  
-  public String toString() {
-    return "type: "+type+" marker: "+marker+" message: "+message+" args: "+args+" throwable: "+throwable;
+
+  @Override
+public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("type: ").append(type)
+    .append(" marker: ").append(marker)
+    .append(" message: ").append(message)
+    .append(" args: ").append(Arrays.toString(args))
+    .append(" throwable: ").append(throwable);
+    return sb.toString();
   }
 }

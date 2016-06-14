@@ -85,7 +85,8 @@ public class TestNettyNetworkService {
         }
 
         public void await(int timeout) throws InterruptedException {
-            latch.await(timeout, TimeUnit.MILLISECONDS);
+            assertTrue("Expected operation to complete within: " + timeout + "ms",
+                    latch.await(timeout, TimeUnit.MILLISECONDS));
         }
 
         @Override
@@ -99,6 +100,7 @@ public class TestNettyNetworkService {
         protected ServerSocket serverSocket;
         protected final int port;
         protected boolean stop = false;
+        protected boolean started = false;
 
         private final Thread thread;
 
@@ -108,7 +110,9 @@ public class TestNettyNetworkService {
             thread.setDaemon(true);
             synchronized(this) {
                 thread.start();
-                this.wait();
+                while(!started) {
+                    this.wait();
+                }
             }
         }
 
@@ -135,6 +139,7 @@ public class TestNettyNetworkService {
             try {
                 serverSocket = new ServerSocket(port);
                 synchronized(this) {
+                    started = true;
                     this.notifyAll();
                 }
                 Socket socket = serverSocket.accept();
@@ -149,6 +154,7 @@ public class TestNettyNetworkService {
                 e.printStackTrace();
             } finally {
                 synchronized(this) {
+                    started = true;
                     this.notifyAll();
                 }
             }
@@ -179,6 +185,7 @@ public class TestNettyNetworkService {
                 serverSocket = (SSLServerSocketFactory.getDefault())
                         .createServerSocket(port);
                 synchronized(this) {
+                    started = true;
                     this.notifyAll();
                 }
                 socket = serverSocket.accept();
@@ -199,6 +206,7 @@ public class TestNettyNetworkService {
                     serverSocket.close();
                   } catch (IOException e) {
                   }
+                  started = true;
                     this.notifyAll();
                 }
             }
@@ -296,7 +304,7 @@ public class TestNettyNetworkService {
         public void setKeyStore(File keyStoreFile, String passphrase) {
             this.keyStoreFile = keyStoreFile;
             this.keyStorePassphrase = passphrase;
-            
+
         }
         public void setClientCert(File clientCertfile) {
             this.clientCertFile = clientCertfile;
@@ -419,7 +427,7 @@ public class TestNettyNetworkService {
             "lOnZq2rzTUM9wCxTKVpHq1XylKcs39SAvFLXRy5GSX+WF4DqccbpSbvnW2xTId/a\n" +
             "lKu8yjDY+/iH06ISme9GcmfXdZcXQbQaRzSYeWq6+z1q/KO1Nbdol0wRkdIilRM=\n" +
             "-----END CERTIFICATE-----";
-    
+
     private final String clientKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
             "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDO4Hu9X0i+gqB3\n" +
             "HhIt4DYFNjXDleKVY6ePW4jS+m2Du16IB8zfT/De8f5LRGDuZXCGgYr1iK6wBnu9\n" +
@@ -448,7 +456,7 @@ public class TestNettyNetworkService {
             "kFifJQXthyFjNjn0YmgcmS0epUCPP6nfs0t9uyQ5DngbeS/V6sN+PrGQFpWZJ4NO\n" +
             "FclmlCoKNJfExI6CJwluNjEy\n" +
             "-----END PRIVATE KEY-----";
-    
+
     private final String encryptedClientKeyPEM = "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
             "MIIFDjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIqIH+1ODU2HACAggA\n" +
             "MBQGCCqGSIb3DQMHBAgoYExX3n/dYwSCBMjEb2XiCtEQshGWLG6H2pqHTI1a3tY6\n" +
@@ -480,11 +488,11 @@ public class TestNettyNetworkService {
             "hFs=\n" +
             "-----END ENCRYPTED PRIVATE KEY-----";
     private final String encryptedClientKeyPEMPassphrase = "123456";
-    
+
     private void createKeyStore(File keyStoreFile, String password) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, KeyException, InvalidKeySpecException {
         final KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, null);
-                
+
         final File certsFile = folder.newFile();
         try (FileWriter writer = new FileWriter(certsFile)) {
             writer.write(cacertsPEM);
@@ -504,7 +512,7 @@ public class TestNettyNetworkService {
             writer.close();
         }
         final PemFile certChainPemFile = new PemFile(clientCertfile);
-        final List<Certificate> certChain = (List<Certificate>) certChainPemFile.getCertificates();
+        final List<Certificate> certChain = certChainPemFile.getCertificates();
 
         final PemFile clientKeyPemfile = new PemFile(clientKeyfile);
         final byte[] privateKeyBytes = clientKeyPemfile.getPrivateKeyBytes();
@@ -516,13 +524,13 @@ public class TestNettyNetworkService {
         List<Certificate> certs = certsPemFile.getCertificates();
         int index = 0;
         for (Certificate cert : certs) keyStore.setCertificateEntry("cert"+(++index), cert);
-        
+
         try (FileOutputStream fos = new FileOutputStream(keyStoreFile)) {
             keyStore.store(fos, password.toCharArray());
             fos.close();
         }
     }
-    
+
     @Test
     public void sslKeyStore() throws Exception {
         NettyNetworkService nn = new NettyNetworkService();
@@ -559,7 +567,7 @@ public class TestNettyNetworkService {
         BaseListener testListener = new BaseSslListener(34567);
         final File jksFile = folder.newFile();
         createKeyStore(jksFile, "password");
-        
+
         final File badKeyStore = folder.newFile();
         try (FileWriter writer = new FileWriter(badKeyStore)) {
             writer.write(cacertsPEM);
@@ -578,7 +586,7 @@ public class TestNettyNetworkService {
         testListener.stop();
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
-        
+
         // wrong key store password
         endpoint.setKeyStore(jksFile, "wrong");
         events = new LatchedLinkedList<Event>(1);
@@ -591,7 +599,7 @@ public class TestNettyNetworkService {
         testListener.stop();
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
-        
+
     }
 
     @Test
@@ -629,7 +637,7 @@ public class TestNettyNetworkService {
         NettyNetworkService nn = new NettyNetworkService();
         MockNetworkListener listener = new MockNetworkListener(new LinkedList<Event>());
         BaseListener testListener = new BaseSslListener(34567);
-        
+
         endpoint.setClientCert(clientCertfile);
         endpoint.setClientKey(clientKeyfile, "1234");
         endpoint.setCertChainFile(certsFile);
@@ -643,12 +651,12 @@ public class TestNettyNetworkService {
         testListener.stop();
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
-        
+
         // using a client key with no password
         nn = new NettyNetworkService();
         listener = new MockNetworkListener(new LinkedList<Event>());
         testListener = new BaseSslListener(34567);
-        
+
         endpoint.setClientCert(clientCertfile);
         endpoint.setClientKey(clientKeyfile, null);
         endpoint.setCertChainFile(certsFile);
@@ -662,12 +670,12 @@ public class TestNettyNetworkService {
         testListener.stop();
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
-        
+
         // using an encrypted client key
         nn = new NettyNetworkService();
         listener = new MockNetworkListener(new LinkedList<Event>());
         testListener = new BaseSslListener(34567);
-        
+
         endpoint.setClientCert(clientCertfile);
         endpoint.setClientKey(encryptedClientKeyfile, encryptedClientKeyPEMPassphrase);
         endpoint.setCertChainFile(certsFile);
@@ -682,7 +690,7 @@ public class TestNettyNetworkService {
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
-    
+
     @Test
     public void badSslCLientAuth() throws Exception {
         final NettyNetworkService nn = new NettyNetworkService();
@@ -746,7 +754,7 @@ public class TestNettyNetworkService {
         testListener.stop();
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
-        
+
         // wrong key password
         endpoint.setClientCert(clientCertfile);
         endpoint.setClientKey(encryptedClientKeyfile, "wrong");
@@ -763,7 +771,7 @@ public class TestNettyNetworkService {
         assertTrue("Expected listener to end!", testListener.join(LISTENER_WAIT_TIMEOUT_SECONDS));
         assertTrue("Expected network service to end!", nn.awaitTermination(NETWORK_WAIT_TIMEOUT_SECONDS));
     }
-    
+
     @Test
     public void sslCertFiles() throws Exception {
         NettyNetworkService nn = new NettyNetworkService();
