@@ -242,7 +242,8 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                         if ("user-provided".equals(service.get("label").getAsString())) {
                             JsonObject credentials = service.get("credentials").getAsJsonObject();
                             if (!(credentials.has("username") ^ credentials.has("user"))
-                                    || !credentials.has("connectionLookupURI") || !credentials.has("password")) {
+                                    || !(credentials.has("connectionLookupURI") ^ credentials.has("mqlight_lookup_uri"))
+                                    || !credentials.has("password")) {
                                 continue;
                             }
                         }
@@ -277,7 +278,11 @@ public class BluemixEndpointService extends EndpointServiceImpl {
                 } else {
                     state.user = credentials.get("user").getAsString();
                 }
-                state.lookupUri = credentials.get("connectionLookupURI").getAsString();
+                if (credentials.has("connectionLookupURI")) {
+                    state.lookupUri = credentials.get("connectionLookupURI").getAsString();
+                } else {
+                    state.lookupUri = credentials.get("mqlight_lookup_uri").getAsString();
+                }
                 state.password = credentials.get("password").getAsString();
             }
 
