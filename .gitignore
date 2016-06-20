@@ -11,3 +11,5 @@ javacore.*.txt
 **/.classpath
 **/.project
 **/.settings
+**/bin
+.fbExcludeFilterFile
