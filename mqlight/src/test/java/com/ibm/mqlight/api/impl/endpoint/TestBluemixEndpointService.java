@@ -100,7 +100,7 @@ public class TestBluemixEndpointService {
             "        'password': 'r2jk9J?!P~/:', " +
             "        'nonTLSConnectionLookupURI': 'http://mqlight-lookup.stage1.ng.bluemix.net/Lookup?serviceId=74f27d98-5368-4ae6-aad4-5c23798dec92'," +
             "        'version': '2'," +
-            "        'mqlight_lookup_uri': '" + expectedUserProvidedUri + "'," +
+            "        'mqlight_lookup_url': '" + expectedUserProvidedUri + "'," +
             "        'user': 'DkcWc9aSldLs'" +
             "      }" +
             "    }" +
@@ -118,7 +118,7 @@ public class TestBluemixEndpointService {
             "        'password': 'r2jk9J?!P~/:', " +
             "        'version': '2'," +
             "        'connectionLookupURI': 'http://uri1'," +
-            "        'mqlight_lookup_uri': 'http://uri2'," +
+            "        'mqlight_lookup_url': 'http://uri2'," +
             "        'user': 'DkcWc9aSldLs'" +
             "      }" +
             "    }" +
@@ -471,7 +471,7 @@ public class TestBluemixEndpointService {
         assertTrue("Promise should have been marked done", promise.isComplete());
     }
 
-    // Test that Message Hub services (which use 'mqlight_lookup_uri' rather
+    // Test that Message Hub services (which use 'mqlight_lookup_url' rather
     // than 'connectionLookupURI' in the VCAP_SERVICES) are correctly parsed.
     @Test
     public void goldenPathDifferentLookupUri() throws InterruptedException {
@@ -479,7 +479,7 @@ public class TestBluemixEndpointService {
                 "{ \"mqlight\": [ { \"name\": \"mqlsampleservice\", " +
                 "\"label\": \"mqlight\", \"plan\": \"default\", " +
                 "\"credentials\": { \"user\": \"jBruGnaTHuwq\", " +
-                "\"mqlight_lookup_uri\": \"http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090\", " +
+                "\"mqlight_lookup_url\": \"http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090\", " +
                 "\"password\": \"xhUQve2gdgAN\", \"version\": \"2\" } } ] }";
         String expectedUri = "http://mqlightp-lookup.ng.bluemix.net/Lookup?serviceId=ServiceId_0000000090";
         BluemixEndpointService service = new MockBluemixEndpointService(vcapJson, expectedUri, servicesJson);
