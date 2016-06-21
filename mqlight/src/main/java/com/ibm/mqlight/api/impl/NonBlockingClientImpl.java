@@ -902,7 +902,8 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                 stateMachine.fire(NonBlockingClientTrigger.REPLACED);
             } else if (error instanceof com.ibm.mqlight.api.NotPermittedException) {
                 if (lastException == null) lastException = (com.ibm.mqlight.api.NotPermittedException) error;
-                stateMachine.fire(NonBlockingClientTrigger.STOP);
+                // XXX: should REPLACED be renamed?  Really it means "server closed the connection - don't retry"
+                stateMachine.fire(NonBlockingClientTrigger.REPLACED);
             } else if (error instanceof com.ibm.mqlight.api.SecurityException) {
                 if (lastException == null) lastException = (com.ibm.mqlight.api.SecurityException) error;
                 stateMachine.fire(NonBlockingClientTrigger.OPEN_RESP_FATAL);
