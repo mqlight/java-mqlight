@@ -92,29 +92,6 @@
 
   <build>
     <plugins>
-      <!-- Specify that we want to include the proton-j classes -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.3</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <minimizeJar>true</minimizeJar>
-              <artifactSet>
-                <includes>
-                  <include>org.apache.qpid:proton-j</include>
-                </includes>
-              </artifactSet>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- Specify that we want findbugs code analysis for the compile phase -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>

@@ -34,9 +34,8 @@
       <outputDirectory>mqlight-${version}</outputDirectory>
     </file>
     <file>
-      <source>${basedir}/../mqlight/dependency-reduced-pom.xml</source>
+      <source>${basedir}/../mqlight/pom.xml</source>
       <outputDirectory>mqlight-${version}/mqlight</outputDirectory>
-      <destName>pom.xml</destName>
     </file>
     <file>
       <source>${basedir}/../mqlight-samples/pom.xml</source>
@@ -113,5 +112,4 @@
       </binaries>
     </moduleSet>
   </moduleSets>
-
 </assembly>
