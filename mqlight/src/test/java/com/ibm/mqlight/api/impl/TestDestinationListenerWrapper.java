@@ -159,7 +159,7 @@ public class TestDestinationListenerWrapper {
         wrapper.onUnsubscribed(new MockCallbackService(), "", "", null);
     }
 
-    private byte[] createSerializedProtonMessage(AmqpValue body, String topic, long ttl, Map<String, String> properties, Map<Symbol, Object> annotations, String contentType) {
+    public static byte[] createSerializedProtonMessage(AmqpValue body, String topic, long ttl, Map<String, String> properties, Map<Symbol, Object> annotations, String contentType) {
         org.apache.qpid.proton.message.Message protonMsg = Proton.message();
         protonMsg.setBody(body);
         protonMsg.setAddress("amqp:///" + topic);

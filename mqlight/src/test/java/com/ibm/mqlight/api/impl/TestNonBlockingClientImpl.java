@@ -35,10 +35,11 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.AssertionFailedError;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
@@ -60,8 +61,10 @@ import com.ibm.mqlight.api.NonBlockingClientListener;
 import com.ibm.mqlight.api.Promise;
 import com.ibm.mqlight.api.QOS;
 import com.ibm.mqlight.api.SendOptions;
+import com.ibm.mqlight.api.StateException;
 import com.ibm.mqlight.api.StoppedException;
 import com.ibm.mqlight.api.SubscribeOptions;
+import com.ibm.mqlight.api.SubscribeOptions.SubscribeOptionsBuilder;
 import com.ibm.mqlight.api.SubscribedException;
 import com.ibm.mqlight.api.UnsubscribedException;
 import com.ibm.mqlight.api.callback.CallbackService;
@@ -72,6 +75,7 @@ import com.ibm.mqlight.api.impl.callback.SameThreadCallbackService;
 import com.ibm.mqlight.api.impl.engine.CloseRequest;
 import com.ibm.mqlight.api.impl.engine.CloseResponse;
 import com.ibm.mqlight.api.impl.engine.DeliveryRequest;
+import com.ibm.mqlight.api.impl.engine.DeliveryResponse;
 import com.ibm.mqlight.api.impl.engine.DisconnectNotification;
 import com.ibm.mqlight.api.impl.engine.EngineConnection;
 import com.ibm.mqlight.api.impl.engine.OpenRequest;
@@ -83,6 +87,8 @@ import com.ibm.mqlight.api.impl.engine.SubscribeResponse;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeRequest;
 import com.ibm.mqlight.api.impl.engine.UnsubscribeResponse;
 import com.ibm.mqlight.api.timer.TimerService;
+
+import junit.framework.AssertionFailedError;
 
 public class TestNonBlockingClientImpl {
 
@@ -810,20 +816,62 @@ public class TestNonBlockingClientImpl {
         }
     }
 
-    private class MockCompletionListener implements CompletionListener<Object> {
-        protected boolean onSuccessCalled = false;
-        protected boolean onErrorCalled = false;
-        protected Exception onErrorException = null;
+    private class MockCompletionListener implements CompletionListener<Void> {
+        private final CountDownLatch latch = new CountDownLatch(1);
+        private final AtomicBoolean success = new AtomicBoolean(true);
+        private final AtomicReference<Exception> exception = new AtomicReference<>();
 
         @Override
-        public void onSuccess(NonBlockingClient client, Object context) {
-          onSuccessCalled = true;
+        public void onSuccess(NonBlockingClient client, Void context) {
+            success.set(true);
+            latch.countDown();
         }
 
         @Override
-        public void onError(NonBlockingClient client, Object context, Exception exception) {
-          onErrorCalled = true;
-          onErrorException = exception;
+        public void onError(NonBlockingClient client, Void context, Exception exception) {
+            success.set(false);
+            this.exception.set(exception);
+            latch.countDown();
+        }
+
+        private void assertComplete(long timeout, TimeUnit unit) {
+            try {
+                assertTrue("Listener not completed within " + timeout + " " + unit,
+                        latch.await(Math.max(0, timeout), unit));
+             } catch(InterruptedException e) {
+                 throw new AssertionError("Thread interrupted!", e);
+             }
+        }
+
+        public void assertSuccess(long timeout, TimeUnit unit) {
+            assertComplete(timeout, unit);
+            if (!success.get()) {
+                AssertionError ae = new AssertionError("Listener not called to indicate successful completion");
+                if (exception.get() != null) {
+                    ae.initCause(exception.get());
+                }
+                throw ae;
+            }
+        }
+
+        public void assertSuccess() {
+            assertSuccess(0, TimeUnit.SECONDS);
+        }
+
+        public void assertFailure() {
+            assertComplete(0, TimeUnit.SECONDS);
+            assertFalse("Listener not called to indicate failed completion", success.get());
+        }
+
+        public void assertFailure(Class<? extends Exception> expectedExceptionClass) {
+            assertFailure();
+            assertNotNull("No exception was passed to the listener", exception.get());
+            assertEquals("Unexpected type of exception passed to listener",
+                    expectedExceptionClass, exception.get().getClass());
+        }
+
+        public Exception getException() {
+            return exception.get();
         }
     }
 
@@ -839,13 +887,13 @@ public class TestNonBlockingClientImpl {
         assertEquals(ClientState.STARTED, client.getState());
 
         MockCompletionListener inflightListener = new MockCompletionListener();
-        client.subscribe("inflight/kittens", new DestinationAdapter<Object>() {}, inflightListener, null);
+        client.subscribe("inflight/kittens", new DestinationAdapter<Void>() {}, inflightListener, null);
 
         client.tell(new DisconnectNotification(engineConnection, new ClientException("you got disconnected!")), engine);
         assertEquals(ClientState.RETRYING, client.getState());
 
         MockCompletionListener queuedListener = new MockCompletionListener();
-        client.subscribe("queued/kittens", new DestinationAdapter<Object>() {}, queuedListener, null);
+        client.subscribe("queued/kittens", new DestinationAdapter<Void>() {}, queuedListener, null);
 
         client.stop(null, null);
         assertEquals(3, engine.getMessages().size());
@@ -854,13 +902,8 @@ public class TestNonBlockingClientImpl {
         client.tell(new OpenResponse(openRequest, new ClientException("")), engine);
         assertEquals(ClientState.STOPPED, client.getState());
 
-        assertFalse(inflightListener.onSuccessCalled);
-        assertTrue(inflightListener.onErrorCalled);
-        assertTrue(inflightListener.onErrorException instanceof StoppedException);
-
-        assertFalse(queuedListener.onSuccessCalled);
-        assertTrue(queuedListener.onErrorCalled);
-        assertTrue(queuedListener.onErrorException instanceof StoppedException);
+        inflightListener.assertFailure(StoppedException.class);
+        queuedListener.assertFailure(StoppedException.class);
     }
 
     @Test
@@ -885,7 +928,7 @@ public class TestNonBlockingClientImpl {
         SendRequest sendRequest = (SendRequest)engine.getMessages().get(1);
 
         client.tell(new SendResponse(sendRequest, null), engine);
-        assertTrue("Completion listener for send should have been called", compListener.onSuccessCalled);
+        compListener.assertSuccess();
     }
 
     @Test
@@ -911,8 +954,9 @@ public class TestNonBlockingClientImpl {
 
         final Exception exception = new Exception("something nasty, I'm sure");
         client.tell(new SendResponse(sendRequest, exception), engine);
-        assertTrue("Completion listener for send should have been called", compListener.onErrorCalled);
-       assertEquals("Exception passed to completion listener should match", exception, compListener.onErrorException);
+
+        compListener.assertFailure();
+        assertEquals("Exception passed to completion listener should match", exception, compListener.getException());
     }
 
     @Test
@@ -994,19 +1038,14 @@ public class TestNonBlockingClientImpl {
         // If the client is stopped with messages in-flight (e.g. potentially sent to the server) then expect:
         // a) QOS 0 to be marked as success (as the client delivers them 'at most once' and so is optimistic...)
         // b) QOS 1 to be marked as failure (as the client delivers them 'at least once' and so is pessimistic...)
-        assertTrue(inflightQos0Listener.onSuccessCalled);
-        assertNull(inflightQos0Listener.onErrorException);
-        assertTrue(inflightQos1Listener.onErrorCalled);
-        assertTrue(inflightQos1Listener.onErrorException instanceof StoppedException);
+        inflightQos0Listener.assertSuccess();
+        inflightQos1Listener.assertFailure(StoppedException.class);
 
         // If the client has queued (but never attempted to send) a message then stopping will always result
         // in the application being notified that the operation failed - as the client can be sure that the
         // message has never been sent.
-        assertTrue(queuedQos0Listener.onErrorCalled);
-        assertTrue(queuedQos1Listener.onErrorCalled);
-
-        assertTrue(queuedQos0Listener.onErrorException instanceof StoppedException);
-        assertTrue(queuedQos1Listener.onErrorException instanceof StoppedException);
+        queuedQos0Listener.assertFailure(StoppedException.class);
+        queuedQos1Listener.assertFailure(StoppedException.class);
     }
 
     private org.apache.qpid.proton.message.Message decodeProtonMessage(InternalSend<?> send) {
@@ -1121,5 +1160,262 @@ public class TestNonBlockingClientImpl {
         Thread.sleep(100L);
         // expect breakInboundLinks to complete quickly
         client.breakInboundLinks();
+    }
+
+    // Test that trying to unsubscibe from within a callback to notify the client that it has
+    // completed a subscribe operation works as expected.
+    @Test
+    public void testUnsubscribeFromWithinSubscribeCallback() throws Exception {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        final NonBlockingClientImpl client = openCommon(engine, listener);
+        EngineConnection engineConnection = new EngineConnection();
+
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+
+        final Semaphore done = new Semaphore(0);
+        SubscribeOptions subOpts = SubscribeOptions.builder()
+                .setQos(QOS.AT_LEAST_ONCE)
+                .build();
+
+        final MockCompletionListener unsubscribeListener = new MockCompletionListener();
+
+        client.subscribe("/kittens", subOpts, new DestinationAdapter<Void>() {}, new CompletionListener<Void>() {
+            @Override
+            public void onSuccess(NonBlockingClient client2, Void context) {
+                client.unsubscribe("/kittens", unsubscribeListener, null);
+                done.release();
+            }
+
+            @Override
+            public void onError(NonBlockingClient client, Void context,
+                    Exception exception) {
+                done.release();
+            }
+
+        }, null);
+
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null)), engine);
+        assertTrue("Client failed to subscribe within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));
+
+        LinkedList<Message> messages = engine.getMessages();
+        assertEquals("Engine received wrong number of events", 3, messages.size());
+        assertEquals("Event #1 should have been OpenRequest", OpenRequest.class, messages.get(0).getClass());
+        assertEquals("Event #2 should have been SubscribeRequest", SubscribeRequest.class, messages.get(1).getClass());
+        assertEquals("Event #3 should have been UnsubscribeResponse", UnsubscribeRequest.class, messages.get(2).getClass());
+
+        client.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null), null), engine);
+        unsubscribeListener.assertSuccess();
+    }
+
+    // Test that trying to stop the client from within a callback to notify the client that it has
+    // completed a subscribe operation works as expected.
+    @Test
+    public void testStopFromWithinSubscribeCallback() throws Exception {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        final NonBlockingClientImpl client = openCommon(engine, listener);
+        EngineConnection engineConnection = new EngineConnection();
+
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+
+        final Semaphore done = new Semaphore(0);
+        SubscribeOptions subOpts = SubscribeOptions.builder()
+                .setQos(QOS.AT_LEAST_ONCE)
+                .build();
+
+        final MockCompletionListener stopListener = new MockCompletionListener();
+
+        client.subscribe("/kittens", subOpts, new DestinationAdapter<Void>() {}, new CompletionListener<Void>() {
+            @Override
+            public void onSuccess(NonBlockingClient client2, Void context) {
+                client.stop(stopListener, null);
+                done.release();
+            }
+
+            @Override
+            public void onError(NonBlockingClient client, Void context,
+                    Exception exception) {
+                done.release();
+            }
+
+        }, null);
+
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null)), engine);
+        assertTrue("Client failed to subscribe within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));
+
+        LinkedList<Message> messages = engine.getMessages();
+        assertEquals("Engine received wrong number of events", 3, messages.size());
+        assertEquals("Event #1 should have been OpenRequest", OpenRequest.class, messages.get(0).getClass());
+        assertEquals("Event #2 should have been SubscribeRequest", SubscribeRequest.class, messages.get(1).getClass());
+        assertEquals("Event #3 should have been CloseRequest", CloseRequest.class, messages.get(2).getClass());
+
+        client.tell(new CloseResponse((CloseRequest)messages.get(2)), engine);
+        stopListener.assertSuccess();
+    }
+
+    private void unsubscribeFromWithinMessageCallbackTemplate(QOS qos, final boolean shared, boolean autoConfirm,
+            final boolean confirmBeforeUnsubscribe, final boolean confirmAfterUnsubscribe) throws Exception {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        final NonBlockingClientImpl client = openCommon(engine, listener);
+        EngineConnection engineConnection = new EngineConnection();
+
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+
+        SubscribeOptionsBuilder subOptsBuilder = SubscribeOptions.builder();
+        subOptsBuilder.setQos(qos);
+        if (qos == QOS.AT_LEAST_ONCE) {
+            subOptsBuilder.setAutoConfirm(autoConfirm);
+        }
+        if (shared) {
+            subOptsBuilder.setShare("share");
+        }
+        SubscribeOptions subOpts = subOptsBuilder.build();
+
+        final Semaphore done = new Semaphore(0);
+        final MockCompletionListener subscribeListener = new MockCompletionListener();
+        final MockCompletionListener unsubscribeListener = new MockCompletionListener();
+        client.subscribe("/kittens", subOpts, new DestinationAdapter<Void>() {
+            @Override
+            public void onMessage(NonBlockingClient client2, Void context, Delivery delivery) {
+                if (confirmBeforeUnsubscribe) {
+                    delivery.confirm();
+                }
+                if (shared) {
+                    client.unsubscribe("/kittens", "share", unsubscribeListener, null);
+                } else {
+                    client.unsubscribe("/kittens", unsubscribeListener, null);
+                }
+                if (confirmAfterUnsubscribe) {
+                    delivery.confirm();
+                }
+                done.release();
+            }
+        }, subscribeListener, null);
+
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", shared ? "share" : null)), engine);
+        subscribeListener.assertSuccess();
+
+        byte[] amqpMessageData = TestDestinationListenerWrapper.createSerializedProtonMessage(
+                new AmqpValue(new Binary(new byte[]{1})), "/kittens", 0, null, null, null);
+        client.tell(new DeliveryRequest(amqpMessageData, qos,
+                shared ? "share:share:/kittens" : "private:/kittens", null, null), engine);
+        assertTrue("Client failed to receive message within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));
+
+        LinkedList<Message> messages = engine.getMessages();
+        boolean notConfirmed = (qos == QOS.AT_LEAST_ONCE) && !autoConfirm && !confirmBeforeUnsubscribe && !confirmAfterUnsubscribe;
+        assertEquals("Engine received wrong number of events", notConfirmed ? 3 : 4, messages.size());
+        int i = 0;
+        assertEquals("Event #" + (i + 1) + " should have been OpenRequest", OpenRequest.class, messages.get(i++).getClass());
+        assertEquals("Event #" + (i + 1) + " should have been SubscribeRequest", SubscribeRequest.class, messages.get(i++).getClass());
+        if (!notConfirmed) {
+            assertEquals("Event #" + (i + 1) + " should have been DeliveryResponse", DeliveryResponse.class, messages.get(i++).getClass());
+        }
+        assertEquals("Event #" + (i + 1) + " should have been UnsubscribeRequest", UnsubscribeRequest.class, messages.get(i++).getClass());
+
+        client.tell(messages.get(2), engine);
+        client.tell(new UnsubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", shared ? "share" : null), null), engine);
+        unsubscribeListener.assertSuccess();
+    }
+
+    // Test unsubscribing from a destination within the onMessage callback, using a variety of different
+    // stating conditions (e.g. QOS 0 vs QOS1, shared vs private subscriptions, etc).
+    @Test
+    public void testUnsubscribeFromWithinMessageCallback() throws Exception {
+        // Unsubscribing from an AT_MOST_ONCE private subscription
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_MOST_ONCE, false, false, false, false);
+
+        // Unsubscribing from an AT_MOST_ONCE shared subscription
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_MOST_ONCE, true, false, false, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE private subscription with auto-confirm
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, false, true, false, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE private subscription without confirming the message
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, false, false, false, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE private subscription, confirming prior to unsubscribe
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, false, false, true, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE private subscription, confirming after the unsubscribe
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, false, false, false, true);
+
+        // Unsubscribing from an AT_LEAST_ONCE shared subscription without confirming the message
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, true, false, false, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE shared subscription, confirming prior to unsubscribe
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, true, false, true, false);
+
+        // Unsubscribing from an AT_LEAST_ONCE shared subscription, confirming after the unsubscribe
+        unsubscribeFromWithinMessageCallbackTemplate(QOS.AT_LEAST_ONCE, true, false, false, true);
+    }
+
+    public void unsubscribeBeforeConfirmedMessageReceiptTemplate(final boolean autoConfirm) throws Exception {
+        MockComponent engine = new MockComponent();
+        MockNonBlockingClientListener listener = new MockNonBlockingClientListener(false);
+        final NonBlockingClientImpl client = openCommon(engine, listener);
+        EngineConnection engineConnection = new EngineConnection();
+
+        OpenRequest openRequest = (OpenRequest)engine.getMessages().get(0);
+        client.tell(new OpenResponse(openRequest, engineConnection), engine);
+
+        SubscribeOptions subOpts = SubscribeOptions.builder()
+                .setQos(QOS.AT_LEAST_ONCE)
+                .setAutoConfirm(autoConfirm)
+                .build();
+
+        final Semaphore done = new Semaphore(0);
+        final AtomicBoolean confirmThrewException = new AtomicBoolean();
+        final MockCompletionListener subscribeListener = new MockCompletionListener();
+
+        client.subscribe("/kittens", subOpts, new DestinationAdapter<Void>() {
+            @Override
+            public void onMessage(NonBlockingClient client2, Void context, Delivery delivery) {
+                if (!autoConfirm) {
+                    try {
+                        delivery.confirm();
+                    } catch(StateException e) {
+                        confirmThrewException.set(true);
+                    }
+                }
+                done.release();
+            }
+        }, subscribeListener, null);
+
+        client.tell(new SubscribeResponse(engineConnection, new SubscriptionTopic("/kittens", null)), engine);
+        subscribeListener.assertSuccess();
+
+        client.unsubscribe("/kittens", null, null);
+
+        byte[] amqpMessageData = TestDestinationListenerWrapper.createSerializedProtonMessage(
+                new AmqpValue(new Binary(new byte[]{1})), "/kittens", 0, null, null, null);
+        client.tell(new DeliveryRequest(amqpMessageData, QOS.AT_LEAST_ONCE, "private:/kittens", null, null), engine);
+
+        assertTrue("Client failed to receive message within timeout. ", done.tryAcquire(4, TimeUnit.SECONDS));
+        if (!autoConfirm) {
+            assertEquals("Confirm failed to throw exception", true, confirmThrewException.get());
+        }
+
+        LinkedList<Message> messages = engine.getMessages();
+        assertEquals("Engine received wrong number of events", 3, messages.size());
+        assertEquals("Event #1 should have been OpenRequest", OpenRequest.class, messages.get(0).getClass());
+        assertEquals("Event #2 should have been SubscribeRequest", SubscribeRequest.class, messages.get(1).getClass());
+        assertEquals("Event #3 should have been UnsubscribeRequest", UnsubscribeRequest.class, messages.get(2).getClass());
+    }
+
+    // Test unsubscribing just before a message arrives at the onMessage callback.  When
+    // 'autoConfirm' is enabled, no attempt should be made to confirm the message (and no
+    // error should be reported). When 'autoConfirm' is disabled, attempting to confirm
+    // the message should cause an exception to be thrown.
+    @Test
+    public void testUnsubscribeBeforeConfirmedMessageReceipt() throws Exception {
+
+        unsubscribeBeforeConfirmedMessageReceiptTemplate(true);
+
+        unsubscribeBeforeConfirmedMessageReceiptTemplate(false);
     }
 }
