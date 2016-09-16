@@ -805,7 +805,7 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
                     }
                     UnsubscribedException se = new UnsubscribedException(errMsg);
                     iu.future.setFailure(se);
-                } else if (sd.pending.isEmpty() && sd.pendingDeliveries.isEmpty()) {
+                } else if (sd.pending.isEmpty()) {
                     if (sd.state == SubData.State.ATTACHING) {
                         pendingWork.addLast(iu);
                     } else if (sd.state == SubData.State.DETATCHING) {
@@ -1308,11 +1308,13 @@ public class NonBlockingClientImpl extends NonBlockingClient implements FSMActio
         boolean result = false;
         if (sd == null) {
             logger.data(methodName, "subscribedDestination not found for " + request.topicPattern);
-        } else {
+        } else if (sd.state == SubData.State.ESTABLISHED) {
             result = (request.qos == QOS.AT_MOST_ONCE || sd.pendingDeliveries.contains(request));
             if (result) {
                 engine.tell(new DeliveryResponse(request), this);
             }
+        } else {
+            logger.data(methodName, "subscription not in ESTABLISHED state for: " + sd);
         }
 
         logger.exit(this, methodName, result);
