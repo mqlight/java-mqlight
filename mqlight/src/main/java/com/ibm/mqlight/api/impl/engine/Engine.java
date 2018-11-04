@@ -728,124 +728,8 @@ public class Engine extends ComponentImpl implements Handler {
         logger.exit(this, methodName);
     }
 
-    @Override
-    public void onConnectionInit(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onConnectionLocalOpen(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onConnectionRemoteOpen(Event e) {
-      processEventConnectionRemoteState(e);
-    }
-
-    @Override
-    public void onConnectionLocalClose(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onConnectionRemoteClose(Event e) {
-      processEventConnectionRemoteState(e);
-    }
-
-    @Override
-    public void onConnectionBound(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onConnectionUnbound(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onConnectionFinal(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onSessionInit(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onSessionLocalOpen(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onSessionRemoteOpen(Event e) {
-      processEventSessionRemoteState(e);
-    }
-
-    @Override
-    public void onSessionLocalClose(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onSessionRemoteClose(Event e) {
-      processEventSessionRemoteState(e);
-    }
-
-    @Override
-    public void onSessionFinal(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onLinkInit(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onLinkLocalOpen(Event e) {
-      processEventLinkLocalState(e);
-    }
-
-    @Override
-    public void onLinkRemoteOpen(Event e) {
-      processEventLinkRemoteState(e);
-    }
-
-    @Override
-    public void onLinkLocalDetach(Event e) {
-      processEventLinkLocalState(e);
-    }
-
-    @Override
-    public void onLinkRemoteDetach(Event e) {
-      processEventLinkRemoteState(e);
-    }
-
-    @Override
-    public void onLinkLocalClose(Event e) {
-      processEventLinkLocalState(e);
-    }
-
-    @Override
-    public void onLinkRemoteClose(Event e) {
-      processEventLinkRemoteState(e);
-    }
-
-    @Override
-    public void onLinkFlow(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onLinkFinal(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onDelivery(Event event) {
-      final String methodName = "onDelivery";
+    private void processEventDelivery(Event event) {
+      final String methodName = "processEventDelivery";
       logger.entry(this, methodName, event);
 
       EngineConnection engineConnection = (EngineConnection)event.getConnection().getContext();
@@ -888,31 +772,6 @@ public class Engine extends ComponentImpl implements Handler {
     }
 
     @Override
-    public void onTransport(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onTransportError(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onTransportHeadClosed(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onTransportTailClosed(Event e) {
-      // No action required
-    }
-
-    @Override
-    public void onTransportClosed(Event e) {
-      // No action required
-    }
-
-    @Override
     public void onUnhandled(Event e) {
       final IllegalStateException exception = new IllegalStateException("Unknown event type: " + e.getType());
       logger.throwing(this, "onUnhandled", exception);
@@ -937,20 +796,6 @@ public class Engine extends ComponentImpl implements Handler {
 
     private HashSet<Handler> children = new HashSet<Handler>();
 
-    @Override public void onReactorInit(Event e) { onUnhandled(e); }
-    @Override public void onReactorQuiesced(Event e) { onUnhandled(e); }
-    @Override public void onReactorFinal(Event e) { onUnhandled(e); }
-
-    @Override public void onTimerTask(Event e) { onUnhandled(e); }
-
-    @Override public void onSelectableInit(Event e) { onUnhandled(e); }
-    @Override public void onSelectableUpdated(Event e) { onUnhandled(e); }
-    @Override public void onSelectableReadable(Event e) { onUnhandled(e); }
-    @Override public void onSelectableWritable(Event e) { onUnhandled(e); }
-    @Override public void onSelectableExpired(Event e) { onUnhandled(e); }
-    @Override public void onSelectableError(Event e) { onUnhandled(e); }
-    @Override public void onSelectableFinal(Event e) { onUnhandled(e); }
-
     @Override
     public void add(Handler child) {
         children.add(child);
@@ -959,5 +804,52 @@ public class Engine extends ComponentImpl implements Handler {
     @Override
     public Iterator<Handler> children() {
         return children.iterator();
+    }
+
+    @Override
+    public void handle(Event event) {
+        final String methodName = "handle";
+        logger.entry(this, methodName, event);
+
+        switch ((Event.Type)event.getEventType()) {
+        case CONNECTION_REMOTE_OPEN:
+        case CONNECTION_REMOTE_CLOSE:
+            processEventConnectionRemoteState(event);
+            break;
+        case SESSION_REMOTE_OPEN:
+        case SESSION_REMOTE_CLOSE:
+            processEventSessionRemoteState(event);
+            break;
+        case LINK_LOCAL_OPEN:
+        case LINK_LOCAL_DETACH:
+        case LINK_LOCAL_CLOSE:
+            processEventLinkLocalState(event);
+            break;
+        case LINK_REMOTE_OPEN:
+        case LINK_REMOTE_DETACH:
+        case LINK_REMOTE_CLOSE:
+            processEventLinkRemoteState(event);
+            break;
+        case DELIVERY:
+            processEventDelivery(event);
+            break;
+        case REACTOR_INIT:
+        case REACTOR_QUIESCED:
+        case REACTOR_FINAL:
+        case TIMER_TASK:
+        case SELECTABLE_INIT:
+        case SELECTABLE_UPDATED:
+        case SELECTABLE_READABLE:
+        case SELECTABLE_WRITABLE:
+        case SELECTABLE_EXPIRED:
+        case SELECTABLE_ERROR:
+        case SESSION_FINAL:
+            onUnhandled(event);
+            break;
+        default:
+            // No action required
+            break;
+        }
+        logger.exit(this, methodName);
     }
 }
